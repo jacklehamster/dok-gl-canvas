@@ -1,4 +1,4 @@
-# dok-lib
+# dok-gl-canvas
 
 > Made with create-react-library
 
