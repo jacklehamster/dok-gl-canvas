@@ -1,10 +1,10 @@
 {
-   "name": "dok-lib",
+   "name": "dok-gl-canvas",
    "version": "1.0.8",
    "description": "Made with create-react-library",
    "author": "jacklehamster",
    "license": "MIT",
-   "repository": "jacklehamster/dok-lib",
+   "repository": "jacklehamster/dok-gl-canvas",
    "main": "dist/index.js",
    "module": "dist/index.modern.js",
    "source": "src/index.tsx",
@@ -72,5 +72,5 @@
    "files": [
       "dist"
    ],
-   "homepage": "https://github.com/jacklehamster/dok-lib#readme"
+   "homepage": "https://github.com/jacklehamster/dok-gl-canvas#readme"
 }
