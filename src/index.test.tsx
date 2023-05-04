@@ -1,7 +1,7 @@
-import { ExampleComponent } from '.'
+import { GLCanvas } from '.'
 
-describe('ExampleComponent', () => {
+describe('GLCanvas', () => {
   it('is truthy', () => {
-    expect(ExampleComponent).toBeTruthy()
+    expect(GLCanvas).toBeTruthy()
   })
 })

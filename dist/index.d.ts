@@ -1,8 +1,5 @@
-/// <reference types="react" />
-export declare function hookUp(hud: HTMLDivElement): void;
-interface Props {
-    text: string;
-}
-export declare const ExampleComponent: ({ text }: Props) => JSX.Element;
-export declare function hello(): void;
-export {};
+import GLCanvasExport, { Props } from "./GLCanvas";
+import { Controller } from "./control/controller";
+import { GlController } from "./control/gl-controller";
+export declare function hookupCanvas(div: HTMLDivElement, props?: Props, controller?: Controller & GlController): void;
+export declare const GLCanvas: typeof GLCanvasExport;

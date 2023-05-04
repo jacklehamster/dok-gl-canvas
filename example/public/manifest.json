@@ -1,6 +1,6 @@
 {
-  "short_name": "dok-lib",
-  "name": "dok-lib",
+  "short_name": "dok-gl-canvas",
+  "name": "dok-gl-canvas",
   "icons": [
     {
       "src": "favicon.ico",

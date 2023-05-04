@@ -1,20 +1,10 @@
-import * as React from 'react'
-import styles from './styles.module.css'
-import * as ReactDOMClient from 'react-dom/client'
+import ReactHook from "./ReactHook";
+import GLCanvasExport, { Props } from "./GLCanvas";
+import { Controller } from "./control/controller";
+import { GlController } from "./control/gl-controller";
 
-export function hookUp(hud: HTMLDivElement) {
-  const hudRoot = ReactDOMClient.createRoot(hud)
-  hudRoot.render(<ExampleComponent text='testing' />)
+export function hookupCanvas(div: HTMLDivElement, props?: Props, controller?: Controller & GlController) {
+  ReactHook.hookup(div, GLCanvas, { ...props, controller }, controller);
 }
 
-interface Props {
-  text: string
-}
-
-export const ExampleComponent = ({ text }: Props) => {
-  return <div className={styles.test}>Example Component: {text}</div>
-}
-
-export function hello() {
-  console.log('hello')
-}
+export const GLCanvas = GLCanvasExport;
