@@ -8,7 +8,6 @@ export interface Props {
     webglAttributes?: WebGLContextAttributes;
     initialProgram?: ProgramId;
     programs?: ProgramConfig[];
-    showDebugInfo?: boolean;
     controller?: GlController;
 }
 export default function GLCanvas(props?: Props): JSX.Element;

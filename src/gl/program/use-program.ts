@@ -7,12 +7,11 @@ interface Props {
     gl?: WebGL2RenderingContext;
     initialProgram?: ProgramId;
     programs?: ProgramConfig[];
-    showDebugInfo?: boolean;
     controller?: GlController;
 }
 
-export function useProgram({ gl, initialProgram, programs, showDebugInfo, controller }: Props) {
-    const { createProgram, removeProgram } = useShader({ gl, showDebugInfo });
+export function useProgram({ gl, initialProgram, programs, controller }: Props) {
+    const { createProgram, removeProgram } = useShader({ gl });
     const [programResults, setProgramResults] = useState<Record<ProgramId, ProgramResult>>({});
     const [usedProgram, setUsedProgram] = useState<WebGLProgram | undefined>();
 

@@ -88,7 +88,6 @@ const onChange = ({gl, getAttributeLocation}: GlConfig): undefined => {
 
 const App = () => {
   return <GLCanvas
-    showDebugInfo={true}
     programs={[{
         id: "sample-multicolor",
         vertex,

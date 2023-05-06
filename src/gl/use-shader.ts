@@ -5,7 +5,6 @@ let nextId = 1;
 
 interface Props {
     gl?: WebGL2RenderingContext;
-    showDebugInfo?: boolean;
 }
 
 export interface ProgramResult {
@@ -14,7 +13,7 @@ export interface ProgramResult {
     ready?: boolean;
 }
 
-export function useShader({ gl, showDebugInfo }: Props) {
+export function useShader({ gl }: Props) {
     const typeName = useCallback((type: number) => {
         return type == gl?.VERTEX_SHADER ? "vertex" :
             type === gl?.FRAGMENT_SHADER ? "fragment" :
@@ -68,22 +67,16 @@ export function useShader({ gl, showDebugInfo }: Props) {
             id: nextId++,
             program,
         };
-        if (showDebugInfo) {
-            console.log(`Program ${result.id} created.`);
-        }
         return result;
-    }, [gl, showDebugInfo]);
+    }, [gl]);
 
     const removeProgram = useCallback((programResult: ProgramResult) => {
         if (!gl) {
             return;
         }
         gl.deleteProgram(programResult.program);
-        if (showDebugInfo) {
-            console.log(`Program ${programResult.id} destroyed.`);
-        }
         programResult.program = 0;
-    }, [gl, showDebugInfo]);
+    }, [gl]);
 
     return {
         createProgram,

@@ -12,15 +12,14 @@ export interface Props {
     webglAttributes?: WebGLContextAttributes;
     initialProgram?: ProgramId;
     programs?: ProgramConfig[];
-    showDebugInfo?: boolean;
     controller?: GlController;
 }
 
 export default function GLCanvas(props?: Props): JSX.Element {
-    const { pixelRatio = devicePixelRatio, onChange, showDebugInfo, controller, initialProgram, webglAttributes } = props ?? {};
+    const { pixelRatio = devicePixelRatio, onChange, controller, initialProgram, webglAttributes } = props ?? {};
     const canvasRef: RefObject<HTMLCanvasElement> = React.useRef<HTMLCanvasElement>(null);
     const gl = useGL({ canvasRef, webglAttributes });
-    const { usedProgram, getAttributeLocation, getUniformLocation } = useProgram({ gl, initialProgram, programs: props?.programs, showDebugInfo, controller });
+    const { usedProgram, getAttributeLocation, getUniformLocation } = useProgram({ gl, initialProgram, programs: props?.programs, controller });
     const { width, height } = useCanvasSize({ gl, canvasRef, pixelRatio })
     const [change, setChange] = useState<OnChange | undefined>(() => onChange);
 
@@ -40,7 +39,7 @@ export default function GLCanvas(props?: Props): JSX.Element {
 
     useEffect(() => {
         if (controller) {
-            controller.setOnChange = (refreshMethod: OnChange) => setChange(() => refreshMethod);
+            controller.setOnChange = setChange;
         }
     }, [controller, setChange]);
 

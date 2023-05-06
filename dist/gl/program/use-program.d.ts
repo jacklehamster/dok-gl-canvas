@@ -4,10 +4,9 @@ interface Props {
     gl?: WebGL2RenderingContext;
     initialProgram?: ProgramId;
     programs?: ProgramConfig[];
-    showDebugInfo?: boolean;
     controller?: GlController;
 }
-export declare function useProgram({ gl, initialProgram, programs, showDebugInfo, controller }: Props): {
+export declare function useProgram({ gl, initialProgram, programs, controller }: Props): {
     usedProgram: WebGLProgram | undefined;
     getAttributeLocation: (name: string, programId?: string | undefined) => number;
     getUniformLocation: (name: string, programId?: string | undefined) => WebGLUniformLocation | undefined;

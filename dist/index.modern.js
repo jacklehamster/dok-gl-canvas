@@ -31913,8 +31913,7 @@ function useCanvasSize(_ref) {
 
 var nextId = 1;
 function useShader(_ref) {
-  var gl = _ref.gl,
-    showDebugInfo = _ref.showDebugInfo;
+  var gl = _ref.gl;
   var typeName = useCallback(function (type) {
     return type == (gl === null || gl === void 0 ? void 0 : gl.VERTEX_SHADER) ? "vertex" : type === (gl === null || gl === void 0 ? void 0 : gl.FRAGMENT_SHADER) ? "fragment" : undefined;
   }, [gl]);
@@ -31962,21 +31961,15 @@ function useShader(_ref) {
       id: nextId++,
       program: program
     };
-    if (showDebugInfo) {
-      console.log("Program " + result.id + " created.");
-    }
     return result;
-  }, [gl, showDebugInfo]);
+  }, [gl]);
   var removeProgram = useCallback(function (programResult) {
     if (!gl) {
       return;
     }
     gl.deleteProgram(programResult.program);
-    if (showDebugInfo) {
-      console.log("Program " + programResult.id + " destroyed.");
-    }
     programResult.program = 0;
-  }, [gl, showDebugInfo]);
+  }, [gl]);
   return {
     createProgram: createProgram,
     removeProgram: removeProgram
@@ -31987,11 +31980,9 @@ function useProgram(_ref) {
   var gl = _ref.gl,
     initialProgram = _ref.initialProgram,
     programs = _ref.programs,
-    showDebugInfo = _ref.showDebugInfo,
     controller = _ref.controller;
   var _useShader = useShader({
-      gl: gl,
-      showDebugInfo: showDebugInfo
+      gl: gl
     }),
     createProgram = _useShader.createProgram,
     removeProgram = _useShader.removeProgram;
@@ -32088,7 +32079,6 @@ function GLCanvas(props) {
     _ref$pixelRatio = _ref.pixelRatio,
     pixelRatio = _ref$pixelRatio === void 0 ? devicePixelRatio : _ref$pixelRatio,
     onChange = _ref.onChange,
-    showDebugInfo = _ref.showDebugInfo,
     controller = _ref.controller,
     initialProgram = _ref.initialProgram,
     webglAttributes = _ref.webglAttributes;
@@ -32101,7 +32091,6 @@ function GLCanvas(props) {
       gl: gl,
       initialProgram: initialProgram,
       programs: props === null || props === void 0 ? void 0 : props.programs,
-      showDebugInfo: showDebugInfo,
       controller: controller
     }),
     usedProgram = _useProgram.usedProgram,
@@ -32137,11 +32126,7 @@ function GLCanvas(props) {
   }, [usedProgram, change, glConfig]);
   useEffect(function () {
     if (controller) {
-      controller.setOnChange = function (refreshMethod) {
-        return setChange(function () {
-          return refreshMethod;
-        });
-      };
+      controller.setOnChange = setChange;
     }
   }, [controller, setChange]);
   return React.createElement("canvas", {
