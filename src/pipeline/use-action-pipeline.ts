@@ -20,6 +20,9 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
     const { updateUniformTimer } = useUniformAction({ gl, getUniformLocation });
 
     const executePipeline = useCallback((actions?: GlAction[], time: number = 0) => {
+        if (!actions?.length) {
+            return () => {};
+        }
         const cleanupActions: (() => void)[] = [];
         cleanupActions.push(bindVertexArray());
         actions?.forEach(action => {
