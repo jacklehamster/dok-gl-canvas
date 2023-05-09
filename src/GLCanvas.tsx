@@ -1,4 +1,4 @@
-import React, { CSSProperties, RefObject, useEffect, useMemo, useState } from "react";
+import React, { CSSProperties, RefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { useGL } from "./gl/use-gl";
 import { useCanvasSize } from "./dimension/use-canvas-size";
 import { ProgramConfig, ProgramId } from "./gl/program/program";
@@ -54,16 +54,20 @@ export default function GLCanvas(props?: Props): JSX.Element {
         return;
     }, [usedProgram, change, glConfig, executePipeline, pipelineActions, loopActions]);
 
+    const updateOnChange = useCallback((refreshMethod: OnChange) => {
+        setChange(() => refreshMethod);
+    }, [setChange]);
+
     useEffect(() => {
         if (controller) {
-            controller.setOnChange = setChange;
+            controller.setOnChange = updateOnChange;
             controller.clear = clear;
             controller.drawVertices = drawVertices;
             controller.setActiveProgram = setActiveProgram;
             controller.setLoopActions = setLoopActions;
             controller.setPipelineActions = setPipelineActions;
         }
-    }, [controller, setChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
+    }, [controller, updateOnChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
 
     return <canvas ref={canvasRef}
         width={width}

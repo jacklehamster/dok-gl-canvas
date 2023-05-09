@@ -32378,16 +32378,21 @@ function GLCanvas(props) {
     }
     return;
   }, [usedProgram, change, glConfig, executePipeline, pipelineActions, loopActions]);
+  var updateOnChange = React.useCallback(function (refreshMethod) {
+    setChange(function () {
+      return refreshMethod;
+    });
+  }, [setChange]);
   React.useEffect(function () {
     if (controller) {
-      controller.setOnChange = setChange;
+      controller.setOnChange = updateOnChange;
       controller.clear = clear;
       controller.drawVertices = drawVertices;
       controller.setActiveProgram = setActiveProgram;
       controller.setLoopActions = setLoopActions;
       controller.setPipelineActions = setPipelineActions;
     }
-  }, [controller, setChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
+  }, [controller, updateOnChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
   return React__default.createElement("canvas", {
     ref: canvasRef,
     width: width,
