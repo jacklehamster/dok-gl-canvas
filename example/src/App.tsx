@@ -1,100 +1,68 @@
 import React from 'react'
 
-import { GLCanvas } from 'dok-gl-canvas'
-import 'dok-gl-canvas/dist/index.css'
-import { GetAttributeLocation, GlConfig } from '../../dist/control/gl-controller';
+import { GLCanvas, GlAction } from 'dok-gl-canvas'
 
 const vertex =  `#version 300 es
+  precision highp float;
+  layout (location=0) in vec4 position;
+  layout (location=1) in vec3 color;
 
-precision highp float;
-layout (location=0) in vec4 position;
-layout (location=1) in vec3 color;
+  out vec3 vColor;
 
-out vec3 vColor;
-
-void main() {
-    vColor = color;
-    gl_Position = position;
-}
+  void main() {
+      vColor = color;
+      gl_Position = position;
+  }
 `;
 const fragment = `#version 300 es
+  precision highp float;
+  in vec3 vColor;
+  out vec4 fragColor;
 
-precision highp float;
-in vec3 vColor;
-out vec4 fragColor;
-
-void main() {
-    fragColor = vec4(vColor, 1.0);
-}
+  void main() {
+      fragColor = vec4(vColor, 1.0);
+  }
 `;
 
-function initialize(gl: WebGL2RenderingContext, getAttributeLocation: GetAttributeLocation) {
-  const triangleArray = gl.createVertexArray();
-    gl.bindVertexArray(triangleArray);
-
-    const positionLocation = getAttributeLocation("position");
-    const positions = positionLocation >= 0 ? new Float32Array([
+const actionPipeline: GlAction[] = [
+  {
+    action: "buffer-attribute",
+    location: "position",
+    buffer: [
         0.0, 0.5, 0.0,
         -0.5, -0.5, 0.0,
         0.5, -0.5, 0.0,
-    ]) : undefined;
-    const positionBuffer = positionLocation >= 0 ? gl.createBuffer() : undefined;
-    if (positionLocation >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer ?? null);
-      gl.bufferData(gl.ARRAY_BUFFER, positions ?? null, gl.STATIC_DRAW);
-      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(positionLocation);
-    }
-
-    const colorLocation = getAttributeLocation("color");
-    const colors = colorLocation >= 0 ? new Float32Array([
+    ],
+    size: 3,
+  },
+  {
+    action: "buffer-attribute",
+    location: "color",
+    buffer: [
         1.0, 0.0, 0.0,
         0.0, 1.0, 0.0,
         0.0, 0.0, 1.0
-    ]) : undefined;
-    const colorBuffer = colorLocation >= 0 ? gl.createBuffer() : undefined;
-    if (colorLocation >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer ?? null);
-      gl.bufferData(gl.ARRAY_BUFFER, colors ?? null, gl.STATIC_DRAW);
-      gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(colorLocation);
-    }
+    ],
+    size: 3,
+  },
+  {
+    action: "clear",
+    color: true,
+  },
+  {
+    action: "draw",
+    vertexCount: 3,
+  },
+];
 
-    //  Cleanup
-    return () => {
-      gl.deleteVertexArray(triangleArray);
-      gl.deleteBuffer(positionBuffer ?? null);
-      gl.deleteBuffer(colorBuffer ?? null);
-      if (positionLocation >= 0) {
-        gl.disableVertexAttribArray(positionLocation);
-      }
-      if (colorLocation >= 0) {
-        gl.disableVertexAttribArray(colorLocation);
-      }    
-    };
-}
-
-const onChange = ({gl, getAttributeLocation}: GlConfig): undefined => {
-  const cleanup = initialize(gl, getAttributeLocation);
-  ////////////////
-  // DRAW
-  ////////////////
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-  cleanup();
-  return;
-}
-
-const App = () => {
-  return <GLCanvas
+const App = () => <GLCanvas
     programs={[{
         id: "sample-multicolor",
         vertex,
         fragment,
     }]}
-    onChange={onChange}
-  />;
-}
+    actionPipeline={actionPipeline}
+/>;
+
 
 export default App

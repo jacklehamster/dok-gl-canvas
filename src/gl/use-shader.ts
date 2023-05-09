@@ -59,6 +59,7 @@ export function useShader({ gl }: Props) {
         gl.detachShader(program, fragmentShader);
         gl.deleteShader(vertexShader);
         gl.deleteShader(fragmentShader);
+        gl.validateProgram(program);
 
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
             throw new Error("Unable to initialize the shader program:\n" + gl.getProgramInfoLog(program));

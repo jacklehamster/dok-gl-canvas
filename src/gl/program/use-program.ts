@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { GlController } from "../../control/gl-controller";
 import { ProgramResult, useShader } from "../use-shader";
 import { ProgramConfig, ProgramId } from "./program";
 
@@ -7,10 +6,14 @@ interface Props {
     gl?: WebGL2RenderingContext;
     initialProgram?: ProgramId;
     programs?: ProgramConfig[];
-    controller?: GlController;
 }
 
-export function useProgram({ gl, initialProgram, programs, controller }: Props) {
+export interface ActiveProgramAction {
+    action: "active-program";
+    id: ProgramId;
+}
+
+export function useProgram({ gl, initialProgram, programs }: Props) {
     const { createProgram, removeProgram } = useShader({ gl });
     const [programResults, setProgramResults] = useState<Record<ProgramId, ProgramResult>>({});
     const [usedProgram, setUsedProgram] = useState<WebGLProgram | undefined>();
@@ -83,12 +86,6 @@ export function useProgram({ gl, initialProgram, programs, controller }: Props) 
     }, [gl, programResults, usedProgram]);
 
     useEffect(() => {
-        if (controller) {
-            controller.setActiveProgram = setActiveProgram;
-        }
-    }, [controller, setActiveProgram]);
-
-    useEffect(() => {
         if (gl && !usedProgram) {
             setActiveProgram(initialProgram ?? programs?.[0].id);
         }
@@ -98,5 +95,6 @@ export function useProgram({ gl, initialProgram, programs, controller }: Props) 
         usedProgram,
         getAttributeLocation,
         getUniformLocation,
+        setActiveProgram,
     }
 }

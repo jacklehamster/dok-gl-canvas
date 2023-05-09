@@ -31954,6 +31954,7 @@ function useShader(_ref) {
     gl.detachShader(program, fragmentShader);
     gl.deleteShader(vertexShader);
     gl.deleteShader(fragmentShader);
+    gl.validateProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error("Unable to initialize the shader program:\n" + gl.getProgramInfoLog(program));
     }
@@ -31979,8 +31980,7 @@ function useShader(_ref) {
 function useProgram(_ref) {
   var gl = _ref.gl,
     initialProgram = _ref.initialProgram,
-    programs = _ref.programs,
-    controller = _ref.controller;
+    programs = _ref.programs;
   var _useShader = useShader({
       gl: gl
     }),
@@ -32058,11 +32058,6 @@ function useProgram(_ref) {
     return -1;
   }, [gl, programResults, usedProgram]);
   useEffect(function () {
-    if (controller) {
-      controller.setActiveProgram = setActiveProgram;
-    }
-  }, [controller, setActiveProgram]);
-  useEffect(function () {
     if (gl && !usedProgram) {
       setActiveProgram(initialProgram != null ? initialProgram : programs === null || programs === void 0 ? void 0 : programs[0].id);
     }
@@ -32070,8 +32065,236 @@ function useProgram(_ref) {
   return {
     usedProgram: usedProgram,
     getAttributeLocation: getAttributeLocation,
-    getUniformLocation: getUniformLocation
+    getUniformLocation: getUniformLocation,
+    setActiveProgram: setActiveProgram
   };
+}
+
+var Usage;
+(function (Usage) {
+  Usage[Usage["STATIC_DRAW"] = 0] = "STATIC_DRAW";
+  Usage[Usage["DYNAMIC_DRAW"] = 1] = "DYNAMIC_DRAW";
+  Usage[Usage["STREAM_DRAW"] = 2] = "STREAM_DRAW";
+})(Usage || (Usage = {}));
+var Type;
+(function (Type) {
+  Type[Type["BYTE"] = 0] = "BYTE";
+  Type[Type["SHORT"] = 1] = "SHORT";
+  Type[Type["UNSIGNED_BYTE"] = 2] = "UNSIGNED_BYTE";
+  Type[Type["UNSIGNED_SHORT"] = 3] = "UNSIGNED_SHORT";
+  Type[Type["FLOAT"] = 4] = "FLOAT";
+})(Type || (Type = {}));
+
+function useBufferAttributes(_ref) {
+  var gl = _ref.gl,
+    getAttributeLocation = _ref.getAttributeLocation;
+  var getGlEnum = useCallback(function (usage) {
+    if (!gl) {
+      return;
+    }
+    switch (usage) {
+      case Usage.DYNAMIC_DRAW:
+        return gl.DYNAMIC_DRAW;
+      case Usage.STREAM_DRAW:
+        return gl.STREAM_DRAW;
+      case Usage.STATIC_DRAW:
+        return gl.STATIC_DRAW;
+      default:
+        return;
+    }
+  }, [gl]);
+  var getGlType = useCallback(function (type) {
+    if (!gl) {
+      return;
+    }
+    switch (type) {
+      case Type.BYTE:
+        return gl.BYTE;
+      case Type.FLOAT:
+        return gl.FLOAT;
+      case Type.SHORT:
+        return gl.SHORT;
+      case Type.UNSIGNED_BYTE:
+        return gl.UNSIGNED_BYTE;
+      case Type.UNSIGNED_SHORT:
+        return gl.UNSIGNED_SHORT;
+      default:
+        return;
+    }
+  }, [gl]);
+  var bindVertexArray = useCallback(function () {
+    var _gl$createVertexArray;
+    var triangleArray = (_gl$createVertexArray = gl === null || gl === void 0 ? void 0 : gl.createVertexArray()) != null ? _gl$createVertexArray : null;
+    gl === null || gl === void 0 ? void 0 : gl.bindVertexArray(triangleArray);
+    return function () {
+      return gl === null || gl === void 0 ? void 0 : gl.deleteVertexArray(triangleArray);
+    };
+  }, [gl]);
+  var bufferAttributes = useCallback(function (bufferAttributeAction) {
+    var _getGlEnum, _getGlType;
+    if (!gl) {
+      return;
+    }
+    var location = bufferAttributeAction.location,
+      buffer = bufferAttributeAction.buffer,
+      usage = bufferAttributeAction.usage,
+      size = bufferAttributeAction.size,
+      type = bufferAttributeAction.type,
+      normalized = bufferAttributeAction.normalized,
+      stride = bufferAttributeAction.stride,
+      offset = bufferAttributeAction.offset;
+    var bufferLocation = getAttributeLocation(location);
+    if (bufferLocation < 0 || !buffer.length) {
+      return;
+    }
+    var bufferBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(buffer), (_getGlEnum = getGlEnum(usage)) != null ? _getGlEnum : gl.STATIC_DRAW);
+    gl.vertexAttribPointer(bufferLocation, size, (_getGlType = getGlType(type)) != null ? _getGlType : gl.FLOAT, normalized != null ? normalized : false, stride != null ? stride : 0, offset != null ? offset : 0);
+    gl.enableVertexAttribArray(bufferLocation);
+    return function () {
+      gl.deleteBuffer(bufferBuffer);
+      gl.disableVertexAttribArray(bufferLocation);
+    };
+  }, [gl, getAttributeLocation]);
+  return {
+    bindVertexArray: bindVertexArray,
+    bufferAttributes: bufferAttributes
+  };
+}
+
+function useClearAction(gl) {
+  return useCallback(function (_ref) {
+    var color = _ref.color,
+      depth = _ref.depth,
+      stencil = _ref.stencil;
+    if (!gl) {
+      return;
+    }
+    var bit = 0;
+    if (color) {
+      bit |= gl === null || gl === void 0 ? void 0 : gl.COLOR_BUFFER_BIT;
+    }
+    if (depth) {
+      bit |= gl === null || gl === void 0 ? void 0 : gl.DEPTH_BUFFER_BIT;
+    }
+    if (stencil) {
+      bit |= gl === null || gl === void 0 ? void 0 : gl.STENCIL_BUFFER_BIT;
+    }
+    if (bit) {
+      gl.clear(bit);
+    }
+  }, [gl]);
+}
+
+function useDrawVertexAction(gl) {
+  return useCallback(function (_ref) {
+    var vertexFirst = _ref.vertexFirst,
+      vertexCount = _ref.vertexCount;
+    gl === null || gl === void 0 ? void 0 : gl.drawArrays(gl.TRIANGLES, vertexFirst != null ? vertexFirst : 0, vertexCount != null ? vertexCount : 0);
+  }, [gl]);
+}
+
+function useUniformAction(_ref) {
+  var gl = _ref.gl,
+    getUniformLocation = _ref.getUniformLocation;
+  var uniform1iAction = useCallback(function (_ref2) {
+    var _getUniformLocation;
+    var location = _ref2.location,
+      value = _ref2.value;
+    var uniformLocation = (_getUniformLocation = getUniformLocation(location)) != null ? _getUniformLocation : null;
+    gl === null || gl === void 0 ? void 0 : gl.uniform1i(uniformLocation, value);
+  }, [gl]);
+  var updateUniformTimer = useCallback(function (_ref3, time) {
+    var _getUniformLocation2;
+    var location = _ref3.location;
+    var uniformLocation = (_getUniformLocation2 = getUniformLocation(location)) != null ? _getUniformLocation2 : null;
+    gl === null || gl === void 0 ? void 0 : gl.uniform1i(uniformLocation, time);
+  }, []);
+  return {
+    uniform1iAction: uniform1iAction,
+    updateUniformTimer: updateUniformTimer
+  };
+}
+
+function useActionPipeline(_ref) {
+  var gl = _ref.gl,
+    getAttributeLocation = _ref.getAttributeLocation,
+    getUniformLocation = _ref.getUniformLocation,
+    setActiveProgram = _ref.setActiveProgram;
+  var _useBufferAttributes = useBufferAttributes({
+      gl: gl,
+      getAttributeLocation: getAttributeLocation
+    }),
+    bindVertexArray = _useBufferAttributes.bindVertexArray,
+    bufferAttributes = _useBufferAttributes.bufferAttributes;
+  var clear = useClearAction(gl);
+  var drawVertices = useDrawVertexAction(gl);
+  var _useUniformAction = useUniformAction({
+      gl: gl,
+      getUniformLocation: getUniformLocation
+    }),
+    updateUniformTimer = _useUniformAction.updateUniformTimer;
+  var executePipeline = useCallback(function (actions, time) {
+    if (time === void 0) {
+      time = 0;
+    }
+    var cleanupActions = [];
+    cleanupActions.push(bindVertexArray());
+    actions === null || actions === void 0 ? void 0 : actions.forEach(function (action) {
+      var cleanupAction;
+      switch (action.action) {
+        case "buffer-attribute":
+          cleanupAction = bufferAttributes(action);
+          break;
+        case "clear":
+          clear(action);
+          break;
+        case "draw":
+          drawVertices(action);
+          break;
+        case "uniform-timer":
+          cleanupAction = updateUniformTimer(action, time);
+          break;
+        case "active-program":
+          setActiveProgram(action.id);
+          break;
+      }
+      if (cleanupAction) {
+        cleanupActions.push(cleanupAction);
+      }
+    });
+    return function () {
+      return cleanupActions.forEach(function (cleanup) {
+        return cleanup();
+      });
+    };
+  }, [bufferAttributes, updateUniformTimer, drawVertices, clear, setActiveProgram]);
+  return {
+    executePipeline: executePipeline,
+    clear: clear,
+    drawVertices: drawVertices
+  };
+}
+
+function useLoopPipeline(_ref) {
+  var executePipeline = _ref.executePipeline;
+  return useCallback(function (actions) {
+    var id;
+    var cleanup;
+    var loop = function loop(time) {
+      var _cleanup;
+      (_cleanup = cleanup) === null || _cleanup === void 0 ? void 0 : _cleanup();
+      cleanup = executePipeline(actions, time);
+      id = requestAnimationFrame(loop);
+    };
+    loop(0);
+    return function () {
+      var _cleanup2;
+      (_cleanup2 = cleanup) === null || _cleanup2 === void 0 ? void 0 : _cleanup2();
+      cancelAnimationFrame(id);
+    };
+  }, [executePipeline]);
 }
 
 function GLCanvas(props) {
@@ -32081,7 +32304,10 @@ function GLCanvas(props) {
     onChange = _ref.onChange,
     controller = _ref.controller,
     initialProgram = _ref.initialProgram,
-    webglAttributes = _ref.webglAttributes;
+    webglAttributes = _ref.webglAttributes,
+    style = _ref.style,
+    actionLoop = _ref.actionLoop,
+    actionPipeline = _ref.actionPipeline;
   var canvasRef = React.useRef(null);
   var gl = useGL({
     canvasRef: canvasRef,
@@ -32090,12 +32316,12 @@ function GLCanvas(props) {
   var _useProgram = useProgram({
       gl: gl,
       initialProgram: initialProgram,
-      programs: props === null || props === void 0 ? void 0 : props.programs,
-      controller: controller
+      programs: props === null || props === void 0 ? void 0 : props.programs
     }),
     usedProgram = _useProgram.usedProgram,
     getAttributeLocation = _useProgram.getAttributeLocation,
-    getUniformLocation = _useProgram.getUniformLocation;
+    getUniformLocation = _useProgram.getUniformLocation,
+    setActiveProgram = _useProgram.setActiveProgram;
   var _useCanvasSize = useCanvasSize({
       gl: gl,
       canvasRef: canvasRef,
@@ -32108,6 +32334,12 @@ function GLCanvas(props) {
     }),
     change = _useState[0],
     setChange = _useState[1];
+  var _useState2 = useState(actionLoop),
+    loopActions = _useState2[0],
+    setLoopActions = _useState2[1];
+  var _useState3 = useState(actionPipeline),
+    pipelineActions = _useState3[0],
+    setPipelineActions = _useState3[1];
   var glConfig = useMemo(function () {
     return gl ? {
       gl: gl,
@@ -32115,28 +32347,49 @@ function GLCanvas(props) {
       getAttributeLocation: getAttributeLocation
     } : undefined;
   }, [gl, getUniformLocation, getAttributeLocation]);
+  var _useActionPipeline = useActionPipeline({
+      gl: gl,
+      getAttributeLocation: getAttributeLocation,
+      getUniformLocation: getUniformLocation,
+      setActiveProgram: setActiveProgram
+    }),
+    executePipeline = _useActionPipeline.executePipeline,
+    clear = _useActionPipeline.clear,
+    drawVertices = _useActionPipeline.drawVertices;
+  var loopPipeline = useLoopPipeline({
+    executePipeline: executePipeline
+  });
   useEffect(function () {
-    if (usedProgram && change && glConfig) {
-      var cleanup = change(glConfig);
+    if (usedProgram && glConfig) {
+      var pipelineCleanup = executePipeline(pipelineActions);
+      var loopCleanup = loopPipeline(loopActions);
+      var cleanup = change === null || change === void 0 ? void 0 : change(glConfig);
       return function () {
+        pipelineCleanup();
+        loopCleanup();
         cleanup === null || cleanup === void 0 ? void 0 : cleanup();
       };
     }
     return;
-  }, [usedProgram, change, glConfig]);
+  }, [usedProgram, change, glConfig, executePipeline, pipelineActions, loopActions]);
   useEffect(function () {
     if (controller) {
       controller.setOnChange = setChange;
+      controller.clear = clear;
+      controller.drawVertices = drawVertices;
+      controller.setActiveProgram = setActiveProgram;
+      controller.setLoopActions = setLoopActions;
+      controller.setPipelineActions = setPipelineActions;
     }
-  }, [controller, setChange]);
+  }, [controller, setChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
   return React.createElement("canvas", {
     ref: canvasRef,
     width: width,
     height: height,
-    style: _extends({}, props === null || props === void 0 ? void 0 : props.style, {
+    style: _extends({
       width: "100%",
       height: "100%"
-    })
+    }, style)
   });
 }
 
