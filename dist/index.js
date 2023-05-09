@@ -32242,6 +32242,9 @@ function useActionPipeline(_ref) {
     if (time === void 0) {
       time = 0;
     }
+    if (!(actions !== null && actions !== void 0 && actions.length)) {
+      return function () {};
+    }
     var cleanupActions = [];
     cleanupActions.push(bindVertexArray());
     actions === null || actions === void 0 ? void 0 : actions.forEach(function (action) {
