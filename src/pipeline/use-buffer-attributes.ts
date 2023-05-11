@@ -1,10 +1,15 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { ProgramId } from "../gl/program/program";
 import { BufferAttributeAction, Type, Usage } from "./BufferAttributeAction";
 
 interface Props {
     gl?: WebGL2RenderingContext;
     getAttributeLocation(name: string, programId?: ProgramId): number;
+}
+
+export interface BufferInfo {
+  buffer: WebGLBuffer;
+  bufferArray: Float32Array;
 }
 
 export default function useBufferAttributes({ gl, getAttributeLocation }: Props) {
@@ -50,7 +55,9 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         gl?.bindVertexArray(triangleArray);
         return () => gl?.deleteVertexArray(triangleArray);
     }, [gl]);
-    
+
+    const bufferRecord = useRef<Record<string, BufferInfo>>({});
+
     const bufferAttributes = useCallback((bufferAttributeAction: BufferAttributeAction):((() => void) | undefined)  => {
         if (!gl) {
             return;
@@ -62,17 +69,32 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
           return;
         }
         const bufferBuffer = gl.createBuffer();
+        const bufferArray = new Float32Array(buffer);
         gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(buffer), getGlEnum(usage) ?? gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, bufferArray, getGlEnum(usage) ?? gl.STATIC_DRAW);
         gl.vertexAttribPointer(bufferLocation, size, getGlType(type) ?? gl.FLOAT, normalized ?? false, stride ?? 0, offset ?? 0);
         gl.enableVertexAttribArray(bufferLocation);
+
+        if (bufferBuffer && !bufferRecord.current[location]) {
+          bufferRecord.current[location] = {
+            buffer: bufferBuffer,
+            bufferArray,
+          };
+        }
   
         //  Cleanup
         return () => {
             gl.deleteBuffer(bufferBuffer);
-            gl.disableVertexAttribArray(bufferLocation);  
+            gl.disableVertexAttribArray(bufferLocation);
+            if (bufferRecord.current[location]) {
+              delete bufferRecord.current[location];
+            }
         };                  
-    }, [gl, getAttributeLocation]);
+    }, [gl, getAttributeLocation, bufferRecord]);
 
-    return { bindVertexArray, bufferAttributes };
+    return {
+      bindVertexArray,
+      bufferAttributes,
+      getBufferAttribute: useCallback((location: string) => bufferRecord.current[location], [bufferRecord]),
+    };
 }

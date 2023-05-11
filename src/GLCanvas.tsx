@@ -21,13 +21,19 @@ export interface Props {
 }
 
 export default function GLCanvas(props?: Props): JSX.Element {
-    const { pixelRatio = devicePixelRatio, onChange, controller, initialProgram, webglAttributes, style,
+    const { pixelRatio = devicePixelRatio,
+        onChange,
+        controller,
+        initialProgram,
+        webglAttributes,
+        programs,
+        style,
         actionLoop,
         actionPipeline,
     } = props ?? {};
     const canvasRef: RefObject<HTMLCanvasElement> = React.useRef<HTMLCanvasElement>(null);
     const gl = useGL({ canvasRef, webglAttributes });
-    const { usedProgram, getAttributeLocation, getUniformLocation, setActiveProgram } = useProgram({ gl, initialProgram, programs: props?.programs });
+    const { usedProgram, getAttributeLocation, getUniformLocation, setActiveProgram } = useProgram({ gl, initialProgram, programs });
     const { width, height } = useCanvasSize({ gl, canvasRef, pixelRatio })
     const [change, setChange] = useState<OnChange | undefined>(() => onChange);
     const [loopActions, setLoopActions] = useState(actionLoop);
@@ -37,7 +43,12 @@ export default function GLCanvas(props?: Props): JSX.Element {
         gl, getUniformLocation, getAttributeLocation,
     }: undefined), [gl, getUniformLocation, getAttributeLocation]);
 
-    const { executePipeline, clear, drawVertices } = useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram });
+    const { executePipeline, clear, drawVertices, getBufferAttribute } = useActionPipeline({
+        gl,
+        getAttributeLocation,
+        getUniformLocation,
+        setActiveProgram,
+    });
     const loopPipeline = useLoopPipeline({ executePipeline });
 
     useEffect(() => {
@@ -52,7 +63,7 @@ export default function GLCanvas(props?: Props): JSX.Element {
             };
         }
         return;
-    }, [usedProgram, change, glConfig, executePipeline, pipelineActions, loopActions]);
+    }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions]);
 
     const updateOnChange = useCallback((refreshMethod: OnChange) => {
         setChange(() => refreshMethod);
@@ -66,6 +77,7 @@ export default function GLCanvas(props?: Props): JSX.Element {
             controller.setActiveProgram = setActiveProgram;
             controller.setLoopActions = setLoopActions;
             controller.setPipelineActions = setPipelineActions;
+            controller.getBufferAttribute = getBufferAttribute;
         }
     }, [controller, updateOnChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
 

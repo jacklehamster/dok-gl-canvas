@@ -3,5 +3,13 @@ import { ClearAction } from "./use-clear-action";
 import { DrawVertexAction } from "./draw-vertex-action";
 import { UniformTimerAction } from "./UniformAction";
 import { ActiveProgramAction } from "../gl/program/use-program";
+import { CustomAction } from "./custom/use-custom-action";
+import { BindVertexAction } from "./BindVertexAction";
 
-export type GlAction = BufferAttributeAction | ClearAction | DrawVertexAction | UniformTimerAction | ActiveProgramAction;
+export type GlAction = BufferAttributeAction
+                        | BindVertexAction
+                        | ClearAction
+                        | DrawVertexAction
+                        | UniformTimerAction
+                        | ActiveProgramAction
+                        | CustomAction;

@@ -10,5 +10,6 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
     executePipeline: (actions?: GlAction[] | undefined, time?: number) => () => void;
     clear: ({ color, depth, stencil }: import("./use-clear-action").ClearAction) => void;
     drawVertices: ({ vertexFirst, vertexCount }: import("./draw-vertex-action").DrawVertexAction) => void;
+    getBufferAttribute: (location: string) => import("./use-buffer-attributes").BufferInfo;
 };
 export {};

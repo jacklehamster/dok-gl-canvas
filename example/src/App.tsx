@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { GLCanvas, GlAction } from 'dok-gl-canvas'
+import { GLCanvas } from 'dok-gl-canvas'
 
 const vertex =  `#version 300 es
   precision highp float;
@@ -24,36 +24,6 @@ const fragment = `#version 300 es
   }
 `;
 
-const actionPipeline: GlAction[] = [
-  {
-    action: "buffer-attribute",
-    location: "position",
-    buffer: [
-        0.0, 0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0,
-    ],
-    size: 3,
-  },
-  {
-    action: "buffer-attribute",
-    location: "color",
-    buffer: [
-        1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0
-    ],
-    size: 3,
-  },
-  {
-    action: "clear",
-    color: true,
-  },
-  {
-    action: "draw",
-    vertexCount: 3,
-  },
-];
 
 const App = () => <GLCanvas
     programs={[{
@@ -61,7 +31,57 @@ const App = () => <GLCanvas
         vertex,
         fragment,
     }]}
-    actionPipeline={actionPipeline}
+    actionPipeline={[
+      {
+        action: "bind-vertex",
+      },
+      {
+        action: "buffer-attribute",
+        location: "position",
+        buffer: [
+            0.0, 0.5, 0.0,
+            -0.5, -0.5, 0.0,
+            0.5, -0.5, 0.0,
+        ],
+        size: 3,
+      },
+      {
+        action: "buffer-attribute",
+        location: "color",
+        buffer: [
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0
+        ],
+        size: 3,
+      },
+      {
+        action: "clear",
+        color: true,
+      },
+      {
+        action: "draw",
+        vertexCount: 3,
+      },
+    ]}
+    actionLoop={[
+      {
+        action: "custom",
+        location: "position",
+        processAttributeBuffer(positions, time) {
+          positions[0] = Math.sin(time / 100);
+          return undefined;       
+        },
+      },
+      {
+        action: "clear",
+        color: true,
+      },
+      {
+        action: "draw",
+        vertexCount: 3,
+      },
+    ]}
 />;
 
 
