@@ -7,6 +7,7 @@ import { GlConfig, GlController, OnChange } from "./control/gl-controller";
 import useActionPipeline from "./pipeline/use-action-pipeline";
 import { GlAction } from "./pipeline/GlAction";
 import useLoopPipeline from "./pipeline/use-loop-pipeline";
+import { Script, useActionScripts } from "./gl/actionscripts/Script";
 
 export interface Props {
     pixelRatio?: number;
@@ -15,46 +16,52 @@ export interface Props {
     webglAttributes?: WebGLContextAttributes;
     initialProgram?: ProgramId;
     programs?: ProgramConfig[];
+    actionScripts?: Script[];
     controller?: GlController;
     actionPipeline?: GlAction[];
     actionLoop?: GlAction[];
 }
 
 export default function GLCanvas(props?: Props): JSX.Element {
-    const { pixelRatio = devicePixelRatio,
+    const {
+        pixelRatio = devicePixelRatio,
         onChange,
         controller,
         initialProgram,
         webglAttributes,
         programs,
+        actionScripts = [],
         style,
-        actionLoop,
-        actionPipeline,
+        actionLoop = [],
+        actionPipeline = [],
     } = props ?? {};
     const canvasRef: RefObject<HTMLCanvasElement> = React.useRef<HTMLCanvasElement>(null);
     const gl = useGL({ canvasRef, webglAttributes });
     const { usedProgram, getAttributeLocation, getUniformLocation, setActiveProgram } = useProgram({ gl, initialProgram, programs });
     const { width, height } = useCanvasSize({ gl, canvasRef, pixelRatio })
     const [change, setChange] = useState<OnChange | undefined>(() => onChange);
-    const [loopActions, setLoopActions] = useState(actionLoop);
-    const [pipelineActions, setPipelineActions] = useState(actionPipeline);
+    const [loopActions, setLoopActions] = useState<string|GlAction[]>(actionLoop);
+    const [pipelineActions, setPipelineActions] = useState<string|GlAction[]>(actionPipeline);
 
     const glConfig: GlConfig | undefined = useMemo(() => (gl ? {
         gl, getUniformLocation, getAttributeLocation,
     }: undefined), [gl, getUniformLocation, getAttributeLocation]);
 
-    const { executePipeline, clear, drawVertices, getBufferAttribute } = useActionPipeline({
+    const { getActions } = useActionScripts({ scripts: actionScripts });
+
+    const { executePipeline, getBufferAttribute } = useActionPipeline({
         gl,
         getAttributeLocation,
         getUniformLocation,
         setActiveProgram,
+        getActions,
     });
     const loopPipeline = useLoopPipeline({ executePipeline });
 
     useEffect(() => {
         if (usedProgram && glConfig) {
-            const pipelineCleanup = executePipeline(pipelineActions);
-            const loopCleanup = loopPipeline(loopActions);
+            const pipelineCleanup = executePipeline(getActions(pipelineActions));
+            const loopCleanup = loopPipeline(getActions(loopActions));
             const cleanup = change?.(glConfig);
             return () => {
                 pipelineCleanup();
@@ -63,23 +70,34 @@ export default function GLCanvas(props?: Props): JSX.Element {
             };
         }
         return;
-    }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions]);
+    }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getActions]);
 
     const updateOnChange = useCallback((refreshMethod: OnChange) => {
         setChange(() => refreshMethod);
     }, [setChange]);
 
+    const executeScript = useCallback((script: GlAction[] | string) => {
+        return executePipeline(getActions(script));
+    }, [getActions, executePipeline]);
+
     useEffect(() => {
         if (controller) {
             controller.setOnChange = updateOnChange;
-            controller.clear = clear;
-            controller.drawVertices = drawVertices;
             controller.setActiveProgram = setActiveProgram;
             controller.setLoopActions = setLoopActions;
             controller.setPipelineActions = setPipelineActions;
             controller.getBufferAttribute = getBufferAttribute;
+            controller.executeScript = executeScript;
         }
-    }, [controller, updateOnChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
+    }, [
+        controller,
+        updateOnChange,
+        setActiveProgram,
+        setLoopActions,
+        setPipelineActions,
+        getBufferAttribute,
+        executeScript,
+    ]);
 
     return <canvas ref={canvasRef}
         width={width}

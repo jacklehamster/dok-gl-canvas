@@ -32260,7 +32260,8 @@ function useActionPipeline(_ref) {
   var gl = _ref.gl,
     getAttributeLocation = _ref.getAttributeLocation,
     getUniformLocation = _ref.getUniformLocation,
-    setActiveProgram = _ref.setActiveProgram;
+    setActiveProgram = _ref.setActiveProgram,
+    getActions = _ref.getActions;
   var _useBufferAttributes = useBufferAttributes({
       gl: gl,
       getAttributeLocation: getAttributeLocation
@@ -32284,10 +32285,13 @@ function useActionPipeline(_ref) {
     if (time === void 0) {
       time = 0;
     }
-    if (!(actions !== null && actions !== void 0 && actions.length)) {
+    if (!actions.length) {
       return NOP;
     }
-    var cleanupActions = actions === null || actions === void 0 ? void 0 : actions.map(function (action) {
+    var cleanupActions = actions.map(function (action) {
+      if (typeof action === "string") {
+        return executePipeline(getActions(action));
+      }
       switch (action.action) {
         case "bind-vertex":
           return bindVertexArray();
@@ -32306,6 +32310,8 @@ function useActionPipeline(_ref) {
           break;
         case "custom":
           return executeCustomAction(action, time);
+        case "execute-script":
+          return executePipeline(getActions(action.script));
       }
       return undefined;
     }).filter(function (cleanup) {
@@ -32316,7 +32322,7 @@ function useActionPipeline(_ref) {
         return cleanup();
       });
     } : NOP;
-  }, [bufferAttributes, updateUniformTimer, drawVertices, clear, setActiveProgram, executeCustomAction]);
+  }, [bufferAttributes, updateUniformTimer, drawVertices, clear, setActiveProgram, executeCustomAction, getActions]);
   return {
     executePipeline: executePipeline,
     clear: clear,
@@ -32343,6 +32349,25 @@ function useLoopPipeline(_ref) {
   }, [executePipeline]);
 }
 
+function useActionScripts(_ref) {
+  var scripts = _ref.scripts;
+  var getActions = React.useCallback(function (script) {
+    var _scripts$find$actions, _scripts$find;
+    if (!script) {
+      return [];
+    }
+    if (Array.isArray(script)) {
+      return script;
+    }
+    return (_scripts$find$actions = (_scripts$find = scripts.find(function (s) {
+      return s.name === script;
+    })) === null || _scripts$find === void 0 ? void 0 : _scripts$find.actions) != null ? _scripts$find$actions : [];
+  }, [scripts]);
+  return {
+    getActions: getActions
+  };
+}
+
 function GLCanvas(props) {
   var _ref = props != null ? props : {},
     _ref$pixelRatio = _ref.pixelRatio,
@@ -32352,9 +32377,13 @@ function GLCanvas(props) {
     initialProgram = _ref.initialProgram,
     webglAttributes = _ref.webglAttributes,
     programs = _ref.programs,
+    _ref$actionScripts = _ref.actionScripts,
+    actionScripts = _ref$actionScripts === void 0 ? [] : _ref$actionScripts,
     style = _ref.style,
-    actionLoop = _ref.actionLoop,
-    actionPipeline = _ref.actionPipeline;
+    _ref$actionLoop = _ref.actionLoop,
+    actionLoop = _ref$actionLoop === void 0 ? [] : _ref$actionLoop,
+    _ref$actionPipeline = _ref.actionPipeline,
+    actionPipeline = _ref$actionPipeline === void 0 ? [] : _ref$actionPipeline;
   var canvasRef = React__default.useRef(null);
   var gl = useGL({
     canvasRef: canvasRef,
@@ -32394,23 +32423,26 @@ function GLCanvas(props) {
       getAttributeLocation: getAttributeLocation
     } : undefined;
   }, [gl, getUniformLocation, getAttributeLocation]);
+  var _useActionScripts = useActionScripts({
+      scripts: actionScripts
+    }),
+    getActions = _useActionScripts.getActions;
   var _useActionPipeline = useActionPipeline({
       gl: gl,
       getAttributeLocation: getAttributeLocation,
       getUniformLocation: getUniformLocation,
-      setActiveProgram: setActiveProgram
+      setActiveProgram: setActiveProgram,
+      getActions: getActions
     }),
     executePipeline = _useActionPipeline.executePipeline,
-    clear = _useActionPipeline.clear,
-    drawVertices = _useActionPipeline.drawVertices,
     getBufferAttribute = _useActionPipeline.getBufferAttribute;
   var loopPipeline = useLoopPipeline({
     executePipeline: executePipeline
   });
   React.useEffect(function () {
     if (usedProgram && glConfig) {
-      var pipelineCleanup = executePipeline(pipelineActions);
-      var loopCleanup = loopPipeline(loopActions);
+      var pipelineCleanup = executePipeline(getActions(pipelineActions));
+      var loopCleanup = loopPipeline(getActions(loopActions));
       var cleanup = change === null || change === void 0 ? void 0 : change(glConfig);
       return function () {
         pipelineCleanup();
@@ -32419,23 +32451,25 @@ function GLCanvas(props) {
       };
     }
     return;
-  }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions]);
+  }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getActions]);
   var updateOnChange = React.useCallback(function (refreshMethod) {
     setChange(function () {
       return refreshMethod;
     });
   }, [setChange]);
+  var executeScript = React.useCallback(function (script) {
+    return executePipeline(getActions(script));
+  }, [getActions, executePipeline]);
   React.useEffect(function () {
     if (controller) {
       controller.setOnChange = updateOnChange;
-      controller.clear = clear;
-      controller.drawVertices = drawVertices;
       controller.setActiveProgram = setActiveProgram;
       controller.setLoopActions = setLoopActions;
       controller.setPipelineActions = setPipelineActions;
       controller.getBufferAttribute = getBufferAttribute;
+      controller.executeScript = executeScript;
     }
-  }, [controller, updateOnChange, drawVertices, clear, setActiveProgram, setLoopActions, setPipelineActions]);
+  }, [controller, updateOnChange, setActiveProgram, setLoopActions, setPipelineActions, getBufferAttribute, executeScript]);
   return React__default.createElement("canvas", {
     ref: canvasRef,
     width: width,

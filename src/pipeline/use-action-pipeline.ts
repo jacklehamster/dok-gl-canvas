@@ -12,22 +12,26 @@ interface Props {
     getAttributeLocation(name: string, programId?: ProgramId): number;
     getUniformLocation(name: string, programId?: ProgramId): WebGLUniformLocation | undefined;
     setActiveProgram(programId?: ProgramId): boolean;
+    getActions(script: string | GlAction[] | undefined): GlAction[];
 }
 
 const NOP = () => {};
 
-export default function useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram }: Props) {
+export default function useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram, getActions }: Props) {
     const { bindVertexArray, bufferAttributes, getBufferAttribute } = useBufferAttributes({ gl, getAttributeLocation });
     const clear = useClearAction(gl);
     const drawVertices = useDrawVertexAction(gl);
     const { updateUniformTimer } = useUniformAction({ gl, getUniformLocation });
     const { executeCustomAction } = useCustomAction({ gl, getBufferAttribute });
 
-    const executePipeline = useCallback((actions?: GlAction[], time: number = 0) => {
-        if (!actions?.length) {
+    const executePipeline = useCallback((actions: GlAction[], time: number = 0): () => void => {
+        if (!actions.length) {
             return NOP;
         }
-        const cleanupActions = actions?.map(action => {
+        const cleanupActions = actions.map(action => {
+            if (typeof(action) === "string") {
+                return executePipeline(getActions(action));
+            }
             switch(action.action) {
                 case "bind-vertex":
                     return bindVertexArray();
@@ -46,10 +50,13 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                     break;
                 case "custom":
                     return executeCustomAction(action, time);
+                case "execute-script":
+                    return executePipeline(getActions(action.script));
             }
             return undefined;
         }).filter((cleanup): cleanup is (() => void) => !!cleanup);
         return cleanupActions.length ? () => cleanupActions.forEach(cleanup => cleanup()) : NOP;
-    }, [bufferAttributes, updateUniformTimer, drawVertices, clear, setActiveProgram, executeCustomAction]);
+    }, [bufferAttributes, updateUniformTimer, drawVertices, clear, setActiveProgram, executeCustomAction, getActions]);
+
     return { executePipeline, clear, drawVertices, getBufferAttribute };
 }

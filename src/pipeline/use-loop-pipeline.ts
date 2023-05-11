@@ -6,7 +6,7 @@ interface Props {
 }
 
 export default function useLoopPipeline({ executePipeline }: Props) {
-    return useCallback((actions?: GlAction[]) => {
+    return useCallback((actions: GlAction[]) => {
         let id: number;
         let cleanup: (() => void)  = () => {};
         const loop = (time: number) => {

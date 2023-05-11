@@ -26,6 +26,21 @@ const fragment = `#version 300 es
 
 
 const App = () => <GLCanvas
+    actionScripts={[
+      {
+        name: "redraw",
+        actions: [
+          {
+            action: "clear",
+            color: true,
+          },
+          {
+            action: "draw",
+            vertexCount: 3,
+          },    
+        ],
+      }
+    ]}
     programs={[{
         id: "sample-multicolor",
         vertex,
@@ -55,14 +70,7 @@ const App = () => <GLCanvas
         ],
         size: 3,
       },
-      {
-        action: "clear",
-        color: true,
-      },
-      {
-        action: "draw",
-        vertexCount: 3,
-      },
+      "redraw",
     ]}
     actionLoop={[
       {
@@ -73,14 +81,7 @@ const App = () => <GLCanvas
           return undefined;       
         },
       },
-      {
-        action: "clear",
-        color: true,
-      },
-      {
-        action: "draw",
-        vertexCount: 3,
-      },
+      "redraw",
     ]}
 />;
 

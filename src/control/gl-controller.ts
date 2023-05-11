@@ -1,8 +1,6 @@
 import { ProgramId } from "../gl/program/program";
 import { GlAction } from "../pipeline/GlAction";
-import { DrawVertexAction } from "../pipeline/draw-vertex-action";
 import { BufferInfo } from "../pipeline/use-buffer-attributes";
-import { ClearAction } from "../pipeline/use-clear-action";
 
 export type GetUniformLocation = (name: string, id?: ProgramId) => WebGLUniformLocation | undefined;
 export type GetAttributeLocation = (name: string, id?: ProgramId) => number
@@ -18,9 +16,8 @@ export type OnChange = (glConfig: GlConfig) => (()=>void) | undefined;
 export interface GlController {
     setActiveProgram?(id: ProgramId): boolean;
     setOnChange?(onChange: OnChange): void;
-    setPipelineActions?(actions: GlAction[]): void;
-    setLoopActions?(actions: GlAction[]): void;
-    clear?(action: ClearAction): void;
-    drawVertices?(action: DrawVertexAction): void;
+    setPipelineActions?(script: GlAction[] | string): void;
+    setLoopActions?(script: GlAction[] | string): void;
+    executeScript?(script: GlAction[] | string): (()=>void) | undefined;
     getBufferAttribute?(location: string): BufferInfo;
 }

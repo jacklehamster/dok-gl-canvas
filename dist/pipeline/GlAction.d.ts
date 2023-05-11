@@ -5,4 +5,5 @@ import { UniformTimerAction } from "./UniformAction";
 import { ActiveProgramAction } from "../gl/program/use-program";
 import { CustomAction } from "./custom/use-custom-action";
 import { BindVertexAction } from "./BindVertexAction";
-export declare type GlAction = BufferAttributeAction | BindVertexAction | ClearAction | DrawVertexAction | UniformTimerAction | ActiveProgramAction | CustomAction;
+import { ExecuteScriptAction } from "./ExecuteScriptAction";
+export declare type GlAction = string | BufferAttributeAction | BindVertexAction | ClearAction | DrawVertexAction | UniformTimerAction | ActiveProgramAction | CustomAction | ExecuteScriptAction;
