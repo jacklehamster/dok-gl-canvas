@@ -51,6 +51,7 @@
       "eslint-plugin-standard": "^4.0.1",
       "gh-pages": "^2.2.0",
       "glob-parent": "^6.0.2",
+      "got": ">=11.8.5",
       "gulp": "^4.0.2",
       "microbundle-crl": "^0.13.10",
       "np": "^7.7.0",
