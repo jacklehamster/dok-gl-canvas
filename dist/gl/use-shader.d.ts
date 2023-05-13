@@ -4,7 +4,7 @@ interface Props {
 }
 export interface ProgramResult {
     id: number;
-    program: WebGLProgram;
+    program?: WebGLProgram;
     ready?: boolean;
 }
 export declare function useShader({ gl }: Props): {

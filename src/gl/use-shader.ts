@@ -9,7 +9,7 @@ interface Props {
 
 export interface ProgramResult {
     id: number;
-    program: WebGLProgram;
+    program?: WebGLProgram;
     ready?: boolean;
 }
 
@@ -75,8 +75,10 @@ export function useShader({ gl }: Props) {
         if (!gl) {
             return;
         }
-        gl.deleteProgram(programResult.program);
-        programResult.program = 0;
+        if (programResult.program) {
+            gl.deleteProgram(programResult.program);
+        }
+        programResult.program = undefined;
     }, [gl]);
 
     return {

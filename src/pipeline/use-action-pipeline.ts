@@ -6,6 +6,7 @@ import useClearAction from "./use-clear-action";
 import useDrawVertexAction from "./draw-vertex-action";
 import useUniformAction from "./UniformAction";
 import useCustomAction from "./custom/use-custom-action";
+import useImageAction from "./use-image-action";
 
 interface Props {
     gl?: WebGL2RenderingContext;
@@ -21,8 +22,9 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
     const { bindVertexArray, bufferAttributes, getBufferAttribute } = useBufferAttributes({ gl, getAttributeLocation });
     const clear = useClearAction(gl);
     const drawVertices = useDrawVertexAction(gl);
-    const { updateUniformTimer } = useUniformAction({ gl, getUniformLocation });
+    const { updateUniformTimer, uniform1iAction } = useUniformAction({ gl, getUniformLocation });
     const { executeCustomAction } = useCustomAction({ gl, getBufferAttribute });
+    const { executeLoadImageAction, executeLoadTextureAction } = useImageAction({ gl });
 
     const executePipeline = useCallback((actions: GlAction[], time: number = 0): () => void => {
         if (!actions.length) {
@@ -30,7 +32,7 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
         }
         const cleanupActions = actions.map(action => {
             if (typeof(action) === "string") {
-                return executePipeline(getActions(action));
+                return executePipeline(getActions(action), time);
             }
             switch(action.action) {
                 case "bind-vertex":
@@ -52,11 +54,28 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                     return executeCustomAction(action, time);
                 case "execute-script":
                     return executePipeline(getActions(action.script));
+                case "load-image":
+                    return executeLoadImageAction(action, executePipeline);
+                case "uniform":
+                    return uniform1iAction(action);
+                case "load-texture":
+                    return executeLoadTextureAction(action);
             }
-            return undefined;
+            return NOP;
         }).filter((cleanup): cleanup is (() => void) => !!cleanup);
         return cleanupActions.length ? () => cleanupActions.forEach(cleanup => cleanup()) : NOP;
-    }, [bufferAttributes, updateUniformTimer, drawVertices, clear, setActiveProgram, executeCustomAction, getActions]);
+    }, [
+        bufferAttributes,
+        updateUniformTimer,
+        uniform1iAction,
+        drawVertices,
+        clear,
+        setActiveProgram,
+        executeCustomAction,
+        getActions,
+        executeLoadImageAction,
+        executeLoadTextureAction,
+    ]);
 
     return { executePipeline, clear, drawVertices, getBufferAttribute };
 }

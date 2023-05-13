@@ -1,10 +1,11 @@
 import { useCallback } from "react";
 import { ProgramId } from "../gl/program/program";
 
-export interface Uniform1iAction {
-    action: "uniform1i",
+export interface UniformAction {
+    action: "uniform",
     location: string;
-    value: number;
+    int?: number;
+    float?: number;
 }
 
 export interface UniformTimerAction {
@@ -18,15 +19,20 @@ interface Props {
 }
 
 export default function useUniformAction({ gl, getUniformLocation }: Props) {
-    const uniform1iAction = useCallback(({ location, value }: Uniform1iAction) => {
+    const uniformAction = useCallback(({ location, int, float }: UniformAction) => {
         const uniformLocation = getUniformLocation(location) ?? null;
-        gl?.uniform1i(uniformLocation, value);
-    }, [gl]);
+        if (int !== undefined) {
+            gl?.uniform1i(uniformLocation, int);            
+        }
+        if (float !== undefined) {
+            gl?.uniform1f(uniformLocation, float);
+        }
+    }, [gl, getUniformLocation]);
 
     const updateUniformTimer = useCallback(({ location }: UniformTimerAction, time: number) => {
         const uniformLocation = getUniformLocation(location) ?? null;
-        gl?.uniform1i(uniformLocation, time);
-    }, []);
+        gl?.uniform1f(uniformLocation, time);
+    }, [gl, getUniformLocation]);
 
-    return { uniform1iAction, updateUniformTimer };
+    return { uniform1iAction: uniformAction, updateUniformTimer };
 }

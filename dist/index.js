@@ -31971,8 +31971,10 @@ function useShader(_ref) {
     if (!gl) {
       return;
     }
-    gl.deleteProgram(programResult.program);
-    programResult.program = 0;
+    if (programResult.program) {
+      gl.deleteProgram(programResult.program);
+    }
+    programResult.program = undefined;
   }, [gl]);
   return {
     createProgram: createProgram,
@@ -32215,21 +32217,27 @@ function useDrawVertexAction(gl) {
 function useUniformAction(_ref) {
   var gl = _ref.gl,
     getUniformLocation = _ref.getUniformLocation;
-  var uniform1iAction = React.useCallback(function (_ref2) {
+  var uniformAction = React.useCallback(function (_ref2) {
     var _getUniformLocation;
     var location = _ref2.location,
-      value = _ref2.value;
+      _int = _ref2["int"],
+      _float = _ref2["float"];
     var uniformLocation = (_getUniformLocation = getUniformLocation(location)) != null ? _getUniformLocation : null;
-    gl === null || gl === void 0 ? void 0 : gl.uniform1i(uniformLocation, value);
-  }, [gl]);
+    if (_int !== undefined) {
+      gl === null || gl === void 0 ? void 0 : gl.uniform1i(uniformLocation, _int);
+    }
+    if (_float !== undefined) {
+      gl === null || gl === void 0 ? void 0 : gl.uniform1f(uniformLocation, _float);
+    }
+  }, [gl, getUniformLocation]);
   var updateUniformTimer = React.useCallback(function (_ref3, time) {
     var _getUniformLocation2;
     var location = _ref3.location;
     var uniformLocation = (_getUniformLocation2 = getUniformLocation(location)) != null ? _getUniformLocation2 : null;
-    gl === null || gl === void 0 ? void 0 : gl.uniform1i(uniformLocation, time);
-  }, []);
+    gl === null || gl === void 0 ? void 0 : gl.uniform1f(uniformLocation, time);
+  }, [gl, getUniformLocation]);
   return {
-    uniform1iAction: uniform1iAction,
+    uniform1iAction: uniformAction,
     updateUniformTimer: updateUniformTimer
   };
 }
@@ -32237,21 +32245,68 @@ function useUniformAction(_ref) {
 function useCustomAction(_ref) {
   var getBufferAttribute = _ref.getBufferAttribute,
     gl = _ref.gl;
-  var executeCustomAction = React.useCallback(function (action, time) {
-    if (action.processAttributeBuffer) {
-      var _action$location;
-      var bufferLocation = getBufferAttribute((_action$location = action.location) != null ? _action$location : "");
+  var executeCustomAction = React.useCallback(function (_ref2, time) {
+    var location = _ref2.location,
+      processAttributeBuffer = _ref2.processAttributeBuffer;
+    if (processAttributeBuffer) {
+      var bufferLocation = getBufferAttribute(location != null ? location : "");
       if (bufferLocation) {
-        var cleanup = action.processAttributeBuffer(bufferLocation.bufferArray, time);
+        processAttributeBuffer(bufferLocation.bufferArray, time);
         gl === null || gl === void 0 ? void 0 : gl.bindBuffer(gl.ARRAY_BUFFER, bufferLocation.buffer);
         gl === null || gl === void 0 ? void 0 : gl.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, gl.STATIC_DRAW);
-        return cleanup;
       }
     }
-    return;
   }, [getBufferAttribute, gl]);
   return {
     executeCustomAction: executeCustomAction
+  };
+}
+
+function useImageAction(_ref) {
+  var gl = _ref.gl;
+  var images = React.useRef({});
+  var loadTexture = React.useCallback(function (source, textureId) {
+    if (!gl) {
+      return function () {};
+    }
+    var texture = gl.createTexture();
+    gl.activeTexture(gl[textureId]);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    return function () {
+      return gl.deleteTexture(texture);
+    };
+  }, [gl]);
+  var executeLoadImageAction = React.useCallback(function (_ref2, executePipeline) {
+    var src = _ref2.src,
+      imageId = _ref2.imageId,
+      _ref2$onLoad = _ref2.onLoad,
+      onLoad = _ref2$onLoad === void 0 ? [] : _ref2$onLoad;
+    var image = new Image();
+    image.src = src;
+    image.addEventListener("load", function () {
+      images.current[imageId] = image;
+      executePipeline(onLoad);
+    });
+  }, [images]);
+  var executeLoadTextureAction = React.useCallback(function (_ref3) {
+    var imageId = _ref3.imageId,
+      textureId = _ref3.textureId;
+    var image = images.current[imageId];
+    if (image) {
+      var cleanup = loadTexture(image, textureId);
+      return function () {
+        return cleanup();
+      };
+    }
+    return function () {};
+  }, [loadTexture, images]);
+  return {
+    executeLoadImageAction: executeLoadImageAction,
+    executeLoadTextureAction: executeLoadTextureAction
   };
 }
 
@@ -32275,12 +32330,18 @@ function useActionPipeline(_ref) {
       gl: gl,
       getUniformLocation: getUniformLocation
     }),
-    updateUniformTimer = _useUniformAction.updateUniformTimer;
+    updateUniformTimer = _useUniformAction.updateUniformTimer,
+    uniform1iAction = _useUniformAction.uniform1iAction;
   var _useCustomAction = useCustomAction({
       gl: gl,
       getBufferAttribute: getBufferAttribute
     }),
     executeCustomAction = _useCustomAction.executeCustomAction;
+  var _useImageAction = useImageAction({
+      gl: gl
+    }),
+    executeLoadImageAction = _useImageAction.executeLoadImageAction,
+    executeLoadTextureAction = _useImageAction.executeLoadTextureAction;
   var executePipeline = React.useCallback(function (actions, time) {
     if (time === void 0) {
       time = 0;
@@ -32290,7 +32351,7 @@ function useActionPipeline(_ref) {
     }
     var cleanupActions = actions.map(function (action) {
       if (typeof action === "string") {
-        return executePipeline(getActions(action));
+        return executePipeline(getActions(action), time);
       }
       switch (action.action) {
         case "bind-vertex":
@@ -32312,8 +32373,14 @@ function useActionPipeline(_ref) {
           return executeCustomAction(action, time);
         case "execute-script":
           return executePipeline(getActions(action.script));
+        case "load-image":
+          return executeLoadImageAction(action, executePipeline);
+        case "uniform":
+          return uniform1iAction(action);
+        case "load-texture":
+          return executeLoadTextureAction(action);
       }
-      return undefined;
+      return NOP;
     }).filter(function (cleanup) {
       return !!cleanup;
     });
@@ -32322,7 +32389,7 @@ function useActionPipeline(_ref) {
         return cleanup();
       });
     } : NOP;
-  }, [bufferAttributes, updateUniformTimer, drawVertices, clear, setActiveProgram, executeCustomAction, getActions]);
+  }, [bufferAttributes, updateUniformTimer, uniform1iAction, drawVertices, clear, setActiveProgram, executeCustomAction, getActions, executeLoadImageAction, executeLoadTextureAction]);
   return {
     executePipeline: executePipeline,
     clear: clear,

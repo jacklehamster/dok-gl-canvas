@@ -1,8 +1,9 @@
 import { ProgramId } from "../gl/program/program";
-export interface Uniform1iAction {
-    action: "uniform1i";
+export interface UniformAction {
+    action: "uniform";
     location: string;
-    value: number;
+    int?: number;
+    float?: number;
 }
 export interface UniformTimerAction {
     action: "uniform-timer";
@@ -13,7 +14,7 @@ interface Props {
     getUniformLocation(name: string, programId?: ProgramId): WebGLUniformLocation | undefined;
 }
 export default function useUniformAction({ gl, getUniformLocation }: Props): {
-    uniform1iAction: ({ location, value }: Uniform1iAction) => void;
+    uniform1iAction: ({ location, int, float }: UniformAction) => void;
     updateUniformTimer: ({ location }: UniformTimerAction, time: number) => void;
 };
 export {};
