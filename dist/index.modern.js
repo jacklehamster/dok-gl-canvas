@@ -32180,41 +32180,51 @@ function useBufferAttributes(_ref) {
 }
 
 function useClearAction(gl) {
-  return useCallback(function (_ref) {
-    var color = _ref.color,
-      depth = _ref.depth,
-      stencil = _ref.stencil;
+  var execute = useCallback(function (action) {
     if (!gl) {
       return;
     }
-    var bit = 0;
-    if (color) {
-      bit |= gl === null || gl === void 0 ? void 0 : gl.COLOR_BUFFER_BIT;
+    var color = action.color,
+      depth = action.depth,
+      stencil = action.stencil;
+    if (action.bit === undefined) {
+      action.bit = 0;
+      if (color) {
+        action.bit |= gl === null || gl === void 0 ? void 0 : gl.COLOR_BUFFER_BIT;
+      }
+      if (depth) {
+        action.bit |= gl === null || gl === void 0 ? void 0 : gl.DEPTH_BUFFER_BIT;
+      }
+      if (stencil) {
+        action.bit |= gl === null || gl === void 0 ? void 0 : gl.STENCIL_BUFFER_BIT;
+      }
     }
-    if (depth) {
-      bit |= gl === null || gl === void 0 ? void 0 : gl.DEPTH_BUFFER_BIT;
-    }
-    if (stencil) {
-      bit |= gl === null || gl === void 0 ? void 0 : gl.STENCIL_BUFFER_BIT;
-    }
-    if (bit) {
-      gl.clear(bit);
+    if (action.bit) {
+      gl.clear(action.bit);
     }
   }, [gl]);
+  return useCallback(function (action) {
+    action.execute = execute;
+    execute(action);
+  }, [execute]);
 }
 
 function useDrawVertexAction(gl) {
-  return useCallback(function (_ref) {
+  var execute = useCallback(function (_ref) {
     var vertexFirst = _ref.vertexFirst,
       vertexCount = _ref.vertexCount;
     gl === null || gl === void 0 ? void 0 : gl.drawArrays(gl.TRIANGLES, vertexFirst != null ? vertexFirst : 0, vertexCount != null ? vertexCount : 0);
   }, [gl]);
+  return useCallback(function (action) {
+    action.execute = execute;
+    execute(action);
+  }, [execute]);
 }
 
 function useUniformAction(_ref) {
   var gl = _ref.gl,
     getUniformLocation = _ref.getUniformLocation;
-  var uniformAction = useCallback(function (_ref2) {
+  var uniform1iAction = useCallback(function (_ref2) {
     var _getUniformLocation;
     var location = _ref2.location,
       _int = _ref2["int"],
@@ -32234,8 +32244,11 @@ function useUniformAction(_ref) {
     gl === null || gl === void 0 ? void 0 : gl.uniform1f(uniformLocation, time);
   }, [gl, getUniformLocation]);
   return {
-    uniform1iAction: uniformAction,
-    updateUniformTimer: updateUniformTimer
+    uniform1iAction: uniform1iAction,
+    updateUniformTimer: useCallback(function (action, time) {
+      action.execute = updateUniformTimer;
+      updateUniformTimer(action, time);
+    }, [updateUniformTimer])
   };
 }
 
@@ -32255,7 +32268,10 @@ function useCustomAction(_ref) {
     }
   }, [getBufferAttribute, gl]);
   return {
-    executeCustomAction: executeCustomAction
+    executeCustomAction: useCallback(function (action, time) {
+      action.execute = executeCustomAction;
+      executeCustomAction(action, time);
+    }, [executeCustomAction])
   };
 }
 
@@ -32284,14 +32300,26 @@ function useImageAction(_ref) {
       onLoad = _ref2$onLoad === void 0 ? [] : _ref2$onLoad;
     var image = new Image();
     image.src = src;
+    images.current[imageId] = image;
     image.addEventListener("load", function () {
-      images.current[imageId] = image;
       executePipeline(onLoad);
     });
   }, [images]);
-  var executeLoadTextureAction = useCallback(function (_ref3) {
-    var imageId = _ref3.imageId,
-      textureId = _ref3.textureId;
+  var executeVideoAction = useCallback(function (_ref3) {
+    var src = _ref3.src,
+      imageId = _ref3.imageId;
+    var video = document.createElement("video");
+    video.src = src;
+    video.loop = true;
+    video.play();
+    images.current[imageId] = video;
+    return function () {
+      return video.pause();
+    };
+  }, [images]);
+  var executeLoadTextureAction = useCallback(function (_ref4) {
+    var imageId = _ref4.imageId,
+      textureId = _ref4.textureId;
     var image = images.current[imageId];
     if (image) {
       var cleanup = loadTexture(image, textureId);
@@ -32303,7 +32331,21 @@ function useImageAction(_ref) {
   }, [loadTexture, images]);
   return {
     executeLoadImageAction: executeLoadImageAction,
+    executeVideoAction: executeVideoAction,
     executeLoadTextureAction: executeLoadTextureAction
+  };
+}
+
+function useProgramAction(_ref) {
+  var setActiveProgram = _ref.setActiveProgram;
+  var execute = useCallback(function (action) {
+    setActiveProgram(action.id);
+  }, [setActiveProgram]);
+  return {
+    executeProgramAction: useCallback(function (action) {
+      action.execute = execute;
+      execute(action);
+    }, [execute])
   };
 }
 
@@ -32313,7 +32355,7 @@ function useActionPipeline(_ref) {
     getAttributeLocation = _ref.getAttributeLocation,
     getUniformLocation = _ref.getUniformLocation,
     setActiveProgram = _ref.setActiveProgram,
-    getActions = _ref.getActions;
+    getScript = _ref.getScript;
   var _useBufferAttributes = useBufferAttributes({
       gl: gl,
       getAttributeLocation: getAttributeLocation
@@ -32338,7 +32380,12 @@ function useActionPipeline(_ref) {
       gl: gl
     }),
     executeLoadImageAction = _useImageAction.executeLoadImageAction,
+    executeVideoAction = _useImageAction.executeVideoAction,
     executeLoadTextureAction = _useImageAction.executeLoadTextureAction;
+  var _useProgramAction = useProgramAction({
+      setActiveProgram: setActiveProgram
+    }),
+    executeProgramAction = _useProgramAction.executeProgramAction;
   var executePipeline = useCallback(function (actions, time) {
     if (time === void 0) {
       time = 0;
@@ -32348,7 +32395,11 @@ function useActionPipeline(_ref) {
     }
     var cleanupActions = actions.map(function (action) {
       if (typeof action === "string") {
-        return executePipeline(getActions(action), time);
+        return executePipeline(getScript(action), time);
+      }
+      if (action.execute) {
+        action.execute(action, time);
+        return;
       }
       switch (action.action) {
         case "bind-vertex":
@@ -32364,18 +32415,20 @@ function useActionPipeline(_ref) {
         case "uniform-timer":
           return updateUniformTimer(action, time);
         case "active-program":
-          setActiveProgram(action.id);
+          executeProgramAction(action);
           break;
         case "custom":
           return executeCustomAction(action, time);
         case "execute-script":
-          return executePipeline(getActions(action.script));
+          return executePipeline(getScript(action.script));
         case "load-image":
           return executeLoadImageAction(action, executePipeline);
         case "uniform":
           return uniform1iAction(action);
         case "load-texture":
           return executeLoadTextureAction(action);
+        case "load-video":
+          return executeVideoAction(action);
       }
       return NOP;
     }).filter(function (cleanup) {
@@ -32386,7 +32439,7 @@ function useActionPipeline(_ref) {
         return cleanup();
       });
     } : NOP;
-  }, [bufferAttributes, updateUniformTimer, uniform1iAction, drawVertices, clear, setActiveProgram, executeCustomAction, getActions, executeLoadImageAction, executeLoadTextureAction]);
+  }, [bufferAttributes, updateUniformTimer, uniform1iAction, drawVertices, clear, executeProgramAction, executeCustomAction, getScript, executeLoadImageAction, executeLoadTextureAction]);
   return {
     executePipeline: executePipeline,
     clear: clear,
@@ -32415,7 +32468,7 @@ function useLoopPipeline(_ref) {
 
 function useActionScripts(_ref) {
   var scripts = _ref.scripts;
-  var getActions = useCallback(function (script) {
+  var getScript = useCallback(function (script) {
     var _scripts$find$actions, _scripts$find;
     if (!script) {
       return [];
@@ -32428,7 +32481,7 @@ function useActionScripts(_ref) {
     })) === null || _scripts$find === void 0 ? void 0 : _scripts$find.actions) != null ? _scripts$find$actions : [];
   }, [scripts]);
   return {
-    getActions: getActions
+    getScript: getScript
   };
 }
 
@@ -32490,13 +32543,13 @@ function GLCanvas(props) {
   var _useActionScripts = useActionScripts({
       scripts: actionScripts
     }),
-    getActions = _useActionScripts.getActions;
+    getScript = _useActionScripts.getScript;
   var _useActionPipeline = useActionPipeline({
       gl: gl,
       getAttributeLocation: getAttributeLocation,
       getUniformLocation: getUniformLocation,
       setActiveProgram: setActiveProgram,
-      getActions: getActions
+      getScript: getScript
     }),
     executePipeline = _useActionPipeline.executePipeline,
     getBufferAttribute = _useActionPipeline.getBufferAttribute;
@@ -32505,8 +32558,8 @@ function GLCanvas(props) {
   });
   useEffect(function () {
     if (usedProgram && glConfig) {
-      var pipelineCleanup = executePipeline(getActions(pipelineActions));
-      var loopCleanup = loopPipeline(getActions(loopActions));
+      var pipelineCleanup = executePipeline(getScript(pipelineActions));
+      var loopCleanup = loopPipeline(getScript(loopActions));
       var cleanup = change === null || change === void 0 ? void 0 : change(glConfig);
       return function () {
         pipelineCleanup();
@@ -32515,15 +32568,15 @@ function GLCanvas(props) {
       };
     }
     return;
-  }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getActions]);
+  }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript]);
   var updateOnChange = useCallback(function (refreshMethod) {
     setChange(function () {
       return refreshMethod;
     });
   }, [setChange]);
   var executeScript = useCallback(function (script) {
-    return executePipeline(getActions(script));
-  }, [getActions, executePipeline]);
+    return executePipeline(getScript(script));
+  }, [getScript, executePipeline]);
   useEffect(function () {
     if (controller) {
       controller.setOnChange = updateOnChange;

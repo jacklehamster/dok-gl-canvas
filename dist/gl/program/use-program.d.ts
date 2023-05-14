@@ -4,10 +4,6 @@ interface Props {
     initialProgram?: ProgramId;
     programs?: ProgramConfig[];
 }
-export interface ActiveProgramAction {
-    action: "active-program";
-    id: ProgramId;
-}
 export declare function useProgram({ gl, initialProgram, programs }: Props): {
     usedProgram: WebGLProgram | undefined;
     getAttributeLocation: (name: string, programId?: string | undefined) => number;

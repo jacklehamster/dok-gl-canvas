@@ -3,11 +3,13 @@ import TextureSample from './TextureSample';
 import TriangleSample from './TriangleSample';
 import { useState } from 'react';
 import GridSample from './GridSample';
+import VideoSample from './VideoSample';
 
 enum Sample {
   TEXTURE = "texture",
   TRIANGLE = "triangle",
   GRID = "grid",
+  VIDEO = "video",
 }
 
 export const App = () => {
@@ -17,10 +19,12 @@ export const App = () => {
       <option value={Sample.TEXTURE}>texture sample</option>
       <option value={Sample.TRIANGLE}>triangle sample</option>
       <option value={Sample.GRID}>grid sample</option>
+      <option value={Sample.VIDEO}>video sample</option>
     </select>
     {sample === Sample.TEXTURE && <TextureSample />}
     {sample === Sample.TRIANGLE && <TriangleSample />}
     {sample === Sample.GRID && <GridSample />}
+    {sample === Sample.VIDEO && <VideoSample />}
   </>
 }
 

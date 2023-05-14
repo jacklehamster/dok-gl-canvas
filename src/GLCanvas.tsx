@@ -47,21 +47,21 @@ export default function GLCanvas(props?: Props): JSX.Element {
         gl, getUniformLocation, getAttributeLocation,
     }: undefined), [gl, getUniformLocation, getAttributeLocation]);
 
-    const { getActions } = useActionScripts({ scripts: actionScripts });
+    const { getScript } = useActionScripts({ scripts: actionScripts });
 
     const { executePipeline, getBufferAttribute } = useActionPipeline({
         gl,
         getAttributeLocation,
         getUniformLocation,
         setActiveProgram,
-        getActions,
+        getScript,
     });
     const loopPipeline = useLoopPipeline({ executePipeline });
 
     useEffect(() => {
         if (usedProgram && glConfig) {
-            const pipelineCleanup = executePipeline(getActions(pipelineActions));
-            const loopCleanup = loopPipeline(getActions(loopActions));
+            const pipelineCleanup = executePipeline(getScript(pipelineActions));
+            const loopCleanup = loopPipeline(getScript(loopActions));
             const cleanup = change?.(glConfig);
             return () => {
                 pipelineCleanup();
@@ -70,15 +70,15 @@ export default function GLCanvas(props?: Props): JSX.Element {
             };
         }
         return;
-    }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getActions]);
+    }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript]);
 
     const updateOnChange = useCallback((refreshMethod: OnChange) => {
         setChange(() => refreshMethod);
     }, [setChange]);
 
     const executeScript = useCallback((script: GlAction[] | string) => {
-        return executePipeline(getActions(script));
-    }, [getActions, executePipeline]);
+        return executePipeline(getScript(script));
+    }, [getScript, executePipeline]);
 
     useEffect(() => {
         if (controller) {

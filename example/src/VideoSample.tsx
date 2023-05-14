@@ -115,24 +115,21 @@ export default () => <GLCanvas
         int: 0,
       },
       {
-        action: "load-image",
-        src: "turtle.png",
-        imageId: "turtle",
-        onLoad: [
-            {
-                action: "load-texture",
-                imageId: "turtle",
-                textureId: "TEXTURE0",
-            },        
-            "redraw",
-          ],
+        action: "load-video",
+        src: "sample.mp4",
+        imageId: "video",
       },
     ]}
     actionLoop={[
         {
-            action: "uniform-timer",
-            location: "time",
-        },
+            action: "load-texture",
+            imageId: "video",
+            textureId: "TEXTURE0",
+        },        
+    // {
+        //     action: "uniform-timer",
+        //     location: "time",
+        // },
         "redraw",
     ]}
 />;

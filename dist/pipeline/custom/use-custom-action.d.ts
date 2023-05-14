@@ -1,4 +1,5 @@
 import { BufferInfo } from "../use-buffer-attributes";
+import { GlExecuteAction } from "../GlAction";
 export interface CustomAction {
     action: "custom";
     location?: string;
@@ -9,5 +10,5 @@ export interface Props {
     getBufferAttribute(location: string): BufferInfo | undefined;
 }
 export default function useCustomAction({ getBufferAttribute, gl }: Props): {
-    executeCustomAction: ({ location, processAttributeBuffer }: CustomAction, time: number) => void;
+    executeCustomAction: (action: CustomAction & GlExecuteAction, time: number) => void;
 };

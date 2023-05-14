@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function useActionScripts({ scripts }: Props) {
-    const getActions = useCallback((script: string | GlAction[] | undefined): GlAction[] => {
+    const getScript = useCallback((script: string | GlAction[] | undefined): GlAction[] => {
         if (!script) {
             return [];
         }
@@ -22,6 +22,6 @@ export function useActionScripts({ scripts }: Props) {
     }, [scripts]);
 
     return {
-        getActions,
+        getScript,
     }
 }

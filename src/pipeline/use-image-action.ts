@@ -13,6 +13,13 @@ export interface ImageAction {
     onLoad?: GlAction[];
 }
 
+export interface VideoAction {
+    action: "load-video";
+    src: string;
+    imageId: string;
+    onFrame?: GlAction[];
+}
+
 export interface TextureAction {
     action: "load-texture";
     imageId: string;
@@ -45,10 +52,19 @@ export default function useImageAction({ gl }: Props) {
             executePipeline: (actions: GlAction[]) => void) => {
         const image = new Image();
         image.src = src;
+        images.current[imageId] = image;
         image.addEventListener("load", () => {
-            images.current[imageId] = image;
             executePipeline(onLoad);
         });
+    }, [images]);
+
+    const executeVideoAction = useCallback(({ src, imageId }: VideoAction) => {
+        const video = document.createElement("video");
+        video.src = src;
+        video.loop = true;
+        video.play();
+        images.current[imageId] = video;
+        return () => video.pause();
     }, [images]);
 
     const executeLoadTextureAction = useCallback(({ imageId, textureId }: TextureAction): () => void => {
@@ -62,6 +78,7 @@ export default function useImageAction({ gl }: Props) {
 
     return {
         executeLoadImageAction,
+        executeVideoAction,
         executeLoadTextureAction,
     }
 }

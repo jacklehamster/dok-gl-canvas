@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { BufferInfo } from "../use-buffer-attributes";
+import { GlExecuteAction } from "../GlAction";
 
 export interface CustomAction {
     action: "custom",
@@ -25,6 +26,9 @@ export default function useCustomAction({ getBufferAttribute, gl }: Props) {
     }, [getBufferAttribute, gl]);
 
     return {
-        executeCustomAction,
+        executeCustomAction: useCallback((action: CustomAction & GlExecuteAction, time: number) => {
+            action.execute = executeCustomAction;
+            executeCustomAction(action, time);
+        }, [executeCustomAction]),
     }
 }

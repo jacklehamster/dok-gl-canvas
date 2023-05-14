@@ -7,6 +7,6 @@ interface Props {
     scripts: Script[];
 }
 export declare function useActionScripts({ scripts }: Props): {
-    getActions: (script: string | GlAction[] | undefined) => GlAction[];
+    getScript: (script: string | GlAction[] | undefined) => GlAction[];
 };
 export {};

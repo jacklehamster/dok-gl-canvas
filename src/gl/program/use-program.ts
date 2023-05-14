@@ -8,11 +8,6 @@ interface Props {
     programs?: ProgramConfig[];
 }
 
-export interface ActiveProgramAction {
-    action: "active-program";
-    id: ProgramId;
-}
-
 export function useProgram({ gl, initialProgram, programs }: Props) {
     const { createProgram, removeProgram } = useShader({ gl });
     const [programResults, setProgramResults] = useState<Record<ProgramId, ProgramResult>>({});

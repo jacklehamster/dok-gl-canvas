@@ -1,4 +1,5 @@
 import { ProgramId } from "../gl/program/program";
+import { GlExecuteAction } from "./GlAction";
 export interface UniformAction {
     action: "uniform";
     location: string;
@@ -15,6 +16,6 @@ interface Props {
 }
 export default function useUniformAction({ gl, getUniformLocation }: Props): {
     uniform1iAction: ({ location, int, float }: UniformAction) => void;
-    updateUniformTimer: ({ location }: UniformTimerAction, time: number) => void;
+    updateUniformTimer: (action: UniformTimerAction & GlExecuteAction, time: number) => void;
 };
 export {};

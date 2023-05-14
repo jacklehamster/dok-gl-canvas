@@ -6,6 +6,12 @@ export interface ImageAction {
     imageId: string;
     onLoad?: GlAction[];
 }
+export interface VideoAction {
+    action: "load-video";
+    src: string;
+    imageId: string;
+    onFrame?: GlAction[];
+}
 export interface TextureAction {
     action: "load-texture";
     imageId: string;
@@ -16,6 +22,7 @@ interface Props {
 }
 export default function useImageAction({ gl }: Props): {
     executeLoadImageAction: ({ src, imageId, onLoad }: ImageAction, executePipeline: (actions: GlAction[]) => void) => void;
+    executeVideoAction: ({ src, imageId }: VideoAction) => () => void;
     executeLoadTextureAction: ({ imageId, textureId }: TextureAction) => () => void;
 };
 export {};
