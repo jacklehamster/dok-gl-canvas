@@ -22,7 +22,7 @@ const NOP = () => {};
 export default function useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram, getScript }: Props) {
     const { bindVertexArray, bufferAttributes, getBufferAttribute } = useBufferAttributes({ gl, getAttributeLocation });
     const clear = useClearAction(gl);
-    const drawVertices = useDrawVertexAction(gl);
+    const { drawArrays, drawArraysInstanced } = useDrawVertexAction(gl);
     const { updateUniformTimer, uniform1iAction } = useUniformAction({ gl, getUniformLocation });
     const { executeCustomAction } = useCustomAction({ gl, getBufferAttribute });
     const { executeLoadImageAction, executeVideoAction, executeLoadTextureAction } = useImageAction({ gl });
@@ -48,8 +48,11 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                 case "clear":
                     clear(action);
                     break;
-                case "draw":
-                    drawVertices(action);
+                case "draw-arrays":
+                    drawArrays(action);
+                    break;
+                case "draw-arrays-instanced":
+                    drawArraysInstanced(action);
                     break;
                 case "uniform-timer":
                     return updateUniformTimer(action, time);
@@ -76,7 +79,8 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
         bufferAttributes,
         updateUniformTimer,
         uniform1iAction,
-        drawVertices,
+        drawArrays,
+        drawArraysInstanced,
         clear,
         executeProgramAction,
         executeCustomAction,
@@ -85,5 +89,5 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
         executeLoadTextureAction,
     ]);
 
-    return { executePipeline, clear, drawVertices, getBufferAttribute };
+    return { executePipeline, getBufferAttribute };
 }

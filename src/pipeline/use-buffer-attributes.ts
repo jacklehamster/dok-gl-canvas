@@ -46,7 +46,6 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
             return gl.UNSIGNED_SHORT;
           default:
             return;
-  
         }
     }, [gl]);
 
@@ -62,7 +61,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         if (!gl) {
             return;
         }
-        const { location, buffer, usage, size, type, normalized, stride, offset } = bufferAttributeAction;
+        const { location, buffer, usage, size, type, normalized, stride, offset, divisor } = bufferAttributeAction;
 
         const bufferLocation = getAttributeLocation(location);
         if (bufferLocation < 0 || !buffer.length) {
@@ -73,6 +72,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, bufferArray, getGlEnum(usage) ?? gl.STATIC_DRAW);
         gl.vertexAttribPointer(bufferLocation, size, getGlType(type) ?? gl.FLOAT, normalized ?? false, stride ?? 0, offset ?? 0);
+        gl.vertexAttribDivisor(bufferLocation, divisor ?? 0);
         gl.enableVertexAttribArray(bufferLocation);
 
         if (bufferBuffer && !bufferRecord.current[location]) {

@@ -1,4 +1,4 @@
-import { DrawVertexAction } from "./draw-vertex-action";
+import { DrawArraysAction } from "./draw-vertex-action";
 export declare enum Usage {
     STATIC_DRAW = 0,
     DYNAMIC_DRAW = 1,
@@ -21,8 +21,9 @@ export interface BufferAttributeAction {
     normalized?: boolean;
     stride?: GLsizei;
     offset?: GLintptr;
+    divisor?: GLuint;
 }
 export interface ShaderAttributes {
     attributeBuffers: BufferAttributeAction[];
-    drawVertex: DrawVertexAction;
+    drawVertex: DrawArraysAction;
 }

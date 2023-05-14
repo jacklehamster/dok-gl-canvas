@@ -9,8 +9,6 @@ interface Props {
 }
 export default function useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram, getScript }: Props): {
     executePipeline: (actions: GlAction[], time?: number) => () => void;
-    clear: (action: import("./use-clear-action").ClearAction & import("./GlAction").GlExecuteAction) => void;
-    drawVertices: (action: import("./draw-vertex-action").DrawVertexAction & import("./GlAction").GlExecuteAction) => void;
     getBufferAttribute: (location: string) => import("./use-buffer-attributes").BufferInfo;
 };
 export {};

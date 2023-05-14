@@ -21,7 +21,7 @@ interface Props {
     gl?: WebGL2RenderingContext;
 }
 export default function useImageAction({ gl }: Props): {
-    executeLoadImageAction: ({ src, imageId, onLoad }: ImageAction, executePipeline: (actions: GlAction[]) => void) => void;
+    executeLoadImageAction: ({ src, imageId, onLoad }: ImageAction, executePipeline: (actions: GlAction[]) => void) => () => void;
     executeVideoAction: ({ src, imageId }: VideoAction) => () => void;
     executeLoadTextureAction: ({ imageId, textureId }: TextureAction) => () => void;
 };

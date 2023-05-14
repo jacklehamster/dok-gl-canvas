@@ -1,6 +1,6 @@
 import { BufferAttributeAction } from "./BufferAttributeAction";
 import { ClearAction } from "./use-clear-action";
-import { DrawVertexAction } from "./draw-vertex-action";
+import { DrawArraysAction, DrawArraysInstancedAction } from "./draw-vertex-action";
 import { UniformAction, UniformTimerAction } from "./UniformAction";
 import { CustomAction } from "./custom/use-custom-action";
 import { BindVertexAction } from "./BindVertexAction";
@@ -16,7 +16,8 @@ export type GlAction = string | GlExecuteAction & (
                         BufferAttributeAction
                         | BindVertexAction
                         | ClearAction
-                        | DrawVertexAction
+                        | DrawArraysAction
+                        | DrawArraysInstancedAction
                         | UniformTimerAction
                         | UniformAction
                         | ActiveProgramAction

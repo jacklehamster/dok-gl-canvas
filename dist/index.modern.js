@@ -32145,7 +32145,8 @@ function useBufferAttributes(_ref) {
       type = bufferAttributeAction.type,
       normalized = bufferAttributeAction.normalized,
       stride = bufferAttributeAction.stride,
-      offset = bufferAttributeAction.offset;
+      offset = bufferAttributeAction.offset,
+      divisor = bufferAttributeAction.divisor;
     var bufferLocation = getAttributeLocation(location);
     if (bufferLocation < 0 || !buffer.length) {
       return;
@@ -32155,6 +32156,7 @@ function useBufferAttributes(_ref) {
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, bufferArray, (_getGlEnum = getGlEnum(usage)) != null ? _getGlEnum : gl.STATIC_DRAW);
     gl.vertexAttribPointer(bufferLocation, size, (_getGlType = getGlType(type)) != null ? _getGlType : gl.FLOAT, normalized != null ? normalized : false, stride != null ? stride : 0, offset != null ? offset : 0);
+    gl.vertexAttribDivisor(bufferLocation, divisor != null ? divisor : 0);
     gl.enableVertexAttribArray(bufferLocation);
     if (bufferBuffer && !bufferRecord.current[location]) {
       bufferRecord.current[location] = {
@@ -32210,15 +32212,27 @@ function useClearAction(gl) {
 }
 
 function useDrawVertexAction(gl) {
-  var execute = useCallback(function (_ref) {
+  var drawArrays = useCallback(function (_ref) {
     var vertexFirst = _ref.vertexFirst,
       vertexCount = _ref.vertexCount;
     gl === null || gl === void 0 ? void 0 : gl.drawArrays(gl.TRIANGLES, vertexFirst != null ? vertexFirst : 0, vertexCount != null ? vertexCount : 0);
   }, [gl]);
-  return useCallback(function (action) {
-    action.execute = execute;
-    execute(action);
-  }, [execute]);
+  var drawArraysInstanced = useCallback(function (_ref2) {
+    var vertexFirst = _ref2.vertexFirst,
+      vertexCount = _ref2.vertexCount,
+      instanceCount = _ref2.instanceCount;
+    gl === null || gl === void 0 ? void 0 : gl.drawArraysInstanced(gl.TRIANGLES, vertexFirst != null ? vertexFirst : 0, vertexCount != null ? vertexCount : 0, instanceCount != null ? instanceCount : 0);
+  }, [gl]);
+  return {
+    drawArrays: useCallback(function (action) {
+      action.execute = drawArrays;
+      drawArrays(action);
+    }, [drawArrays]),
+    drawArraysInstanced: useCallback(function (action) {
+      action.execute = drawArraysInstanced;
+      drawArraysInstanced(action);
+    }, [drawArraysInstanced])
+  };
 }
 
 function useUniformAction(_ref) {
@@ -32304,6 +32318,9 @@ function useImageAction(_ref) {
     image.addEventListener("load", function () {
       executePipeline(onLoad);
     });
+    return function () {
+      delete images.current[imageId];
+    };
   }, [images]);
   var executeVideoAction = useCallback(function (_ref3) {
     var src = _ref3.src,
@@ -32312,9 +32329,12 @@ function useImageAction(_ref) {
     video.src = src;
     video.loop = true;
     video.play();
-    images.current[imageId] = video;
+    video.addEventListener("playing", function () {
+      images.current[imageId] = video;
+    });
     return function () {
-      return video.pause();
+      delete images.current[imageId];
+      video.pause();
     };
   }, [images]);
   var executeLoadTextureAction = useCallback(function (_ref4) {
@@ -32364,7 +32384,9 @@ function useActionPipeline(_ref) {
     bufferAttributes = _useBufferAttributes.bufferAttributes,
     getBufferAttribute = _useBufferAttributes.getBufferAttribute;
   var clear = useClearAction(gl);
-  var drawVertices = useDrawVertexAction(gl);
+  var _useDrawVertexAction = useDrawVertexAction(gl),
+    drawArrays = _useDrawVertexAction.drawArrays,
+    drawArraysInstanced = _useDrawVertexAction.drawArraysInstanced;
   var _useUniformAction = useUniformAction({
       gl: gl,
       getUniformLocation: getUniformLocation
@@ -32409,8 +32431,11 @@ function useActionPipeline(_ref) {
         case "clear":
           clear(action);
           break;
-        case "draw":
-          drawVertices(action);
+        case "draw-arrays":
+          drawArrays(action);
+          break;
+        case "draw-arrays-instanced":
+          drawArraysInstanced(action);
           break;
         case "uniform-timer":
           return updateUniformTimer(action, time);
@@ -32439,11 +32464,9 @@ function useActionPipeline(_ref) {
         return cleanup();
       });
     } : NOP;
-  }, [bufferAttributes, updateUniformTimer, uniform1iAction, drawVertices, clear, executeProgramAction, executeCustomAction, getScript, executeLoadImageAction, executeLoadTextureAction]);
+  }, [bufferAttributes, updateUniformTimer, uniform1iAction, drawArrays, drawArraysInstanced, clear, executeProgramAction, executeCustomAction, getScript, executeLoadImageAction, executeLoadTextureAction]);
   return {
     executePipeline: executePipeline,
-    clear: clear,
-    drawVertices: drawVertices,
     getBufferAttribute: getBufferAttribute
   };
 }

@@ -56,6 +56,9 @@ export default function useImageAction({ gl }: Props) {
         image.addEventListener("load", () => {
             executePipeline(onLoad);
         });
+        return () => {
+            delete images.current[imageId];
+        };
     }, [images]);
 
     const executeVideoAction = useCallback(({ src, imageId }: VideoAction) => {
@@ -63,8 +66,13 @@ export default function useImageAction({ gl }: Props) {
         video.src = src;
         video.loop = true;
         video.play();
-        images.current[imageId] = video;
-        return () => video.pause();
+        video.addEventListener("playing", () => {
+            images.current[imageId] = video;
+        });
+        return () => {
+            delete images.current[imageId];
+            video.pause();
+        };
     }, [images]);
 
     const executeLoadTextureAction = useCallback(({ imageId, textureId }: TextureAction): () => void => {

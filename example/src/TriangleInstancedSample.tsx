@@ -6,12 +6,13 @@ const vertex =  `#version 300 es
   precision highp float;
   layout (location=0) in vec4 position;
   layout (location=1) in vec3 color;
+  layout (location=2) in vec4 shift;
 
   out vec3 vColor;
 
   void main() {
       vColor = color;
-      gl_Position = position;
+      gl_Position = position + shift;
   }
 `;
 const fragment = `#version 300 es
@@ -34,8 +35,9 @@ export default () => <GLCanvas
             color: true,
           },
           {
-            action: "draw-arrays",
+            action: "draw-arrays-instanced",
             vertexCount: 3,
+            instanceCount: 2,
           },    
         ],
       }
@@ -65,18 +67,29 @@ export default () => <GLCanvas
         buffer: [
             1.0, 0.0, 0.0,
             0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0
+            0.0, 0.0, 1.0,
         ],
         size: 3,
+      },
+      {
+        action: "buffer-attribute",
+        location: "shift",
+        buffer: [
+            0.0, 0.0, 0.0,
+            0.5, 0.0, 0.0,
+        ],
+        size: 3,
+        divisor: 1,
       },
       "redraw",
     ]}
     actionLoop={[
       {
         action: "custom",
-        location: "position",
+        location: "shift",
         processAttributeBuffer(positions, time) {
-          positions[0] = Math.sin(time / 100);
+            positions[4] = Math.cos(time / 100);
+            positions[3] = Math.sin(time / 100);
         },
       },
       "redraw",

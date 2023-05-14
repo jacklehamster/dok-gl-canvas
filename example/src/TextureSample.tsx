@@ -74,7 +74,7 @@ export default () => <GLCanvas
             color: true,
           },
           {
-            action: "draw",
+            action: "draw-arrays",
             vertexCount: 6,
           },    
         ],
