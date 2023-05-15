@@ -60,7 +60,7 @@ const programs = [
   },
 ];
 
-export default () => <GLCanvas
+const sample = () => <GLCanvas
     programs={programs}
     actionScripts={[
       {
@@ -126,3 +126,5 @@ export default () => <GLCanvas
     ]}
     actionLoop={["animate"]}
 />;
+
+export default sample;

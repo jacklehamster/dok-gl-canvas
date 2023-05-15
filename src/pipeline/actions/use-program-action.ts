@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { GlExecuteAction } from "./GlAction";
 import { ProgramId } from "../../gl/program/program";
 
 export interface ActiveProgramAction {
@@ -12,13 +11,10 @@ interface Props {
 }
 
 export default function useProgramAction({ setActiveProgram }: Props) {
-    const execute = useCallback((action: ActiveProgramAction) => {
+    const executeProgramAction = useCallback((action: ActiveProgramAction) => {
         setActiveProgram(action.id);
     }, [setActiveProgram]);
     return { 
-        executeProgramAction : useCallback((action: ActiveProgramAction & GlExecuteAction) => {
-            action.execute = execute;
-            execute(action);
-        }, [ execute ]),
+        executeProgramAction,
     };
 }

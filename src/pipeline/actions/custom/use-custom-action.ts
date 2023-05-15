@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { BufferInfo } from "../use-buffer-attributes";
-import { GlExecuteAction } from "../GlAction";
+import { Context } from "../../use-action-pipeline";
 
 export interface CustomAction {
     action: "custom",
@@ -13,25 +13,24 @@ export interface Props {
     getBufferAttribute(location: string): BufferInfo | undefined;
 }
 
-export default function useCustomAction({ getBufferAttribute, gl }: Props) {
-    const executeCustomAction = useCallback(({location, modifyAttributeBuffer}: CustomAction, time: number) => {
+export default function useCustomAction({ gl, getBufferAttribute }: Props) {
+    const executeCustomAction = useCallback(({location, modifyAttributeBuffer}: CustomAction, context: Context) => {
         if (modifyAttributeBuffer) {
             const bufferLocation = getBufferAttribute(location ?? "");
             if (bufferLocation) {
                 if (!bufferLocation.bufferArray) {
                     bufferLocation.bufferArray = new Float32Array(bufferLocation.bufferSize / Float32Array.BYTES_PER_ELEMENT);
+                    bufferLocation.bufferArray.fill(0);
                 }
-                modifyAttributeBuffer(bufferLocation.bufferArray, time);
                 gl?.bindBuffer(gl.ARRAY_BUFFER, bufferLocation.buffer);
+                gl?.getBufferSubData(gl.ARRAY_BUFFER, 0, bufferLocation.bufferArray);
+                modifyAttributeBuffer(bufferLocation.bufferArray, context.time);
                 gl?.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, bufferLocation.usage);
             }
         }
     }, [getBufferAttribute, gl]);
 
     return {
-        executeCustomAction: useCallback((action: CustomAction & GlExecuteAction, time: number) => {
-            action.execute = executeCustomAction;
-            executeCustomAction(action, time);
-        }, [executeCustomAction]),
+        executeCustomAction,
     }
 }

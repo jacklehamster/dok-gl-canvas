@@ -8,7 +8,7 @@ import useUniformAction from "./actions/UniformAction";
 import useCustomAction from "./actions/custom/use-custom-action";
 import useImageAction from "./actions/use-image-action";
 import useProgramAction from "./actions/use-program-action";
-import { ExecutionStep } from "./use-script-execution";
+import useScriptExecution, { ExecutionStep } from "./use-script-execution";
 
 interface Props {
     gl?: WebGL2RenderingContext;
@@ -19,26 +19,31 @@ interface Props {
 }
 
 export interface Context {
+    time: number;
     executePipeline: ExecutePipeline;
+    cleanupActions:(() => void)[];
 }
 
-export type ExecutePipeline = (steps: ExecutionStep[], time: number, context: Context, cleanupActions: (() => void)[]) => void;
+export type ExecutePipeline = (steps: ExecutionStep[], context: Context) => void;
 
 export default function useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram, getScript }: Props) {
-    const { bindVertexArray, bufferAttributes, getBufferAttribute } = useBufferAttributes({ gl, getAttributeLocation });
+    const { bindVertexArray, bufferAttributes, getBufferAttribute, bufferSubData } = useBufferAttributes({ gl, getAttributeLocation });
     const clear = useClearAction(gl);
     const { drawArrays, drawArraysInstanced } = useDrawVertexAction(gl);
     const { updateUniformTimer, uniform1iAction } = useUniformAction({ gl, getUniformLocation });
     const { executeCustomAction } = useCustomAction({ gl, getBufferAttribute });
     const { executeLoadImageAction, executeVideoAction, executeLoadTextureAction } = useImageAction({ gl });
     const { executeProgramAction } = useProgramAction({ setActiveProgram });
+    const { executeSteps } = useScriptExecution();
 
     const convertActions = useCallback((actions: DokGlAction[]): ExecutionStep[] => actions.map(action => {
         switch(action.action) {
             case "bind-vertex":
-                return bindVertexArray;
+                return (context) => bindVertexArray(context);
             case "buffer-attribute":
-                return () => bufferAttributes(action);
+                return (context) => bufferAttributes(action, context);
+            case "buffer-sub-data":
+                return () => bufferSubData(action);
             case "clear":
                 return () => clear(action);
             case "draw-arrays":
@@ -46,29 +51,30 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
             case "draw-arrays-instanced":
                 return () => drawArraysInstanced(action);
             case "uniform-timer":
-                return (time) => updateUniformTimer(action, time);
+                return (context) => updateUniformTimer(action, context.time);
             case "active-program":
                 return () => executeProgramAction(action);
             case "custom":
-                return (time) => executeCustomAction(action, time);
+                return (context) => executeCustomAction(action, context);
             case "load-image":
                 const onLoad = convertActions(getScript(action.onLoad));
-                return (time, context) => executeLoadImageAction(action, time, context, onLoad);
+                return (context) => executeLoadImageAction(action, context, onLoad);
             case "uniform":
                 return () => uniform1iAction(action);
             case "load-texture":
                 return () => executeLoadTextureAction(action);
             case "load-video":
-                return () => executeVideoAction(action);                
+                return (context) => executeVideoAction(action, context);                
             case "execute-script":
                 const steps = convertActions(getScript(action.script));
-                return (time, context) => {
-                    for (let step of steps) step(time, context);
+                return (context) => {
+                    executeSteps(steps, context);
                 };
         }
     }), [
         bindVertexArray,
         bufferAttributes,
+        bufferSubData,
         clear,
         drawArrays,
         drawArraysInstanced,
@@ -80,15 +86,13 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
         executeLoadTextureAction,
         executeVideoAction,
         getScript,
+        executeSteps,
     ]);
 
 
-    const executePipeline = useCallback((steps: ExecutionStep[], time: number = 0, context: Context, cleanupActions: (() => void)[]): void => {
+    const executePipeline = useCallback((steps: ExecutionStep[], context: Context): void => {
         for (let step of steps) {
-            const cleanup = step(time, context);
-            if (cleanup) {
-                cleanupActions.push(cleanup);
-            }
+            step(context);
         }
     }, [
         bufferAttributes,
@@ -105,7 +109,9 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
     ]);
 
     const context: Context = useMemo(() => ({
+        time: 0,
         executePipeline,
+        cleanupActions: [],
     }), [executePipeline]);
 
     return { executePipeline, context, convertActions };

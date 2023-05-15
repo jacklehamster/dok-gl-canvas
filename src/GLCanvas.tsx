@@ -56,16 +56,15 @@ export default function GLCanvas(props?: Props): JSX.Element {
     const loopPipeline = useLoopPipeline({ executePipeline });
 
     useEffect((): void | (() => void) => {
-        if (usedProgram && glConfig) {
+        if (usedProgram && glConfig && context) {
             const pipelineSteps = convertActions(getScript(pipelineActions));
             const loopSteps = convertActions(getScript(loopActions));
 
-            const cleanupActions:(() => void)[] = [];
-            executePipeline(pipelineSteps, 0, context, cleanupActions);
-            const loopCleanup = loopPipeline(loopSteps, 0, context);
+            executePipeline(pipelineSteps, context);
+            loopPipeline(loopSteps, context);
             return () => {
-                cleanupActions.forEach(cleanup => cleanup());
-                loopCleanup();
+                context.cleanupActions.forEach(cleanup => cleanup());
+                context.cleanupActions.length = 0;
             };
         }
     }, [usedProgram, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions]);

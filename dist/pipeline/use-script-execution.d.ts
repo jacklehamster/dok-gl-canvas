@@ -1,5 +1,5 @@
 import { Context } from "./use-action-pipeline";
-export declare type ExecutionStep = (time: number, context: Context) => (() => void) | void | undefined;
+export declare type ExecutionStep = (context: Context) => void;
 export default function useScriptExecution(): {
-    executeSteps: (steps: ExecutionStep[], time: number, context: Context, cleanupActions: (() => void)[]) => void;
+    executeSteps: (steps: ExecutionStep[], context: Context) => void;
 };

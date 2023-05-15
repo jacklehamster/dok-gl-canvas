@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { GlExecuteAction } from "./GlAction";
 
 export interface DrawArraysAction {
     action: "draw-arrays",
@@ -24,13 +23,7 @@ export default function useDrawVertexAction(gl?: WebGL2RenderingContext) {
     }, [gl]);
 
     return {
-        drawArrays: useCallback((action: DrawArraysAction & GlExecuteAction) => {
-            action.execute = drawArrays;
-            drawArrays(action);
-        }, [drawArrays]),
-        drawArraysInstanced: useCallback((action: DrawArraysInstancedAction & GlExecuteAction) => {
-            action.execute = drawArraysInstanced;
-            drawArraysInstanced(action);
-        }, [drawArraysInstanced]),
+        drawArrays,
+        drawArraysInstanced,
     };
 }

@@ -32120,6 +32120,15 @@ var Type;
   Type[Type["FLOAT"] = 4] = "FLOAT";
 })(Type || (Type = {}));
 
+function clearRecord(record, clean) {
+  Object.entries(record).forEach(function (_ref) {
+    var key = _ref[0],
+      elem = _ref[1];
+    clean === null || clean === void 0 ? void 0 : clean(elem);
+    delete record[key];
+  });
+}
+
 function useBufferAttributes(_ref) {
   var gl = _ref.gl,
     getAttributeLocation = _ref.getAttributeLocation;
@@ -32157,16 +32166,25 @@ function useBufferAttributes(_ref) {
         return;
     }
   }, [gl]);
-  var bindVertexArray = React.useCallback(function () {
+  var bindVertexArray = React.useCallback(function (context) {
     var _gl$createVertexArray;
     var triangleArray = (_gl$createVertexArray = gl === null || gl === void 0 ? void 0 : gl.createVertexArray()) != null ? _gl$createVertexArray : null;
     gl === null || gl === void 0 ? void 0 : gl.bindVertexArray(triangleArray);
-    return function () {
+    context.cleanupActions.push(function () {
       return gl === null || gl === void 0 ? void 0 : gl.deleteVertexArray(triangleArray);
-    };
+    });
   }, [gl]);
   var bufferRecord = React.useRef({});
-  var bufferAttributes = React.useCallback(function (bufferAttributeAction) {
+  React.useEffect(function () {
+    return function () {
+      clearRecord(bufferRecord.current, function (info) {
+        if (info.buffer) {
+          gl === null || gl === void 0 ? void 0 : gl.deleteBuffer(info.buffer);
+        }
+      });
+    };
+  }, [gl, bufferRecord]);
+  var bufferAttributes = React.useCallback(function (bufferAttributeAction, context) {
     var _getGlEnum, _getGlType;
     if (!gl) {
       return;
@@ -32186,8 +32204,8 @@ function useBufferAttributes(_ref) {
     }
     var glUsage = (_getGlEnum = getGlEnum(usage)) != null ? _getGlEnum : gl.STATIC_DRAW;
     var bufferBuffer = gl.createBuffer();
-    var bufferArray = Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
-    var bufferSize = Array.isArray(buffer) ? buffer.length : buffer;
+    var bufferArray = buffer instanceof Float32Array ? buffer : Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
+    var bufferSize = typeof buffer === "number" ? buffer : buffer.length;
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
     if (bufferArray) {
       gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
@@ -32205,17 +32223,22 @@ function useBufferAttributes(_ref) {
         usage: glUsage
       };
     }
-    return function () {
-      gl.deleteBuffer(bufferBuffer);
-      gl.disableVertexAttribArray(bufferLocation);
-      if (bufferRecord.current[location]) {
-        delete bufferRecord.current[location];
-      }
-    };
+    context.cleanupActions.push(function () {
+      return gl.disableVertexAttribArray(bufferLocation);
+    });
   }, [gl, getAttributeLocation, bufferRecord]);
+  var bufferSubData = React.useCallback(function (_ref2) {
+    var dstByteOffset = _ref2.dstByteOffset,
+      buffer = _ref2.buffer,
+      srcOffset = _ref2.srcOffset,
+      length = _ref2.length;
+    var bufferArray = buffer instanceof Float32Array ? buffer : new Float32Array(buffer);
+    gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset != null ? dstByteOffset : 0, bufferArray, srcOffset != null ? srcOffset : 0, length != null ? length : bufferArray.length);
+  }, [gl]);
   return {
     bindVertexArray: bindVertexArray,
     bufferAttributes: bufferAttributes,
+    bufferSubData: bufferSubData,
     getBufferAttribute: React.useCallback(function (location) {
       return bufferRecord.current[location];
     }, [bufferRecord])
@@ -32246,10 +32269,7 @@ function useClearAction(gl) {
       gl.clear(action.bit);
     }
   }, [gl]);
-  return React.useCallback(function (action) {
-    action.execute = execute;
-    execute(action);
-  }, [execute]);
+  return execute;
 }
 
 function useDrawVertexAction(gl) {
@@ -32265,14 +32285,8 @@ function useDrawVertexAction(gl) {
     gl === null || gl === void 0 ? void 0 : gl.drawArraysInstanced(gl.TRIANGLES, vertexFirst != null ? vertexFirst : 0, vertexCount != null ? vertexCount : 0, instanceCount != null ? instanceCount : 0);
   }, [gl]);
   return {
-    drawArrays: React.useCallback(function (action) {
-      action.execute = drawArrays;
-      drawArrays(action);
-    }, [drawArrays]),
-    drawArraysInstanced: React.useCallback(function (action) {
-      action.execute = drawArraysInstanced;
-      drawArraysInstanced(action);
-    }, [drawArraysInstanced])
+    drawArrays: drawArrays,
+    drawArraysInstanced: drawArraysInstanced
   };
 }
 
@@ -32300,17 +32314,14 @@ function useUniformAction(_ref) {
   }, [gl, getUniformLocation]);
   return {
     uniform1iAction: uniform1iAction,
-    updateUniformTimer: React.useCallback(function (action, time) {
-      action.execute = updateUniformTimer;
-      updateUniformTimer(action, time);
-    }, [updateUniformTimer])
+    updateUniformTimer: updateUniformTimer
   };
 }
 
 function useCustomAction(_ref) {
-  var getBufferAttribute = _ref.getBufferAttribute,
-    gl = _ref.gl;
-  var executeCustomAction = React.useCallback(function (_ref2, time) {
+  var gl = _ref.gl,
+    getBufferAttribute = _ref.getBufferAttribute;
+  var executeCustomAction = React.useCallback(function (_ref2, context) {
     var location = _ref2.location,
       modifyAttributeBuffer = _ref2.modifyAttributeBuffer;
     if (modifyAttributeBuffer) {
@@ -32318,83 +32329,113 @@ function useCustomAction(_ref) {
       if (bufferLocation) {
         if (!bufferLocation.bufferArray) {
           bufferLocation.bufferArray = new Float32Array(bufferLocation.bufferSize / Float32Array.BYTES_PER_ELEMENT);
+          bufferLocation.bufferArray.fill(0);
         }
-        modifyAttributeBuffer(bufferLocation.bufferArray, time);
         gl === null || gl === void 0 ? void 0 : gl.bindBuffer(gl.ARRAY_BUFFER, bufferLocation.buffer);
+        gl === null || gl === void 0 ? void 0 : gl.getBufferSubData(gl.ARRAY_BUFFER, 0, bufferLocation.bufferArray);
+        modifyAttributeBuffer(bufferLocation.bufferArray, context.time);
         gl === null || gl === void 0 ? void 0 : gl.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, bufferLocation.usage);
       }
     }
   }, [getBufferAttribute, gl]);
   return {
-    executeCustomAction: React.useCallback(function (action, time) {
-      action.execute = executeCustomAction;
-      executeCustomAction(action, time);
-    }, [executeCustomAction])
+    executeCustomAction: executeCustomAction
   };
 }
 
 function useImageAction(_ref) {
   var gl = _ref.gl;
   var images = React.useRef({});
-  var loadTexture = React.useCallback(function (source, textureId) {
-    if (!gl) {
-      return function () {};
-    }
-    var texture = gl.createTexture();
-    gl.activeTexture(gl[textureId]);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  var textureBuffers = React.useRef({});
+  React.useEffect(function () {
     return function () {
-      return gl.deleteTexture(texture);
+      clearRecord(images.current);
+      clearRecord(textureBuffers.current, function (texture) {
+        return gl === null || gl === void 0 ? void 0 : gl.deleteTexture(texture);
+      });
     };
+  }, [textureBuffers, images, gl]);
+  var textImage2d = React.useCallback(function (source, texture) {
+    gl === null || gl === void 0 ? void 0 : gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
   }, [gl]);
-  var executeLoadImageAction = React.useCallback(function (_ref2, time, context, onLoad) {
+  var loadTexture = React.useCallback(function (source, textureId, texture) {
+    gl === null || gl === void 0 ? void 0 : gl.activeTexture(gl[textureId]);
+    textImage2d(source, texture);
+    gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }, [gl, textImage2d]);
+  var executeLoadImageAction = React.useCallback(function (_ref2, context, onLoad) {
     var src = _ref2.src,
       imageId = _ref2.imageId;
-    var cleanupActions = [];
     var image = new Image();
     image.src = src;
-    images.current[imageId] = image;
-    image.addEventListener("load", function () {
-      context.executePipeline(onLoad, time, context, cleanupActions);
-    });
-    return function () {
-      cleanupActions.forEach(function (cleanup) {
-        return cleanup();
-      });
-      delete images.current[imageId];
+    var imageLoaded = function imageLoaded() {
+      images.current[imageId] = {
+        src: image,
+        activated: false
+      };
+      context.executePipeline(onLoad, context);
     };
+    image.addEventListener("load", imageLoaded, {
+      once: true
+    });
+    context.cleanupActions.push(function () {
+      return image.removeEventListener("load", imageLoaded);
+    });
   }, [images]);
-  var executeVideoAction = React.useCallback(function (_ref3) {
+  var executeVideoAction = React.useCallback(function (_ref3, context) {
     var src = _ref3.src,
-      imageId = _ref3.imageId;
+      imageId = _ref3.imageId,
+      volume = _ref3.volume;
     var video = document.createElement("video");
     video.src = src;
     video.loop = true;
+    if (volume !== undefined) {
+      video.volume = volume;
+    }
     video.play();
-    video.addEventListener("playing", function () {
-      images.current[imageId] = video;
-    });
-    return function () {
-      delete images.current[imageId];
-      video.pause();
+    var videoPlaying = function videoPlaying() {
+      images.current[imageId] = {
+        src: video,
+        activated: false
+      };
     };
+    video.addEventListener("playing", videoPlaying, {
+      once: true
+    });
+    context.cleanupActions.push(function () {
+      video.pause();
+      video.removeEventListener("playing", videoPlaying);
+    });
   }, [images]);
+  var getTexture = React.useCallback(function (textureId) {
+    if (!textureBuffers.current[textureId]) {
+      var texture = gl === null || gl === void 0 ? void 0 : gl.createTexture();
+      if (!texture) {
+        return;
+      }
+      textureBuffers.current[textureId] = texture;
+    }
+    return textureBuffers.current[textureId];
+  }, [textureBuffers, gl]);
   var executeLoadTextureAction = React.useCallback(function (_ref4) {
     var imageId = _ref4.imageId,
       textureId = _ref4.textureId;
-    var image = images.current[imageId];
-    if (image) {
-      var cleanup = loadTexture(image, textureId);
-      return function () {
-        return cleanup();
-      };
+    var imageInfo = images.current[imageId];
+    if (imageInfo) {
+      var texture = getTexture(textureId);
+      if (texture) {
+        if (imageInfo.activated) {
+          textImage2d(imageInfo.src, texture);
+        } else {
+          loadTexture(imageInfo.src, textureId, texture);
+          imageInfo.activated = true;
+        }
+      }
     }
-    return function () {};
-  }, [loadTexture, images]);
+  }, [loadTexture, textImage2d, images, getTexture]);
   return {
     executeLoadImageAction: executeLoadImageAction,
     executeVideoAction: executeVideoAction,
@@ -32404,14 +32445,23 @@ function useImageAction(_ref) {
 
 function useProgramAction(_ref) {
   var setActiveProgram = _ref.setActiveProgram;
-  var execute = React.useCallback(function (action) {
+  var executeProgramAction = React.useCallback(function (action) {
     setActiveProgram(action.id);
   }, [setActiveProgram]);
   return {
-    executeProgramAction: React.useCallback(function (action) {
-      action.execute = execute;
-      execute(action);
-    }, [execute])
+    executeProgramAction: executeProgramAction
+  };
+}
+
+function useScriptExecution() {
+  var executeSteps = React.useCallback(function (steps, context) {
+    for (var _iterator = _createForOfIteratorHelperLoose(steps), _step; !(_step = _iterator()).done;) {
+      var step = _step.value;
+      step(context);
+    }
+  }, []);
+  return {
+    executeSteps: executeSteps
   };
 }
 
@@ -32427,7 +32477,8 @@ function useActionPipeline(_ref) {
     }),
     bindVertexArray = _useBufferAttributes.bindVertexArray,
     bufferAttributes = _useBufferAttributes.bufferAttributes,
-    getBufferAttribute = _useBufferAttributes.getBufferAttribute;
+    getBufferAttribute = _useBufferAttributes.getBufferAttribute,
+    bufferSubData = _useBufferAttributes.bufferSubData;
   var clear = useClearAction(gl);
   var _useDrawVertexAction = useDrawVertexAction(gl),
     drawArrays = _useDrawVertexAction.drawArrays,
@@ -32453,14 +32504,22 @@ function useActionPipeline(_ref) {
       setActiveProgram: setActiveProgram
     }),
     executeProgramAction = _useProgramAction.executeProgramAction;
+  var _useScriptExecution = useScriptExecution(),
+    executeSteps = _useScriptExecution.executeSteps;
   var convertActions = React.useCallback(function (actions) {
     return actions.map(function (action) {
       switch (action.action) {
         case "bind-vertex":
-          return bindVertexArray;
+          return function (context) {
+            return bindVertexArray(context);
+          };
         case "buffer-attribute":
+          return function (context) {
+            return bufferAttributes(action, context);
+          };
+        case "buffer-sub-data":
           return function () {
-            return bufferAttributes(action);
+            return bufferSubData(action);
           };
         case "clear":
           return function () {
@@ -32475,21 +32534,21 @@ function useActionPipeline(_ref) {
             return drawArraysInstanced(action);
           };
         case "uniform-timer":
-          return function (time) {
-            return updateUniformTimer(action, time);
+          return function (context) {
+            return updateUniformTimer(action, context.time);
           };
         case "active-program":
           return function () {
             return executeProgramAction(action);
           };
         case "custom":
-          return function (time) {
-            return executeCustomAction(action, time);
+          return function (context) {
+            return executeCustomAction(action, context);
           };
         case "load-image":
           var onLoad = convertActions(getScript(action.onLoad));
-          return function (time, context) {
-            return executeLoadImageAction(action, time, context, onLoad);
+          return function (context) {
+            return executeLoadImageAction(action, context, onLoad);
           };
         case "uniform":
           return function () {
@@ -32500,35 +32559,28 @@ function useActionPipeline(_ref) {
             return executeLoadTextureAction(action);
           };
         case "load-video":
-          return function () {
-            return executeVideoAction(action);
+          return function (context) {
+            return executeVideoAction(action, context);
           };
         case "execute-script":
           var steps = convertActions(getScript(action.script));
-          return function (time, context) {
-            for (var _iterator = _createForOfIteratorHelperLoose(steps), _step; !(_step = _iterator()).done;) {
-              var step = _step.value;
-              step(time, context);
-            }
+          return function (context) {
+            executeSteps(steps, context);
           };
       }
     });
-  }, [bindVertexArray, bufferAttributes, clear, drawArrays, drawArraysInstanced, updateUniformTimer, executeProgramAction, executeCustomAction, executeLoadImageAction, uniform1iAction, executeLoadTextureAction, executeVideoAction, getScript]);
-  var executePipeline = React.useCallback(function (steps, time, context, cleanupActions) {
-    if (time === void 0) {
-      time = 0;
-    }
-    for (var _iterator2 = _createForOfIteratorHelperLoose(steps), _step2; !(_step2 = _iterator2()).done;) {
-      var step = _step2.value;
-      var cleanup = step(time, context);
-      if (cleanup) {
-        cleanupActions.push(cleanup);
-      }
+  }, [bindVertexArray, bufferAttributes, bufferSubData, clear, drawArrays, drawArraysInstanced, updateUniformTimer, executeProgramAction, executeCustomAction, executeLoadImageAction, uniform1iAction, executeLoadTextureAction, executeVideoAction, getScript, executeSteps]);
+  var executePipeline = React.useCallback(function (steps, context) {
+    for (var _iterator = _createForOfIteratorHelperLoose(steps), _step; !(_step = _iterator()).done;) {
+      var step = _step.value;
+      step(context);
     }
   }, [bufferAttributes, updateUniformTimer, uniform1iAction, drawArrays, drawArraysInstanced, clear, executeProgramAction, executeCustomAction, getScript, executeLoadImageAction, executeLoadTextureAction]);
   var context = React.useMemo(function () {
     return {
-      executePipeline: executePipeline
+      time: 0,
+      executePipeline: executePipeline,
+      cleanupActions: []
     };
   }, [executePipeline]);
   return {
@@ -32540,29 +32592,30 @@ function useActionPipeline(_ref) {
 
 function useLoopPipeline(_ref) {
   var executePipeline = _ref.executePipeline;
-  var performCleanup = React.useCallback(function (cleanupActions) {
-    if (cleanupActions.length) {
-      for (var _iterator = _createForOfIteratorHelperLoose(cleanupActions), _step; !(_step = _iterator()).done;) {
+  return React.useCallback(function (steps, context) {
+    var loopContext = _extends({}, context, {
+      cleanupActions: []
+    });
+    var id;
+    var loop = function loop(time) {
+      loopContext.time = time;
+      executePipeline(steps, loopContext);
+      for (var _iterator = _createForOfIteratorHelperLoose(loopContext.cleanupActions), _step; !(_step = _iterator()).done;) {
         var cleanup = _step.value;
         cleanup();
       }
-      cleanupActions.length = 0;
-    }
-  }, []);
-  return React.useCallback(function (steps, _, context) {
-    var id;
-    var cleanupActions = [];
-    var loop = function loop(time) {
-      executePipeline(steps, time, context, cleanupActions);
-      performCleanup(cleanupActions);
+      loopContext.cleanupActions.length = 0;
       id = requestAnimationFrame(loop);
     };
-    loop(0);
-    return function () {
-      performCleanup(cleanupActions);
+    requestAnimationFrame(loop);
+    context.cleanupActions.push(function () {
+      loopContext.cleanupActions.forEach(function (cleanup) {
+        return cleanup();
+      });
+      loopContext.cleanupActions.length = 0;
       cancelAnimationFrame(id);
-    };
-  }, [executePipeline, performCleanup]);
+    });
+  }, [executePipeline]);
 }
 
 function useActionScripts(_ref) {
@@ -32572,9 +32625,9 @@ function useActionScripts(_ref) {
     if (!script) {
       return;
     }
-    var actions = Array.isArray(script) ? script : (_scripts$find$actions = (_scripts$find = scripts.find(function (s) {
+    var actions = typeof script === "string" ? (_scripts$find$actions = (_scripts$find = scripts.find(function (s) {
       return s.name === script;
-    })) === null || _scripts$find === void 0 ? void 0 : _scripts$find.actions) != null ? _scripts$find$actions : [];
+    })) === null || _scripts$find === void 0 ? void 0 : _scripts$find.actions) != null ? _scripts$find$actions : [] : script;
     actions.forEach(function (action) {
       if (typeof action === "string") {
         extractScript(action, results);
@@ -32668,17 +32721,16 @@ function GLCanvas(props) {
     executePipeline: executePipeline
   });
   React.useEffect(function () {
-    if (usedProgram && glConfig) {
+    if (usedProgram && glConfig && context) {
       var pipelineSteps = convertActions(getScript(pipelineActions));
       var loopSteps = convertActions(getScript(loopActions));
-      var cleanupActions = [];
-      executePipeline(pipelineSteps, 0, context, cleanupActions);
-      var loopCleanup = loopPipeline(loopSteps, 0, context);
+      executePipeline(pipelineSteps, context);
+      loopPipeline(loopSteps, context);
       return function () {
-        cleanupActions.forEach(function (cleanup) {
+        context.cleanupActions.forEach(function (cleanup) {
           return cleanup();
         });
-        loopCleanup();
+        context.cleanupActions.length = 0;
       };
     }
   }, [usedProgram, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions]);

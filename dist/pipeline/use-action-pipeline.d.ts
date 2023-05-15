@@ -9,11 +9,13 @@ interface Props {
     getScript(script: string | GlAction[] | undefined): DokGlAction[];
 }
 export interface Context {
+    time: number;
     executePipeline: ExecutePipeline;
+    cleanupActions: (() => void)[];
 }
-export declare type ExecutePipeline = (steps: ExecutionStep[], time: number, context: Context, cleanupActions: (() => void)[]) => void;
+export declare type ExecutePipeline = (steps: ExecutionStep[], context: Context) => void;
 export default function useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram, getScript }: Props): {
-    executePipeline: (steps: ExecutionStep[], time: number | undefined, context: Context, cleanupActions: (() => void)[]) => void;
+    executePipeline: (steps: ExecutionStep[], context: Context) => void;
     context: Context;
     convertActions: (actions: DokGlAction[]) => ExecutionStep[];
 };

@@ -1,4 +1,3 @@
-import { GlExecuteAction } from "./GlAction";
 export interface ClearAction {
     action: "clear";
     bit?: number;
@@ -6,4 +5,4 @@ export interface ClearAction {
     depth?: boolean;
     stencil?: boolean;
 }
-export default function useClearAction(gl?: WebGL2RenderingContext): (action: ClearAction & GlExecuteAction) => void;
+export default function useClearAction(gl?: WebGL2RenderingContext): (action: ClearAction) => void;

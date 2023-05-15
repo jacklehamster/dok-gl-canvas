@@ -1,21 +1,21 @@
 import { ProgramId } from "../../gl/program/program";
-import { GlExecuteAction } from "./GlAction";
+import { LocationName } from "./BufferAttributeAction";
 export interface UniformAction {
     action: "uniform";
-    location: string;
+    location: LocationName;
     int?: number;
     float?: number;
 }
 export interface UniformTimerAction {
     action: "uniform-timer";
-    location: string;
+    location: LocationName;
 }
 interface Props {
     gl?: WebGL2RenderingContext;
-    getUniformLocation(name: string, programId?: ProgramId): WebGLUniformLocation | undefined;
+    getUniformLocation(name: LocationName, programId?: ProgramId): WebGLUniformLocation | undefined;
 }
 export default function useUniformAction({ gl, getUniformLocation }: Props): {
     uniform1iAction: ({ location, int, float }: UniformAction) => void;
-    updateUniformTimer: (action: UniformTimerAction & GlExecuteAction, time: number) => void;
+    updateUniformTimer: ({ location }: UniformTimerAction, time: number) => void;
 };
 export {};

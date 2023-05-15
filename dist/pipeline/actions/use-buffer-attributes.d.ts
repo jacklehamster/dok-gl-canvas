@@ -1,8 +1,9 @@
 import { ProgramId } from "../../gl/program/program";
-import { BufferAttributeAction } from "./BufferAttributeAction";
+import { BufferAttributeAction, BufferSubDataAction, LocationName } from "./BufferAttributeAction";
+import { Context } from "../use-action-pipeline";
 interface Props {
     gl?: WebGL2RenderingContext;
-    getAttributeLocation(name: string, programId?: ProgramId): number;
+    getAttributeLocation(name: LocationName, programId?: ProgramId): number;
 }
 export interface BufferInfo {
     buffer: WebGLBuffer;
@@ -11,8 +12,9 @@ export interface BufferInfo {
     usage: GLenum;
 }
 export default function useBufferAttributes({ gl, getAttributeLocation }: Props): {
-    bindVertexArray: () => () => void | undefined;
-    bufferAttributes: (bufferAttributeAction: BufferAttributeAction) => ((() => void) | undefined);
-    getBufferAttribute: (location: string) => BufferInfo;
+    bindVertexArray: (context: Context) => void;
+    bufferAttributes: (bufferAttributeAction: BufferAttributeAction, context: Context) => void;
+    bufferSubData: ({ dstByteOffset, buffer, srcOffset, length }: BufferSubDataAction) => void;
+    getBufferAttribute: (location: LocationName) => BufferInfo;
 };
 export {};

@@ -1,4 +1,3 @@
-import { GlExecuteAction } from "./GlAction";
 import { ProgramId } from "../../gl/program/program";
 export interface ActiveProgramAction {
     action: "active-program";
@@ -8,6 +7,6 @@ interface Props {
     setActiveProgram(id: ProgramId): void;
 }
 export default function useProgramAction({ setActiveProgram }: Props): {
-    executeProgramAction: (action: ActiveProgramAction & GlExecuteAction) => void;
+    executeProgramAction: (action: ActiveProgramAction) => void;
 };
 export {};

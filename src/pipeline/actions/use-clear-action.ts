@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { GlExecuteAction } from "./GlAction";
 
 export interface ClearAction {
     action: "clear",
@@ -31,8 +30,5 @@ export default function useClearAction(gl?: WebGL2RenderingContext) {
             gl.clear(action.bit);
         }
     }, [gl]);
-    return useCallback((action: ClearAction & GlExecuteAction) => {
-        action.execute = execute;
-        execute(action);
-    }, [ execute ]);
+    return execute;
 }

@@ -15,7 +15,7 @@ export function useActionScripts({ scripts }: Props) {
         if (!script) {
             return;
         }
-        const actions: GlAction[] = Array.isArray(script) ? script : (scripts.find(s => s.name === script)?.actions ?? []);
+        const actions: GlAction[] = typeof(script) === "string" ? (scripts.find(s => s.name === script)?.actions ?? []) : script;
         actions.forEach(action => {
             if (typeof(action) === "string") {
                 extractScript(action, results);

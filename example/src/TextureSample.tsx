@@ -64,7 +64,7 @@ const program = [
     },
 ];
 
-export default () => <GLCanvas 
+const sample = () => <GLCanvas 
       actionScripts={[
       {
         name: "redraw",
@@ -136,3 +136,5 @@ export default () => <GLCanvas
         "redraw",
     ]}
 />;
+
+export default sample;

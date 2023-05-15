@@ -10,10 +10,11 @@ export declare enum Type {
     UNSIGNED_SHORT = 3,
     FLOAT = 4
 }
+export declare type LocationName = string;
 export interface BufferAttributeAction {
     action: "buffer-attribute";
-    location: string;
-    buffer: number[] | GLsizeiptr;
+    location: LocationName;
+    buffer: number[] | Float32Array | GLsizeiptr;
     usage?: Usage;
     size: GLint & (1 | 2 | 3 | 4);
     type?: Type;
@@ -21,4 +22,12 @@ export interface BufferAttributeAction {
     stride?: GLsizei;
     offset?: GLintptr;
     divisor?: GLuint;
+}
+export interface BufferSubDataAction {
+    action: "buffer-sub-data";
+    location: LocationName;
+    buffer: number[] | Float32Array;
+    dstByteOffset?: GLintptr;
+    srcOffset?: GLuint;
+    length?: GLuint;
 }

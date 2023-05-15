@@ -7,28 +7,25 @@ interface Props {
 }
 
 export default function useLoopPipeline({ executePipeline }: Props) {
-    const performCleanup = useCallback((cleanupActions: (() => void)[]) => {
-        if (cleanupActions.length) {
-            for (let cleanup of cleanupActions) {
+    return useCallback((steps: ExecutionStep[], context: Context) => {
+        const loopContext: Context = {...context, cleanupActions: [] };
+        let id: number;
+        const loop = (time: number) => {
+            loopContext.time = time;
+            executePipeline(steps, loopContext);
+            for (let cleanup of loopContext.cleanupActions) {
                 cleanup();
             }
-            cleanupActions.length = 0;    
-        }
-    }, []);
-
-    return useCallback((steps: ExecutionStep[], _: number, context: Context) => {
-        let id: number;
-        const cleanupActions: (() => void)[] = [];
-        const loop = (time: number) => {
-            executePipeline(steps, time, context, cleanupActions);
-            performCleanup(cleanupActions);
+            loopContext.cleanupActions.length = 0;
             id = requestAnimationFrame(loop);
         };
 
-        loop(0);
-        return () => {
-            performCleanup(cleanupActions);
+        requestAnimationFrame(loop);
+
+        context.cleanupActions.push(() => {
+            loopContext.cleanupActions.forEach(cleanup => cleanup());
+            loopContext.cleanupActions.length = 0;
             cancelAnimationFrame(id);
-        };
-    }, [executePipeline, performCleanup]);
+        });
+    }, [executePipeline]);
 }

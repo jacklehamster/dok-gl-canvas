@@ -25,7 +25,7 @@ const fragment = `#version 300 es
   }
 `;
 
-export default () => <GLCanvas
+const sample = () => <GLCanvas
     actionScripts={[
       {
         name: "redraw",
@@ -37,7 +37,7 @@ export default () => <GLCanvas
           {
             action: "draw-arrays-instanced",
             vertexCount: 3,
-            instanceCount: 2,
+            instanceCount: 3,
           },    
         ],
       }
@@ -74,9 +74,15 @@ export default () => <GLCanvas
       {
         action: "buffer-attribute",
         location: "shift",
-        buffer: 6 * Float32Array.BYTES_PER_ELEMENT,
+        buffer: 9 * Float32Array.BYTES_PER_ELEMENT,
         size: 3,
         divisor: 1,
+      },
+      {
+        action: "buffer-sub-data",
+        location: "shift",
+        dstByteOffset: 6 * Float32Array.BYTES_PER_ELEMENT,
+        buffer: [.5, .5, 0],
       },
       "redraw",
     ]}
@@ -85,10 +91,12 @@ export default () => <GLCanvas
         action: "custom",
         location: "shift",
         modifyAttributeBuffer(shift, time) {
-            shift[4] = Math.cos(time / 100);
             shift[3] = Math.sin(time / 100);
+            shift[4] = Math.cos(time / 100);
         },
       },
       "redraw",
     ]}
 />;
+
+export default sample;

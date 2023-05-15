@@ -2,8 +2,6 @@ import React from 'react'
 
 import { GLCanvas } from 'dok-gl-canvas'
 
-const w = 238 / 1886;
-
 const vertex = `#version 300 es
 
 precision highp float;
@@ -64,7 +62,7 @@ const program = [
     },
 ];
 
-export default () => <GLCanvas 
+const sample = () => <GLCanvas 
       actionScripts={[
       {
         name: "redraw",
@@ -102,10 +100,10 @@ export default () => <GLCanvas
         buffer: [
           0, 0,
           0, 1,
-          w, 1,
+          1, 1,
           0, 0,
-          w, 1,
-          w, 0,
+          1, 1,
+          1, 0,
         ],
         size: 2,
       },
@@ -118,18 +116,26 @@ export default () => <GLCanvas
         action: "load-video",
         src: "sample.mp4",
         imageId: "video",
+        volume: 0,
       },
     ]}
     actionLoop={[
         {
-            action: "load-texture",
-            imageId: "video",
-            textureId: "TEXTURE0",
-        },        
-    // {
-        //     action: "uniform-timer",
-        //     location: "time",
-        // },
+          action: "load-texture",
+          imageId: "video",
+          textureId: "TEXTURE0",
+        },
+        {
+          action: "custom",
+          location: "position",
+          modifyAttributeBuffer(positions, time) {
+            positions[0] = (Math.sin(time / 500)) / 2;
+            positions[9] = (Math.sin(time / 500)) / 2;
+            positions[15] = (2 + Math.sin(time / 500)) / 2;
+          },
+        },
         "redraw",
     ]}
 />;
+
+export default sample;

@@ -1,22 +1,22 @@
 import { useCallback } from "react";
 import { ProgramId } from "../../gl/program/program";
-import { GlExecuteAction } from "./GlAction";
+import { LocationName } from "./BufferAttributeAction";
 
 export interface UniformAction {
     action: "uniform",
-    location: string;
+    location: LocationName;
     int?: number;
     float?: number;
 }
 
 export interface UniformTimerAction {
     action: "uniform-timer",
-    location: string;
+    location: LocationName;
 }
 
 interface Props {
     gl?: WebGL2RenderingContext;
-    getUniformLocation(name: string, programId?: ProgramId): WebGLUniformLocation | undefined;
+    getUniformLocation(name: LocationName, programId?: ProgramId): WebGLUniformLocation | undefined;
 }
 
 export default function useUniformAction({ gl, getUniformLocation }: Props) {
@@ -35,8 +35,5 @@ export default function useUniformAction({ gl, getUniformLocation }: Props) {
         gl?.uniform1f(uniformLocation, time);
     }, [gl, getUniformLocation]);
 
-    return { uniform1iAction, updateUniformTimer: useCallback((action: UniformTimerAction & GlExecuteAction, time: number) => {
-        action.execute = updateUniformTimer;
-        updateUniformTimer(action, time);
-    }, [updateUniformTimer]) };
+    return { uniform1iAction, updateUniformTimer };
 }

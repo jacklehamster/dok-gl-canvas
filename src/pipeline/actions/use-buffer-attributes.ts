@@ -1,10 +1,12 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { ProgramId } from "../../gl/program/program";
-import { BufferAttributeAction, Type, Usage } from "./BufferAttributeAction";
+import { BufferAttributeAction, BufferSubDataAction, LocationName, Type, Usage } from "./BufferAttributeAction";
+import { clearRecord } from "../../utils/object-utils";
+import { Context } from "../use-action-pipeline";
 
 interface Props {
     gl?: WebGL2RenderingContext;
-    getAttributeLocation(name: string, programId?: ProgramId): number;
+    getAttributeLocation(name: LocationName, programId?: ProgramId): number;
 }
 
 export interface BufferInfo {
@@ -51,15 +53,24 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         }
     }, [gl]);
 
-    const bindVertexArray = useCallback(() => {
+    const bindVertexArray = useCallback((context: Context) => {
         const triangleArray = gl?.createVertexArray() ?? null;
         gl?.bindVertexArray(triangleArray);
-        return () => gl?.deleteVertexArray(triangleArray);
+        context.cleanupActions.push(() => gl?.deleteVertexArray(triangleArray));
     }, [gl]);
 
-    const bufferRecord = useRef<Record<string, BufferInfo>>({});
+    const bufferRecord = useRef<Record<LocationName, BufferInfo>>({});
+    useEffect(() => {
+      return () => {
+        clearRecord(bufferRecord.current, info => {
+          if (info.buffer) {
+            gl?.deleteBuffer(info.buffer);
+          }
+        });
+      };
+    }, [gl, bufferRecord]);
 
-    const bufferAttributes = useCallback((bufferAttributeAction: BufferAttributeAction):((() => void) | undefined)  => {
+    const bufferAttributes = useCallback((bufferAttributeAction: BufferAttributeAction, context: Context):void  => {
         if (!gl) {
             return;
         }
@@ -71,8 +82,8 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         }
         const glUsage = getGlEnum(usage) ?? gl.STATIC_DRAW;
         const bufferBuffer = gl.createBuffer();
-        const bufferArray = Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
-        const bufferSize = Array.isArray(buffer) ? buffer.length : buffer;
+        const bufferArray = buffer instanceof Float32Array ? buffer : Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
+        const bufferSize = typeof(buffer) === "number" ? buffer : buffer.length;
         gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
         if (bufferArray) {
           gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
@@ -93,18 +104,18 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         }
   
         //  Cleanup
-        return () => {
-            gl.deleteBuffer(bufferBuffer);
-            gl.disableVertexAttribArray(bufferLocation);
-            if (bufferRecord.current[location]) {
-              delete bufferRecord.current[location];
-            }
-        };                  
+        context.cleanupActions.push(() => gl.disableVertexAttribArray(bufferLocation));
     }, [gl, getAttributeLocation, bufferRecord]);
+
+    const bufferSubData = useCallback(({ dstByteOffset, buffer, srcOffset, length }: BufferSubDataAction):void  => {
+        const bufferArray = buffer instanceof Float32Array ? buffer : new Float32Array(buffer);
+        gl?.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset ?? 0, bufferArray, srcOffset ?? 0, length ?? bufferArray.length);
+    }, [gl]);
 
     return {
       bindVertexArray,
       bufferAttributes,
-      getBufferAttribute: useCallback((location: string) => bufferRecord.current[location], [bufferRecord]),
+      bufferSubData,
+      getBufferAttribute: useCallback((location: LocationName) => bufferRecord.current[location], [bufferRecord]),
     };
 }

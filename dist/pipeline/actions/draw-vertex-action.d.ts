@@ -1,4 +1,3 @@
-import { GlExecuteAction } from "./GlAction";
 export interface DrawArraysAction {
     action: "draw-arrays";
     vertexFirst?: GLint;
@@ -11,6 +10,6 @@ export interface DrawArraysInstancedAction {
     instanceCount: GLsizei;
 }
 export default function useDrawVertexAction(gl?: WebGL2RenderingContext): {
-    drawArrays: (action: DrawArraysAction & GlExecuteAction) => void;
-    drawArraysInstanced: (action: DrawArraysInstancedAction & GlExecuteAction) => void;
+    drawArrays: ({ vertexFirst, vertexCount }: DrawArraysAction) => void;
+    drawArraysInstanced: ({ vertexFirst, vertexCount, instanceCount }: DrawArraysInstancedAction) => void;
 };
