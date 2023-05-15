@@ -9,7 +9,9 @@ interface Props {
 
 export interface BufferInfo {
   buffer: WebGLBuffer;
-  bufferArray: Float32Array;
+  bufferArray?: Float32Array;
+  bufferSize: number;
+  usage: GLenum;
 }
 
 export default function useBufferAttributes({ gl, getAttributeLocation }: Props) {
@@ -64,13 +66,19 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         const { location, buffer, usage, size, type, normalized, stride, offset, divisor } = bufferAttributeAction;
 
         const bufferLocation = getAttributeLocation(location);
-        if (bufferLocation < 0 || !buffer.length) {
+        if (bufferLocation < 0) {
           return;
         }
+        const glUsage = getGlEnum(usage) ?? gl.STATIC_DRAW;
         const bufferBuffer = gl.createBuffer();
-        const bufferArray = new Float32Array(buffer);
+        const bufferArray = Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
+        const bufferSize = Array.isArray(buffer) ? buffer.length : buffer;
         gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, bufferArray, getGlEnum(usage) ?? gl.STATIC_DRAW);
+        if (bufferArray) {
+          gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
+        } else {
+          gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
+        }
         gl.vertexAttribPointer(bufferLocation, size, getGlType(type) ?? gl.FLOAT, normalized ?? false, stride ?? 0, offset ?? 0);
         gl.vertexAttribDivisor(bufferLocation, divisor ?? 0);
         gl.enableVertexAttribArray(bufferLocation);
@@ -79,6 +87,8 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
           bufferRecord.current[location] = {
             buffer: bufferBuffer,
             bufferArray,
+            bufferSize,
+            usage: glUsage,
           };
         }
   

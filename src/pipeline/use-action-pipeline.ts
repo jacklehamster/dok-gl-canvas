@@ -108,5 +108,5 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
         executePipeline,
     }), [executePipeline]);
 
-    return { executePipeline, getBufferAttribute, context, convertActions };
+    return { executePipeline, context, convertActions };
 }

@@ -74,10 +74,7 @@ export default () => <GLCanvas
       {
         action: "buffer-attribute",
         location: "shift",
-        buffer: [
-            0.0, 0.0, 0.0,
-            0.5, 0.0, 0.0,
-        ],
+        buffer: 6 * Float32Array.BYTES_PER_ELEMENT,
         size: 3,
         divisor: 1,
       },
@@ -87,9 +84,9 @@ export default () => <GLCanvas
       {
         action: "custom",
         location: "shift",
-        processAttributeBuffer(positions, time) {
-            positions[4] = Math.cos(time / 100);
-            positions[3] = Math.sin(time / 100);
+        modifyAttributeBuffer(shift, time) {
+            shift[4] = Math.cos(time / 100);
+            shift[3] = Math.sin(time / 100);
         },
       },
       "redraw",

@@ -3,7 +3,7 @@ import { GlExecuteAction } from "../GlAction";
 export interface CustomAction {
     action: "custom";
     location?: string;
-    processAttributeBuffer?(bufferArray: Float32Array, time: number): void;
+    modifyAttributeBuffer?(bufferArray: Float32Array, time: number): void;
 }
 export interface Props {
     gl?: WebGL2RenderingContext;

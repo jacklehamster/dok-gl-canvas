@@ -4,11 +4,10 @@ import { ProgramConfig, ProgramId } from "./program";
 
 interface Props {
     gl?: WebGL2RenderingContext;
-    initialProgram?: ProgramId;
     programs?: ProgramConfig[];
 }
 
-export function useProgram({ gl, initialProgram, programs }: Props) {
+export function useProgram({ gl, programs }: Props) {
     const { createProgram, removeProgram } = useShader({ gl });
     const [programResults, setProgramResults] = useState<Record<ProgramId, ProgramResult>>({});
     const [usedProgram, setUsedProgram] = useState<WebGLProgram | undefined>();
@@ -82,9 +81,9 @@ export function useProgram({ gl, initialProgram, programs }: Props) {
 
     useEffect(() => {
         if (gl && !usedProgram) {
-            setActiveProgram(initialProgram ?? programs?.[0].id);
+            setActiveProgram(programs?.[0].id);
         }
-    }, [gl, initialProgram, setActiveProgram, usedProgram, programs]);
+    }, [gl, setActiveProgram, usedProgram, programs]);
 
     return {
         usedProgram,

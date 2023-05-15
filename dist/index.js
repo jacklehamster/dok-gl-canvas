@@ -31921,9 +31921,11 @@ function useCanvasSize(_ref) {
     var canvas = canvasRef.current;
     if (canvas) {
       var resize = function resize() {
-        var rect = canvas.getBoundingClientRect();
-        setWidth(pixelRatio * rect.width);
-        setHeight(pixelRatio * rect.height);
+        var _canvas$getBoundingCl = canvas.getBoundingClientRect(),
+          width = _canvas$getBoundingCl.width,
+          height = _canvas$getBoundingCl.height;
+        setWidth(pixelRatio * width);
+        setHeight(pixelRatio * height);
       };
       var resizeObserver = new index(resize);
       resizeObserver.observe(canvas);
@@ -31933,11 +31935,9 @@ function useCanvasSize(_ref) {
         attributeFilter: ["style"]
       });
     }
-  }, []);
+  }, [pixelRatio, canvasRef]);
   React.useEffect(function () {
-    if (gl) {
-      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    }
+    gl === null || gl === void 0 ? void 0 : gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
   }, [gl, width, height]);
   return {
     width: width,
@@ -32015,7 +32015,6 @@ function useShader(_ref) {
 
 function useProgram(_ref) {
   var gl = _ref.gl,
-    initialProgram = _ref.initialProgram,
     programs = _ref.programs;
   var _useShader = useShader({
       gl: gl
@@ -32095,9 +32094,9 @@ function useProgram(_ref) {
   }, [gl, programResults, usedProgram]);
   React.useEffect(function () {
     if (gl && !usedProgram) {
-      setActiveProgram(initialProgram != null ? initialProgram : programs === null || programs === void 0 ? void 0 : programs[0].id);
+      setActiveProgram(programs === null || programs === void 0 ? void 0 : programs[0].id);
     }
-  }, [gl, initialProgram, setActiveProgram, usedProgram, programs]);
+  }, [gl, setActiveProgram, usedProgram, programs]);
   return {
     usedProgram: usedProgram,
     getAttributeLocation: getAttributeLocation,
@@ -32182,20 +32181,28 @@ function useBufferAttributes(_ref) {
       offset = bufferAttributeAction.offset,
       divisor = bufferAttributeAction.divisor;
     var bufferLocation = getAttributeLocation(location);
-    if (bufferLocation < 0 || !buffer.length) {
+    if (bufferLocation < 0) {
       return;
     }
+    var glUsage = (_getGlEnum = getGlEnum(usage)) != null ? _getGlEnum : gl.STATIC_DRAW;
     var bufferBuffer = gl.createBuffer();
-    var bufferArray = new Float32Array(buffer);
+    var bufferArray = Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
+    var bufferSize = Array.isArray(buffer) ? buffer.length : buffer;
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, bufferArray, (_getGlEnum = getGlEnum(usage)) != null ? _getGlEnum : gl.STATIC_DRAW);
+    if (bufferArray) {
+      gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
+    } else {
+      gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
+    }
     gl.vertexAttribPointer(bufferLocation, size, (_getGlType = getGlType(type)) != null ? _getGlType : gl.FLOAT, normalized != null ? normalized : false, stride != null ? stride : 0, offset != null ? offset : 0);
     gl.vertexAttribDivisor(bufferLocation, divisor != null ? divisor : 0);
     gl.enableVertexAttribArray(bufferLocation);
     if (bufferBuffer && !bufferRecord.current[location]) {
       bufferRecord.current[location] = {
         buffer: bufferBuffer,
-        bufferArray: bufferArray
+        bufferArray: bufferArray,
+        bufferSize: bufferSize,
+        usage: glUsage
       };
     }
     return function () {
@@ -32305,13 +32312,16 @@ function useCustomAction(_ref) {
     gl = _ref.gl;
   var executeCustomAction = React.useCallback(function (_ref2, time) {
     var location = _ref2.location,
-      processAttributeBuffer = _ref2.processAttributeBuffer;
-    if (processAttributeBuffer) {
+      modifyAttributeBuffer = _ref2.modifyAttributeBuffer;
+    if (modifyAttributeBuffer) {
       var bufferLocation = getBufferAttribute(location != null ? location : "");
       if (bufferLocation) {
-        processAttributeBuffer(bufferLocation.bufferArray, time);
+        if (!bufferLocation.bufferArray) {
+          bufferLocation.bufferArray = new Float32Array(bufferLocation.bufferSize / Float32Array.BYTES_PER_ELEMENT);
+        }
+        modifyAttributeBuffer(bufferLocation.bufferArray, time);
         gl === null || gl === void 0 ? void 0 : gl.bindBuffer(gl.ARRAY_BUFFER, bufferLocation.buffer);
-        gl === null || gl === void 0 ? void 0 : gl.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, gl.STATIC_DRAW);
+        gl === null || gl === void 0 ? void 0 : gl.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, bufferLocation.usage);
       }
     }
   }, [getBufferAttribute, gl]);
@@ -32523,7 +32533,6 @@ function useActionPipeline(_ref) {
   }, [executePipeline]);
   return {
     executePipeline: executePipeline,
-    getBufferAttribute: getBufferAttribute,
     context: context,
     convertActions: convertActions
   };
@@ -32592,14 +32601,12 @@ function GLCanvas(props) {
   var _ref = props != null ? props : {},
     _ref$pixelRatio = _ref.pixelRatio,
     pixelRatio = _ref$pixelRatio === void 0 ? devicePixelRatio : _ref$pixelRatio,
-    onChange = _ref.onChange,
     controller = _ref.controller,
-    initialProgram = _ref.initialProgram,
     webglAttributes = _ref.webglAttributes,
-    programs = _ref.programs,
+    initialPrograms = _ref.programs,
+    style = _ref.style,
     _ref$actionScripts = _ref.actionScripts,
     actionScripts = _ref$actionScripts === void 0 ? [] : _ref$actionScripts,
-    style = _ref.style,
     _ref$actionLoop = _ref.actionLoop,
     actionLoop = _ref$actionLoop === void 0 ? [] : _ref$actionLoop,
     _ref$actionPipeline = _ref.actionPipeline,
@@ -32609,15 +32616,6 @@ function GLCanvas(props) {
     canvasRef: canvasRef,
     webglAttributes: webglAttributes
   });
-  var _useProgram = useProgram({
-      gl: gl,
-      initialProgram: initialProgram,
-      programs: programs
-    }),
-    usedProgram = _useProgram.usedProgram,
-    getAttributeLocation = _useProgram.getAttributeLocation,
-    getUniformLocation = _useProgram.getUniformLocation,
-    setActiveProgram = _useProgram.setActiveProgram;
   var _useCanvasSize = useCanvasSize({
       gl: gl,
       canvasRef: canvasRef,
@@ -32625,17 +32623,26 @@ function GLCanvas(props) {
     }),
     width = _useCanvasSize.width,
     height = _useCanvasSize.height;
-  var _useState = React.useState(function () {
-      return onChange;
+  var _useState = React.useState(actionLoop),
+    loopActions = _useState[0],
+    setLoopActions = _useState[1];
+  var _useState2 = React.useState(actionPipeline),
+    pipelineActions = _useState2[0],
+    setPipelineActions = _useState2[1];
+  var _useState3 = React.useState(actionScripts),
+    scripts = _useState3[0],
+    setScripts = _useState3[1];
+  var _useState4 = React.useState(initialPrograms != null ? initialPrograms : []),
+    programs = _useState4[0],
+    setPrograms = _useState4[1];
+  var _useProgram = useProgram({
+      gl: gl,
+      programs: programs
     }),
-    change = _useState[0],
-    setChange = _useState[1];
-  var _useState2 = React.useState(actionLoop),
-    loopActions = _useState2[0],
-    setLoopActions = _useState2[1];
-  var _useState3 = React.useState(actionPipeline),
-    pipelineActions = _useState3[0],
-    setPipelineActions = _useState3[1];
+    usedProgram = _useProgram.usedProgram,
+    getAttributeLocation = _useProgram.getAttributeLocation,
+    getUniformLocation = _useProgram.getUniformLocation,
+    setActiveProgram = _useProgram.setActiveProgram;
   var glConfig = React.useMemo(function () {
     return gl ? {
       gl: gl,
@@ -32644,7 +32651,7 @@ function GLCanvas(props) {
     } : undefined;
   }, [gl, getUniformLocation, getAttributeLocation]);
   var _useActionScripts = useActionScripts({
-      scripts: actionScripts
+      scripts: scripts
     }),
     getScript = _useActionScripts.getScript;
   var _useActionPipeline = useActionPipeline({
@@ -32656,7 +32663,6 @@ function GLCanvas(props) {
     }),
     context = _useActionPipeline.context,
     executePipeline = _useActionPipeline.executePipeline,
-    getBufferAttribute = _useActionPipeline.getBufferAttribute,
     convertActions = _useActionPipeline.convertActions;
   var loopPipeline = useLoopPipeline({
     executePipeline: executePipeline
@@ -32668,41 +32674,23 @@ function GLCanvas(props) {
       var cleanupActions = [];
       executePipeline(pipelineSteps, 0, context, cleanupActions);
       var loopCleanup = loopPipeline(loopSteps, 0, context);
-      var cleanup = change === null || change === void 0 ? void 0 : change(glConfig);
       return function () {
         cleanupActions.forEach(function (cleanup) {
           return cleanup();
         });
         loopCleanup();
-        cleanup === null || cleanup === void 0 ? void 0 : cleanup();
       };
     }
-    return;
-  }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions]);
-  var updateOnChange = React.useCallback(function (refreshMethod) {
-    setChange(function () {
-      return refreshMethod;
-    });
-  }, [setChange]);
-  var executeScript = React.useCallback(function (script) {
-    var cleanupActions = [];
-    executePipeline(convertActions(getScript(script)), 0, context, cleanupActions);
-    return function () {
-      cleanupActions.forEach(function (cleanup) {
-        return cleanup();
-      });
-    };
-  }, [convertActions, getScript, executePipeline, context]);
+  }, [usedProgram, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions]);
   React.useEffect(function () {
     if (controller) {
-      controller.setOnChange = updateOnChange;
       controller.setActiveProgram = setActiveProgram;
       controller.setLoopActions = setLoopActions;
       controller.setPipelineActions = setPipelineActions;
-      controller.getBufferAttribute = getBufferAttribute;
-      controller.executeScript = executeScript;
+      controller.setScripts = setScripts;
+      controller.setPrograms = setPrograms;
     }
-  }, [controller, updateOnChange, setActiveProgram, setLoopActions, setPipelineActions, getBufferAttribute, executeScript]);
+  }, [controller, setActiveProgram, setLoopActions, setPipelineActions, setScripts, setPrograms]);
   return React__default.createElement("canvas", {
     ref: canvasRef,
     width: width,

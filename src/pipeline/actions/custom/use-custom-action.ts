@@ -5,7 +5,7 @@ import { GlExecuteAction } from "../GlAction";
 export interface CustomAction {
     action: "custom",
     location?: string;
-    processAttributeBuffer?(bufferArray: Float32Array, time: number): void;
+    modifyAttributeBuffer?(bufferArray: Float32Array, time: number): void;
 }
 
 export interface Props {
@@ -14,13 +14,16 @@ export interface Props {
 }
 
 export default function useCustomAction({ getBufferAttribute, gl }: Props) {
-    const executeCustomAction = useCallback(({location, processAttributeBuffer}: CustomAction, time: number) => {
-        if (processAttributeBuffer) {
+    const executeCustomAction = useCallback(({location, modifyAttributeBuffer}: CustomAction, time: number) => {
+        if (modifyAttributeBuffer) {
             const bufferLocation = getBufferAttribute(location ?? "");
             if (bufferLocation) {
-                processAttributeBuffer(bufferLocation.bufferArray, time);
+                if (!bufferLocation.bufferArray) {
+                    bufferLocation.bufferArray = new Float32Array(bufferLocation.bufferSize / Float32Array.BYTES_PER_ELEMENT);
+                }
+                modifyAttributeBuffer(bufferLocation.bufferArray, time);
                 gl?.bindBuffer(gl.ARRAY_BUFFER, bufferLocation.buffer);
-                gl?.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, gl.STATIC_DRAW);
+                gl?.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, bufferLocation.usage);
             }
         }
     }, [getBufferAttribute, gl]);

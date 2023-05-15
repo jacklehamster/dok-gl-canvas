@@ -14,7 +14,6 @@ export interface Context {
 export declare type ExecutePipeline = (steps: ExecutionStep[], time: number, context: Context, cleanupActions: (() => void)[]) => void;
 export default function useActionPipeline({ gl, getAttributeLocation, getUniformLocation, setActiveProgram, getScript }: Props): {
     executePipeline: (steps: ExecutionStep[], time: number | undefined, context: Context, cleanupActions: (() => void)[]) => void;
-    getBufferAttribute: (location: string) => import("./actions/use-buffer-attributes").BufferInfo;
     context: Context;
     convertActions: (actions: DokGlAction[]) => ExecutionStep[];
 };

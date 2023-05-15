@@ -20,21 +20,19 @@ export function useCanvasSize({ gl, canvasRef, pixelRatio }: Props): State {
         const canvas = canvasRef.current;
         if (canvas) {
             const resize = () => {
-                const rect = canvas.getBoundingClientRect();
-                setWidth(pixelRatio * rect.width);
-                setHeight(pixelRatio * rect.height);
+                const { width, height } = canvas.getBoundingClientRect();
+                setWidth(pixelRatio * width);
+                setHeight(pixelRatio * height);
             };
             const resizeObserver = new ResizeObserver(resize);
             resizeObserver.observe(canvas);
             const observer = new MutationObserver(resize);
             observer.observe(canvas, { attributes: true, attributeFilter: ["style"] });
         }
-    }, []);
+    }, [pixelRatio, canvasRef]);
 
     useEffect(() => {
-        if (gl) {
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-        }
+        gl?.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     }, [gl, width, height]);
 
     return {

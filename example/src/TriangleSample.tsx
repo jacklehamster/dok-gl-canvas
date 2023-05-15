@@ -75,7 +75,7 @@ export default () => <GLCanvas
       {
         action: "custom",
         location: "position",
-        processAttributeBuffer(positions, time) {
+        modifyAttributeBuffer(positions, time) {
           positions[0] = Math.sin(time / 100);
         },
       },

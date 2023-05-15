@@ -6,7 +6,9 @@ interface Props {
 }
 export interface BufferInfo {
     buffer: WebGLBuffer;
-    bufferArray: Float32Array;
+    bufferArray?: Float32Array;
+    bufferSize: number;
+    usage: GLenum;
 }
 export default function useBufferAttributes({ gl, getAttributeLocation }: Props): {
     bindVertexArray: () => () => void | undefined;

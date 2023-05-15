@@ -15,7 +15,7 @@ export enum Type {
 export interface BufferAttributeAction {
     action: "buffer-attribute",
     location: string;
-    buffer: number[];
+    buffer: number[] | GLsizeiptr;
     usage?: Usage;
     size: GLint & (1 | 2 | 3 | 4);
     type?: Type;
