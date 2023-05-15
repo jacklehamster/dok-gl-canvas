@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { ProgramId } from "../gl/program/program";
+import { ProgramId } from "../../gl/program/program";
 import { BufferAttributeAction, Type, Usage } from "./BufferAttributeAction";
 
 interface Props {

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { GlExecuteAction } from "./GlAction";
-import { ProgramId } from "../gl/program/program";
+import { ProgramId } from "../../gl/program/program";
 
 export interface ActiveProgramAction {
     action: "active-program";

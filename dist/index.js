@@ -17,6 +17,37 @@ function _extends() {
   };
   return _extends.apply(this, arguments);
 }
+function _unsupportedIterableToArray(o, minLen) {
+  if (!o) return;
+  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+  var n = Object.prototype.toString.call(o).slice(8, -1);
+  if (n === "Object" && o.constructor) n = o.constructor.name;
+  if (n === "Map" || n === "Set") return Array.from(o);
+  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+  for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+  return arr2;
+}
+function _createForOfIteratorHelperLoose(o, allowArrayLike) {
+  var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+  if (it) return (it = it.call(o)).next.bind(it);
+  if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+    if (it) o = it;
+    var i = 0;
+    return function () {
+      if (i >= o.length) return {
+        done: true
+      };
+      return {
+        done: false,
+        value: o[i++]
+      };
+    };
+  }
+  throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
 
 function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
@@ -32310,18 +32341,20 @@ function useImageAction(_ref) {
       return gl.deleteTexture(texture);
     };
   }, [gl]);
-  var executeLoadImageAction = React.useCallback(function (_ref2, executePipeline) {
+  var executeLoadImageAction = React.useCallback(function (_ref2, time, context, onLoad) {
     var src = _ref2.src,
-      imageId = _ref2.imageId,
-      _ref2$onLoad = _ref2.onLoad,
-      onLoad = _ref2$onLoad === void 0 ? [] : _ref2$onLoad;
+      imageId = _ref2.imageId;
+    var cleanupActions = [];
     var image = new Image();
     image.src = src;
     images.current[imageId] = image;
     image.addEventListener("load", function () {
-      executePipeline(onLoad);
+      context.executePipeline(onLoad, time, context, cleanupActions);
     });
     return function () {
+      cleanupActions.forEach(function (cleanup) {
+        return cleanup();
+      });
       delete images.current[imageId];
     };
   }, [images]);
@@ -32372,7 +32405,6 @@ function useProgramAction(_ref) {
   };
 }
 
-var NOP = function NOP() {};
 function useActionPipeline(_ref) {
   var gl = _ref.gl,
     getAttributeLocation = _ref.getAttributeLocation,
@@ -32411,101 +32443,146 @@ function useActionPipeline(_ref) {
       setActiveProgram: setActiveProgram
     }),
     executeProgramAction = _useProgramAction.executeProgramAction;
-  var executePipeline = React.useCallback(function (actions, time) {
+  var convertActions = React.useCallback(function (actions) {
+    return actions.map(function (action) {
+      switch (action.action) {
+        case "bind-vertex":
+          return bindVertexArray;
+        case "buffer-attribute":
+          return function () {
+            return bufferAttributes(action);
+          };
+        case "clear":
+          return function () {
+            return clear(action);
+          };
+        case "draw-arrays":
+          return function () {
+            return drawArrays(action);
+          };
+        case "draw-arrays-instanced":
+          return function () {
+            return drawArraysInstanced(action);
+          };
+        case "uniform-timer":
+          return function (time) {
+            return updateUniformTimer(action, time);
+          };
+        case "active-program":
+          return function () {
+            return executeProgramAction(action);
+          };
+        case "custom":
+          return function (time) {
+            return executeCustomAction(action, time);
+          };
+        case "load-image":
+          var onLoad = convertActions(getScript(action.onLoad));
+          return function (time, context) {
+            return executeLoadImageAction(action, time, context, onLoad);
+          };
+        case "uniform":
+          return function () {
+            return uniform1iAction(action);
+          };
+        case "load-texture":
+          return function () {
+            return executeLoadTextureAction(action);
+          };
+        case "load-video":
+          return function () {
+            return executeVideoAction(action);
+          };
+        case "execute-script":
+          var steps = convertActions(getScript(action.script));
+          return function (time, context) {
+            for (var _iterator = _createForOfIteratorHelperLoose(steps), _step; !(_step = _iterator()).done;) {
+              var step = _step.value;
+              step(time, context);
+            }
+          };
+      }
+    });
+  }, [bindVertexArray, bufferAttributes, clear, drawArrays, drawArraysInstanced, updateUniformTimer, executeProgramAction, executeCustomAction, executeLoadImageAction, uniform1iAction, executeLoadTextureAction, executeVideoAction, getScript]);
+  var executePipeline = React.useCallback(function (steps, time, context, cleanupActions) {
     if (time === void 0) {
       time = 0;
     }
-    if (!actions.length) {
-      return NOP;
+    for (var _iterator2 = _createForOfIteratorHelperLoose(steps), _step2; !(_step2 = _iterator2()).done;) {
+      var step = _step2.value;
+      var cleanup = step(time, context);
+      if (cleanup) {
+        cleanupActions.push(cleanup);
+      }
     }
-    var cleanupActions = actions.map(function (action) {
-      if (typeof action === "string") {
-        return executePipeline(getScript(action), time);
-      }
-      if (action.execute) {
-        action.execute(action, time);
-        return;
-      }
-      switch (action.action) {
-        case "bind-vertex":
-          return bindVertexArray();
-        case "buffer-attribute":
-          return bufferAttributes(action);
-        case "clear":
-          clear(action);
-          break;
-        case "draw-arrays":
-          drawArrays(action);
-          break;
-        case "draw-arrays-instanced":
-          drawArraysInstanced(action);
-          break;
-        case "uniform-timer":
-          return updateUniformTimer(action, time);
-        case "active-program":
-          executeProgramAction(action);
-          break;
-        case "custom":
-          return executeCustomAction(action, time);
-        case "execute-script":
-          return executePipeline(getScript(action.script));
-        case "load-image":
-          return executeLoadImageAction(action, executePipeline);
-        case "uniform":
-          return uniform1iAction(action);
-        case "load-texture":
-          return executeLoadTextureAction(action);
-        case "load-video":
-          return executeVideoAction(action);
-      }
-      return NOP;
-    }).filter(function (cleanup) {
-      return !!cleanup;
-    });
-    return cleanupActions.length ? function () {
-      return cleanupActions.forEach(function (cleanup) {
-        return cleanup();
-      });
-    } : NOP;
   }, [bufferAttributes, updateUniformTimer, uniform1iAction, drawArrays, drawArraysInstanced, clear, executeProgramAction, executeCustomAction, getScript, executeLoadImageAction, executeLoadTextureAction]);
+  var context = React.useMemo(function () {
+    return {
+      executePipeline: executePipeline
+    };
+  }, [executePipeline]);
   return {
     executePipeline: executePipeline,
-    getBufferAttribute: getBufferAttribute
+    getBufferAttribute: getBufferAttribute,
+    context: context,
+    convertActions: convertActions
   };
 }
 
 function useLoopPipeline(_ref) {
   var executePipeline = _ref.executePipeline;
-  return React.useCallback(function (actions) {
+  var performCleanup = React.useCallback(function (cleanupActions) {
+    if (cleanupActions.length) {
+      for (var _iterator = _createForOfIteratorHelperLoose(cleanupActions), _step; !(_step = _iterator()).done;) {
+        var cleanup = _step.value;
+        cleanup();
+      }
+      cleanupActions.length = 0;
+    }
+  }, []);
+  return React.useCallback(function (steps, _, context) {
     var id;
-    var cleanup = function cleanup() {};
+    var cleanupActions = [];
     var loop = function loop(time) {
-      cleanup();
-      cleanup = executePipeline(actions, time);
+      executePipeline(steps, time, context, cleanupActions);
+      performCleanup(cleanupActions);
       id = requestAnimationFrame(loop);
     };
     loop(0);
     return function () {
-      cleanup();
+      performCleanup(cleanupActions);
       cancelAnimationFrame(id);
     };
-  }, [executePipeline]);
+  }, [executePipeline, performCleanup]);
 }
 
 function useActionScripts(_ref) {
   var scripts = _ref.scripts;
-  var getScript = React.useCallback(function (script) {
+  var extractScript = React.useCallback(function (script, results) {
     var _scripts$find$actions, _scripts$find;
     if (!script) {
-      return [];
+      return;
     }
-    if (Array.isArray(script)) {
-      return script;
-    }
-    return (_scripts$find$actions = (_scripts$find = scripts.find(function (s) {
+    var actions = Array.isArray(script) ? script : (_scripts$find$actions = (_scripts$find = scripts.find(function (s) {
       return s.name === script;
     })) === null || _scripts$find === void 0 ? void 0 : _scripts$find.actions) != null ? _scripts$find$actions : [];
+    actions.forEach(function (action) {
+      if (typeof action === "string") {
+        extractScript(action, results);
+        return;
+      }
+      if (action.action === "execute-script") {
+        extractScript(action.script, results);
+        return;
+      }
+      results.push(action);
+    });
   }, [scripts]);
+  var getScript = React.useCallback(function (script) {
+    var actions = [];
+    extractScript(script, actions);
+    return actions;
+  }, [extractScript]);
   return {
     getScript: getScript
   };
@@ -32577,32 +32654,45 @@ function GLCanvas(props) {
       setActiveProgram: setActiveProgram,
       getScript: getScript
     }),
+    context = _useActionPipeline.context,
     executePipeline = _useActionPipeline.executePipeline,
-    getBufferAttribute = _useActionPipeline.getBufferAttribute;
+    getBufferAttribute = _useActionPipeline.getBufferAttribute,
+    convertActions = _useActionPipeline.convertActions;
   var loopPipeline = useLoopPipeline({
     executePipeline: executePipeline
   });
   React.useEffect(function () {
     if (usedProgram && glConfig) {
-      var pipelineCleanup = executePipeline(getScript(pipelineActions));
-      var loopCleanup = loopPipeline(getScript(loopActions));
+      var pipelineSteps = convertActions(getScript(pipelineActions));
+      var loopSteps = convertActions(getScript(loopActions));
+      var cleanupActions = [];
+      executePipeline(pipelineSteps, 0, context, cleanupActions);
+      var loopCleanup = loopPipeline(loopSteps, 0, context);
       var cleanup = change === null || change === void 0 ? void 0 : change(glConfig);
       return function () {
-        pipelineCleanup();
+        cleanupActions.forEach(function (cleanup) {
+          return cleanup();
+        });
         loopCleanup();
         cleanup === null || cleanup === void 0 ? void 0 : cleanup();
       };
     }
     return;
-  }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript]);
+  }, [usedProgram, change, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions]);
   var updateOnChange = React.useCallback(function (refreshMethod) {
     setChange(function () {
       return refreshMethod;
     });
   }, [setChange]);
   var executeScript = React.useCallback(function (script) {
-    return executePipeline(getScript(script));
-  }, [getScript, executePipeline]);
+    var cleanupActions = [];
+    executePipeline(convertActions(getScript(script)), 0, context, cleanupActions);
+    return function () {
+      cleanupActions.forEach(function (cleanup) {
+        return cleanup();
+      });
+    };
+  }, [convertActions, getScript, executePipeline, context]);
   React.useEffect(function () {
     if (controller) {
       controller.setOnChange = updateOnChange;

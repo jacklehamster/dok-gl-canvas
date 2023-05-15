@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { ProgramId } from "../gl/program/program";
+import { ProgramId } from "../../gl/program/program";
 import { GlExecuteAction } from "./GlAction";
 
 export interface UniformAction {

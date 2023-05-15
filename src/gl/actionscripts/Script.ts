@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { GlAction } from "../../pipeline/GlAction";
+import { DokGlAction, GlAction } from "../../pipeline/actions/GlAction";
 
 export interface Script {
     name: string;
@@ -11,15 +11,29 @@ interface Props {
 }
 
 export function useActionScripts({ scripts }: Props) {
-    const getScript = useCallback((script: string | GlAction[] | undefined): GlAction[] => {
+    const extractScript = useCallback((script: string | GlAction[] | undefined, results: DokGlAction[]): void => {
         if (!script) {
-            return [];
+            return;
         }
-        if (Array.isArray(script)) {
-            return script;
-        }
-        return scripts.find(s => s.name === script)?.actions ?? [];
+        const actions: GlAction[] = Array.isArray(script) ? script : (scripts.find(s => s.name === script)?.actions ?? []);
+        actions.forEach(action => {
+            if (typeof(action) === "string") {
+                extractScript(action, results);
+                return;
+            }
+            if (action.action === "execute-script") {
+                extractScript(action.script, results);
+                return;
+            }
+            results.push(action);
+        });
     }, [scripts]);
+
+    const getScript = useCallback((script: string | GlAction[] | undefined): DokGlAction[] => {
+        const actions: DokGlAction[] = [];
+        extractScript(script, actions);
+        return actions;
+    }, [extractScript]);
 
     return {
         getScript,

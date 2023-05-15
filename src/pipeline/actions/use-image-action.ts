@@ -1,5 +1,7 @@
 import { useCallback, useRef } from "react";
 import { GlAction } from "./GlAction";
+import { Context } from "../use-action-pipeline";
+import { ExecutionStep } from "../use-script-execution";
 
 type TextureId = "TEXTURE0"|"TEXTURE1"|"TEXTURE2"|"TEXTURE3"|"TEXTURE4"|"TEXTURE5"|"TEXTURE6"|"TEXTURE7"|"TEXTURE8"|"TEXTURE9"
 |"TEXTURE10"|"TEXTURE11"|"TEXTURE12"|"TEXTURE13"|"TEXTURE14"|"TEXTURE15"|"TEXTURE16"|"TEXTURE17"|"TEXTURE18"|"TEXTURE19"
@@ -48,15 +50,16 @@ export default function useImageAction({ gl }: Props) {
     }, [gl]);
 
     const executeLoadImageAction = useCallback(
-            ({src, imageId, onLoad = [] }: ImageAction,
-            executePipeline: (actions: GlAction[]) => void) => {
+            ({src, imageId }: ImageAction, time: number, context: Context, onLoad: ExecutionStep[]) => {
+        const cleanupActions: (() => void)[] = []
         const image = new Image();
         image.src = src;
         images.current[imageId] = image;
         image.addEventListener("load", () => {
-            executePipeline(onLoad);
+            context.executePipeline(onLoad, time, context, cleanupActions);
         });
         return () => {
+            cleanupActions.forEach(cleanup => cleanup());
             delete images.current[imageId];
         };
     }, [images]);

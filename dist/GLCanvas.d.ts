@@ -1,7 +1,7 @@
 import { CSSProperties } from "react";
 import { ProgramConfig, ProgramId } from "./gl/program/program";
 import { GlController, OnChange } from "./control/gl-controller";
-import { GlAction } from "./pipeline/GlAction";
+import { GlAction } from "./pipeline/actions/GlAction";
 import { Script } from "./gl/actionscripts/Script";
 export interface Props {
     pixelRatio?: number;

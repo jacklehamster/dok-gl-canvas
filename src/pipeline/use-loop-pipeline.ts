@@ -1,24 +1,34 @@
 import { useCallback } from "react";
-import { GlAction } from "./GlAction";
+import { Context, ExecutePipeline } from "./use-action-pipeline";
+import { ExecutionStep } from "./use-script-execution";
 
 interface Props {
-    executePipeline(actions?: GlAction[], time?: number): (() => void);
+    executePipeline: ExecutePipeline;
 }
 
 export default function useLoopPipeline({ executePipeline }: Props) {
-    return useCallback((actions: GlAction[]) => {
+    const performCleanup = useCallback((cleanupActions: (() => void)[]) => {
+        if (cleanupActions.length) {
+            for (let cleanup of cleanupActions) {
+                cleanup();
+            }
+            cleanupActions.length = 0;    
+        }
+    }, []);
+
+    return useCallback((steps: ExecutionStep[], _: number, context: Context) => {
         let id: number;
-        let cleanup: (() => void)  = () => {};
+        const cleanupActions: (() => void)[] = [];
         const loop = (time: number) => {
-            cleanup();
-            cleanup = executePipeline(actions, time);
+            executePipeline(steps, time, context, cleanupActions);
+            performCleanup(cleanupActions);
             id = requestAnimationFrame(loop);
         };
 
         loop(0);
         return () => {
-            cleanup();
+            performCleanup(cleanupActions);
             cancelAnimationFrame(id);
         };
-    }, [executePipeline]);
+    }, [executePipeline, performCleanup]);
 }
