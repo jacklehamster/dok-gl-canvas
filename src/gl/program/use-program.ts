@@ -45,7 +45,7 @@ export function useProgram({ gl, programs }: Props) {
             });
             return newResults;
         });
-    }, [...(programs ?? []), createProgram, removeProgram]);
+    }, [programs, createProgram, removeProgram]);
 
     const setActiveProgram = useCallback((programId?: ProgramId): boolean => {
         if (gl && programId) {

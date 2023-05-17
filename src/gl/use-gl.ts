@@ -26,6 +26,6 @@ export function useGL({ canvasRef, webglAttributes }: Props): WebGL2RenderingCon
             ...DEFAULT_ATTRIBUTES,
             ...webglAttributes,
         }) ?? undefined);
-    }, []);
+    }, [canvasRef, webglAttributes]);
     return gl;
 }

@@ -15,7 +15,7 @@ export interface ProgramResult {
 
 export function useShader({ gl }: Props) {
     const typeName = useCallback((type: number) => {
-        return type == gl?.VERTEX_SHADER ? "vertex" :
+        return type === gl?.VERTEX_SHADER ? "vertex" :
             type === gl?.FRAGMENT_SHADER ? "fragment" :
             undefined;
     }, [gl]);
@@ -39,7 +39,7 @@ export function useShader({ gl }: Props) {
             console.error(`Shader compile error in ${typeName(type)}:` + gl.getShaderInfoLog(shader));
         }
         return shader;      
-    }, [gl]);
+    }, [gl, typeName]);
 
     const createProgram = useCallback(({ vertex, fragment}: ProgramConfig): ProgramResult | undefined => {
         if (!gl) {
@@ -69,7 +69,7 @@ export function useShader({ gl }: Props) {
             program,
         };
         return result;
-    }, [gl]);
+    }, [createShader, gl]);
 
     const removeProgram = useCallback((programResult: ProgramResult) => {
         if (!gl) {

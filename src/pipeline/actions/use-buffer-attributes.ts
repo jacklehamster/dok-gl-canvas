@@ -61,8 +61,9 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
 
     const bufferRecord = useRef<Record<LocationName, BufferInfo>>({});
     useEffect(() => {
+      const record = bufferRecord.current;
       return () => {
-        clearRecord(bufferRecord.current, info => {
+        clearRecord(record, info => {
           if (info.buffer) {
             gl?.deleteBuffer(info.buffer);
           }
@@ -105,7 +106,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
   
         //  Cleanup
         context.cleanupActions.push(() => gl.disableVertexAttribArray(bufferLocation));
-    }, [gl, getAttributeLocation, bufferRecord]);
+    }, [gl, getAttributeLocation, getGlEnum, getGlType]);
 
     const bufferSubData = useCallback(({ dstByteOffset, buffer, srcOffset, length }: BufferSubDataAction):void  => {
         const bufferArray = buffer instanceof Float32Array ? buffer : new Float32Array(buffer);

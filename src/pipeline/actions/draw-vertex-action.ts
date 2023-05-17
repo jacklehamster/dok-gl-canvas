@@ -1,5 +1,3 @@
-import { useCallback } from "react";
-
 export interface DrawArraysAction {
     action: "draw-arrays",
     vertexFirst?: GLint;
@@ -11,19 +9,4 @@ export interface DrawArraysInstancedAction {
     vertexFirst?: GLint;
     vertexCount: GLsizei;
     instanceCount: GLsizei;    
-}
-
-export default function useDrawVertexAction(gl?: WebGL2RenderingContext) {
-    const drawArrays = useCallback(({vertexFirst, vertexCount}: DrawArraysAction) => {
-        gl?.drawArrays(gl.TRIANGLES, vertexFirst ?? 0, vertexCount ?? 0);
-    }, [gl]);
-
-    const drawArraysInstanced = useCallback(({vertexFirst, vertexCount, instanceCount}: DrawArraysInstancedAction) => {
-        gl?.drawArraysInstanced(gl.TRIANGLES, vertexFirst ?? 0, vertexCount ?? 0, instanceCount ?? 0);
-    }, [gl]);
-
-    return {
-        drawArrays,
-        drawArraysInstanced,
-    };
 }

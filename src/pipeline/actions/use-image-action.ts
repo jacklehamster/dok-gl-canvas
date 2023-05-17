@@ -46,9 +46,11 @@ export default function useImageAction({ gl }: Props) {
     const textureBuffers = useRef<Record<TextureId | string, WebGLTexture>>({});
 
     useEffect(() => {
+        const imagesRecord = images.current;
+        const textureRecord = textureBuffers.current;
         return () => {
-            clearRecord(images.current);
-            clearRecord(textureBuffers.current, texture => gl?.deleteTexture(texture));
+            clearRecord(imagesRecord);
+            clearRecord(textureRecord, texture => gl?.deleteTexture(texture));
         };
     }, [textureBuffers, images, gl]);
 
@@ -79,6 +81,9 @@ export default function useImageAction({ gl }: Props) {
             context.executePipeline(onLoad, context);
         };
         image.addEventListener("load", imageLoaded, { once: true });
+        image.addEventListener("error", (e: ErrorEvent) => {
+            console.error("image error", e.error);
+        });
         context.cleanupActions.push(() => image.removeEventListener("load", imageLoaded));
     }, [images]);
 
@@ -97,6 +102,10 @@ export default function useImageAction({ gl }: Props) {
             };
         };
         video.addEventListener("playing", videoPlaying, { once: true });
+        video.addEventListener("error", (e: ErrorEvent) => {
+            console.error("video error", e.error);
+        });
+    
         context.cleanupActions.push(() => {
             video.pause();
             video.removeEventListener("playing", videoPlaying);
