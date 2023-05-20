@@ -5,6 +5,7 @@ import { useState } from 'react';
 import GridSample from './GridSample';
 import VideoSample from './VideoSample';
 import TriangleInstancedSample from './TriangleInstancedSample';
+import InstancedMotionSample from "./InstanceMotionSample";
 
 enum Sample {
   TEXTURE = "texture",
@@ -12,6 +13,7 @@ enum Sample {
   GRID = "grid",
   VIDEO = "video",
   INSTANCED = "instanced",
+  INSTANED_MOTION = "instanced-motion",
 }
 
 const samples: Record<string, React.JSX.Element> = {
@@ -20,6 +22,7 @@ const samples: Record<string, React.JSX.Element> = {
   [Sample.GRID]: <GridSample />,
   [Sample.VIDEO]: <VideoSample />,
   [Sample.INSTANCED]: <TriangleInstancedSample />,
+  [Sample.INSTANED_MOTION]: <InstancedMotionSample />,
 };
 
 export const App = () => {

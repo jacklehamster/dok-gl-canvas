@@ -4,6 +4,7 @@ import { DokGlAction, GlAction } from "../../pipeline/actions/GlAction";
 export interface Script {
     name: string;
     actions: GlAction[];
+    parameters?: string[];
 }
 
 interface Props {
@@ -22,7 +23,14 @@ export function useActionScripts({ scripts }: Props) {
                 return;
             }
             if (action.action === "execute-script") {
+                results.push({
+                    action: "store-context",
+                    context: action.context,
+                });
                 extractScript(action.script, results);
+                results.push({
+                    action: "pop-context",
+                });
                 return;
             }
             results.push(action);

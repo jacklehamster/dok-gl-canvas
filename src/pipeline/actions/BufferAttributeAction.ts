@@ -1,3 +1,5 @@
+import { BufferResolution, NumberResolution, StringResolution } from "../data/data-provider";
+
 export enum Usage {
     STATIC_DRAW,
     DYNAMIC_DRAW,
@@ -10,28 +12,61 @@ export enum Type {
     UNSIGNED_BYTE,
     UNSIGNED_SHORT,
     FLOAT,
+    INT,
+    UNSIGNED_INT,
 };
 
 export type LocationName = string;
+export type LocationResolution = LocationName | StringResolution | [LocationName|StringResolution, 0|1|2|3];
 
-export interface BufferAttributeAction {
-    action: "buffer-attribute",
-    location: LocationName;
-    buffer: number[] | Float32Array | GLsizeiptr;
-    usage?: Usage;
-    size: GLint & (1 | 2 | 3 | 4);
+export interface CreateBufferAction {
+    action: "createBuffer";
+    location: LocationResolution;
+    bind?: boolean;
+}
+
+export interface BindBufferAction {
+    action: "bindBuffer";
+    location: LocationResolution;
+}
+
+export interface VertexAttribPointerAction {
+    action: "vertexAttribPointer"
+    location: LocationResolution;
+    size: GLint & (1 | 2 | 3 | 4) | NumberResolution;
     type?: Type;
     normalized?: boolean;
-    stride?: GLsizei;
-    offset?: GLintptr;
-    divisor?: GLuint;
+    stride?: GLsizei | NumberResolution;
+    offset?: GLintptr | NumberResolution;
+    rows?: 1 | 2 | 3 | 4 | NumberResolution;
+}
+
+export interface VertexAttribDivisor {
+    action: "vertexAttribDivisor",
+    location: LocationResolution;
+    divisor?: GLuint | NumberResolution;
+    rows?: 1 | 2 | 3 | 4 | NumberResolution;
+}
+
+export interface EnableVertexAttribArray {
+    action: "enableVertexAttribArray";
+    location: LocationResolution;
+    rows?: 1 | 2 | 3 | 4 | NumberResolution;
+}
+
+export interface BufferDataAction {
+    action: "buffer-data";
+    location: LocationResolution;
+    buffer: BufferResolution | GLsizeiptr;
+    usage?: Usage;
+    type?: Type;
 }
 
 export interface BufferSubDataAction {
     action: "buffer-sub-data",
-    location: LocationName;
-    buffer: number[] | Float32Array;
-    dstByteOffset?: GLintptr;
-    srcOffset?: GLuint;
-    length?: GLuint;
+    buffer: BufferResolution;
+    dstByteOffset?: GLintptr | NumberResolution;
+    srcOffset?: GLuint | NumberResolution;
+    length?: GLuint | NumberResolution;
+    type?: Type;
 }

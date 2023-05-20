@@ -88,5 +88,8 @@
    "files": [
       "dist"
    ],
-   "homepage": "https://github.com/jacklehamster/dok-gl-canvas#readme"
+   "homepage": "https://github.com/jacklehamster/dok-gl-canvas#readme",
+   "dependencies": {
+      "gl-matrix": "^3.4.3"
+   }
 }

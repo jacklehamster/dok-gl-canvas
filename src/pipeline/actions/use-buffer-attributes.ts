@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { ProgramId } from "../../gl/program/program";
-import { BufferAttributeAction, BufferSubDataAction, LocationName, Type, Usage } from "./BufferAttributeAction";
+import { LocationName, Type, Usage } from "./BufferAttributeAction";
 import { clearRecord } from "../../utils/object-utils";
 import { Context } from "../use-action-pipeline";
 
@@ -9,15 +9,18 @@ interface Props {
     getAttributeLocation(name: LocationName, programId?: ProgramId): number;
 }
 
+export type TypedArray = Float32Array | Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array;
+
 export interface BufferInfo {
   buffer: WebGLBuffer;
-  bufferArray?: Float32Array;
-  bufferSize: number;
-  usage: GLenum;
+  location: number;
+  bufferArray?: TypedArray;
+  bufferSize?: number;
+  usage?: GLenum;
 }
 
 export default function useBufferAttributes({ gl, getAttributeLocation }: Props) {
-    const getGlEnum = useCallback((usage: Usage | undefined): GLenum | undefined => {
+    const getGlUsage = useCallback((usage: Usage | undefined): GLenum | undefined => {
         if (!gl) {
           return;
         }
@@ -34,24 +37,48 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       }, [gl]);
   
     const getGlType = useCallback((type: Type | undefined): GLenum | undefined => {
-        if (!gl) {
-          return;
-        }
         switch(type) {
           case Type.BYTE:
-            return gl.BYTE;
+            return gl?.BYTE;
           case Type.FLOAT:
-            return gl.FLOAT;
+            return gl?.FLOAT;
           case Type.SHORT:
-            return gl.SHORT;
+            return gl?.SHORT;
           case Type.UNSIGNED_BYTE:
-            return gl.UNSIGNED_BYTE;
+            return gl?.UNSIGNED_BYTE;
           case Type.UNSIGNED_SHORT:
-            return gl.UNSIGNED_SHORT;
-          default:
-            return;
+            return gl?.UNSIGNED_SHORT;
+          case Type.INT:
+            return gl?.INT;
+          case Type.UNSIGNED_INT:
+            return gl?.UNSIGNED_INT;
         }
+        return;
     }, [gl]);
+
+    const getTypedArray = useCallback((type: Type | undefined) => {
+      switch(type) {
+        case Type.BYTE:
+          return Int8Array;
+        case Type.FLOAT:
+          return Float32Array;
+        case Type.SHORT:
+          return Int16Array;
+        case Type.UNSIGNED_BYTE:
+          return Uint8Array;
+        case Type.UNSIGNED_SHORT:
+          return Uint16Array;
+        case Type.INT:
+          return Int32Array;
+        case Type.UNSIGNED_INT:
+          return Uint32Array;
+      }
+      return;
+    }, []);
+
+    const getByteSize = useCallback((type: Type | undefined) => {
+      return getTypedArray(type)?.BYTES_PER_ELEMENT;
+    }, [getTypedArray])
 
     const bindVertexArray = useCallback((context: Context) => {
         const triangleArray = gl?.createVertexArray() ?? null;
@@ -71,52 +98,73 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       };
     }, [gl, bufferRecord]);
 
-    const bufferAttributes = useCallback((bufferAttributeAction: BufferAttributeAction, context: Context):void  => {
-        if (!gl) {
-            return;
-        }
-        const { location, buffer, usage, size, type, normalized, stride, offset, divisor } = bufferAttributeAction;
+    const getBufferAttribute = useCallback((location: LocationName) => {
+      const attribute = bufferRecord.current[location];
+      if (!attribute) {
+        throw new Error(`Attribute ${location} not created. Make sure "createBuffer" is called.`);
+      }
+      return attribute;
+    }, [bufferRecord])
 
-        const bufferLocation = getAttributeLocation(location);
-        if (bufferLocation < 0) {
+    const createBuffer = useCallback((location: LocationName): void => {
+      if (bufferRecord.current[location]) {
+        gl?.deleteBuffer(bufferRecord.current[location].buffer);
+        delete bufferRecord.current[location];
+      }
+      const bufferBuffer = gl?.createBuffer();
+      if (!bufferBuffer) {
+        throw new Error(`Unable to create buffer ${location}`);
+      }
+      bufferRecord.current[location] = {
+        buffer: bufferBuffer,
+        location: getAttributeLocation(location),
+      };
+    }, [bufferRecord, gl, getAttributeLocation]);
+
+    const vertexAttribPointer = useCallback((location: string, locationOffset: 0|1|2|3, size: GLint, type: Type | undefined, normalized: boolean, stride: GLsizei, offset: GLintptr, rows: number) => {
+      if (!gl) {
           return;
-        }
-        const glUsage = getGlEnum(usage) ?? gl.STATIC_DRAW;
-        const bufferBuffer = gl.createBuffer();
-        const bufferArray = buffer instanceof Float32Array ? buffer : Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
-        const bufferSize = typeof(buffer) === "number" ? buffer : buffer.length;
-        gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
-        if (bufferArray) {
-          gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
-        } else {
-          gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
-        }
-        gl.vertexAttribPointer(bufferLocation, size, getGlType(type) ?? gl.FLOAT, normalized ?? false, stride ?? 0, offset ?? 0);
-        gl.vertexAttribDivisor(bufferLocation, divisor ?? 0);
-        gl.enableVertexAttribArray(bufferLocation);
+      }
+      const bufferLocation = bufferRecord.current[location].location ?? getAttributeLocation(location);
+      if (bufferLocation < 0) {
+        return;
+      }
+      const glType = getGlType(type) ?? gl.FLOAT;
+      const sizeMul = size * (getByteSize(type) ?? Float32Array.BYTES_PER_ELEMENT);
+      for (let i = 0; i < rows; i++) {
+        const finalOffset = offset + i * sizeMul;
+        gl.vertexAttribPointer(bufferLocation + i + locationOffset, size, glType, normalized, stride, finalOffset);
+      }
+    }, [getAttributeLocation, getByteSize, getGlType, gl, bufferRecord]);
 
-        if (bufferBuffer && !bufferRecord.current[location]) {
-          bufferRecord.current[location] = {
-            buffer: bufferBuffer,
-            bufferArray,
-            bufferSize,
-            usage: glUsage,
-          };
-        }
-  
-        //  Cleanup
-        context.cleanupActions.push(() => gl.disableVertexAttribArray(bufferLocation));
-    }, [gl, getAttributeLocation, getGlEnum, getGlType]);
+    const bufferData = useCallback((location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => {
+      if (!gl) {
+        return;
+      }
 
-    const bufferSubData = useCallback(({ dstByteOffset, buffer, srcOffset, length }: BufferSubDataAction):void  => {
-        const bufferArray = buffer instanceof Float32Array ? buffer : new Float32Array(buffer);
-        gl?.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset ?? 0, bufferArray, srcOffset ?? 0, length ?? bufferArray.length);
-    }, [gl]);
+      const bufferLocation = bufferRecord.current[location].location ?? getAttributeLocation(location);
+      if (bufferLocation < 0) {
+        throw new Error(`Invalid attribute location ${location}`);
+      }
+      const bufferInfo = getBufferAttribute(location);
+      if (bufferArray) {
+        gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
+      } else {
+        gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
+      }
+      bufferInfo.bufferArray = bufferArray;
+      bufferInfo.bufferSize = bufferSize;
+      bufferInfo.usage = glUsage;
+
+    }, [gl, getAttributeLocation, getBufferAttribute, bufferRecord]);
 
     return {
       bindVertexArray,
-      bufferAttributes,
-      bufferSubData,
-      getBufferAttribute: useCallback((location: LocationName) => bufferRecord.current[location], [bufferRecord]),
+      createBuffer,
+      getBufferAttribute,
+      vertexAttribPointer,
+      getTypedArray,
+      bufferData,
+      getGlUsage,
     };
 }

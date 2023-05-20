@@ -3,6 +3,7 @@ import GLCanvasExport, { Props } from "./GLCanvas";
 import { Controller } from "./control/controller";
 import { GlController } from "./control/gl-controller";
 export * from "./pipeline/actions/GlAction"
+export * from "./pipeline/data/data-provider"
 
 export function hookupCanvas(div: HTMLDivElement, props?: Props, controller?: Controller & GlController) {
   ReactHook.hookup(div, GLCanvas, { ...props, controller }, controller);

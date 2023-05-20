@@ -1,5 +1,7 @@
+import { Resolution } from "../data/data-provider";
 import { GlAction } from "./GlAction";
 export interface ExecuteScriptAction {
-    action: "execute-script";
+    action?: "execute-script";
+    context: Record<string, Resolution>;
     script: GlAction[] | string;
 }

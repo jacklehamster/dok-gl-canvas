@@ -16,7 +16,7 @@ export function useCanvasSize({ gl, canvasRef, pixelRatio }: Props): State {
     const [width, setWidth] = useState(0);
     const [height, setHeight] = useState(0);
 
-    React.useLayoutEffect(() => {
+    React.useLayoutEffect((): (void | (() => void)) => {
         const canvas = canvasRef.current;
         if (canvas) {
             const resize = () => {
@@ -28,6 +28,12 @@ export function useCanvasSize({ gl, canvasRef, pixelRatio }: Props): State {
             resizeObserver.observe(canvas);
             const observer = new MutationObserver(resize);
             observer.observe(canvas, { attributes: true, attributeFilter: ["style"] });
+            return () => {
+                setWidth(0);
+                setHeight(0);
+                resizeObserver.disconnect();
+                observer.disconnect();
+            };
         }
     }, [pixelRatio, canvasRef]);
 

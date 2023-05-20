@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -26870,7 +26870,33 @@ function useGL(_ref) {
     var canvas = canvasRef.current;
     setGL((_canvas$getContext = canvas === null || canvas === void 0 ? void 0 : (_canvas$getContext2 = canvas.getContext) === null || _canvas$getContext2 === void 0 ? void 0 : _canvas$getContext2.call(canvas, "webgl2", _extends({}, DEFAULT_ATTRIBUTES, webglAttributes))) != null ? _canvas$getContext : undefined);
   }, [canvasRef, webglAttributes]);
-  return gl;
+  var glProxy = useMemo(function () {
+    if (window.location.search.indexOf("proxy") < 0) {
+      return gl;
+    }
+    var proxy = gl ? new Proxy(gl, {
+      get: function get(target, prop) {
+        var t = target;
+        var result = t[prop];
+        if (typeof result === "function") {
+          var f = function f() {
+            for (var _len = arguments.length, params = new Array(_len), _key = 0; _key < _len; _key++) {
+              params[_key] = arguments[_key];
+            }
+            var returnValue = result.apply(t, params);
+            console.log("gl." + String(prop) + "(", params, ') = ', returnValue);
+            return returnValue;
+          };
+          return f;
+        } else {
+          console.log("gl." + String(prop) + " = ", result);
+          return result;
+        }
+      }
+    }) : undefined;
+    return proxy;
+  }, [gl]);
+  return glProxy;
 }
 
 /**
@@ -27827,6 +27853,12 @@ function useCanvasSize(_ref) {
         attributes: true,
         attributeFilter: ["style"]
       });
+      return function () {
+        setWidth(0);
+        setHeight(0);
+        resizeObserver.disconnect();
+        observer.disconnect();
+      };
     }
   }, [pixelRatio, canvasRef]);
   useEffect(function () {
@@ -28011,6 +28043,8 @@ var Type;
   Type[Type["UNSIGNED_BYTE"] = 2] = "UNSIGNED_BYTE";
   Type[Type["UNSIGNED_SHORT"] = 3] = "UNSIGNED_SHORT";
   Type[Type["FLOAT"] = 4] = "FLOAT";
+  Type[Type["INT"] = 5] = "INT";
+  Type[Type["UNSIGNED_INT"] = 6] = "UNSIGNED_INT";
 })(Type || (Type = {}));
 
 function clearRecord(record, clean) {
@@ -28025,7 +28059,7 @@ function clearRecord(record, clean) {
 function useBufferAttributes(_ref) {
   var gl = _ref.gl,
     getAttributeLocation = _ref.getAttributeLocation;
-  var getGlEnum = useCallback(function (usage) {
+  var getGlUsage = useCallback(function (usage) {
     if (!gl) {
       return;
     }
@@ -28041,24 +28075,47 @@ function useBufferAttributes(_ref) {
     }
   }, [gl]);
   var getGlType = useCallback(function (type) {
-    if (!gl) {
-      return;
-    }
     switch (type) {
       case Type.BYTE:
-        return gl.BYTE;
+        return gl === null || gl === void 0 ? void 0 : gl.BYTE;
       case Type.FLOAT:
-        return gl.FLOAT;
+        return gl === null || gl === void 0 ? void 0 : gl.FLOAT;
       case Type.SHORT:
-        return gl.SHORT;
+        return gl === null || gl === void 0 ? void 0 : gl.SHORT;
       case Type.UNSIGNED_BYTE:
-        return gl.UNSIGNED_BYTE;
+        return gl === null || gl === void 0 ? void 0 : gl.UNSIGNED_BYTE;
       case Type.UNSIGNED_SHORT:
-        return gl.UNSIGNED_SHORT;
-      default:
-        return;
+        return gl === null || gl === void 0 ? void 0 : gl.UNSIGNED_SHORT;
+      case Type.INT:
+        return gl === null || gl === void 0 ? void 0 : gl.INT;
+      case Type.UNSIGNED_INT:
+        return gl === null || gl === void 0 ? void 0 : gl.UNSIGNED_INT;
     }
+    return;
   }, [gl]);
+  var getTypedArray = useCallback(function (type) {
+    switch (type) {
+      case Type.BYTE:
+        return Int8Array;
+      case Type.FLOAT:
+        return Float32Array;
+      case Type.SHORT:
+        return Int16Array;
+      case Type.UNSIGNED_BYTE:
+        return Uint8Array;
+      case Type.UNSIGNED_SHORT:
+        return Uint16Array;
+      case Type.INT:
+        return Int32Array;
+      case Type.UNSIGNED_INT:
+        return Uint32Array;
+    }
+    return;
+  }, []);
+  var getByteSize = useCallback(function (type) {
+    var _getTypedArray;
+    return (_getTypedArray = getTypedArray(type)) === null || _getTypedArray === void 0 ? void 0 : _getTypedArray.BYTES_PER_ELEMENT;
+  }, [getTypedArray]);
   var bindVertexArray = useCallback(function (context) {
     var _gl$createVertexArray;
     var triangleArray = (_gl$createVertexArray = gl === null || gl === void 0 ? void 0 : gl.createVertexArray()) != null ? _gl$createVertexArray : null;
@@ -28078,64 +28135,70 @@ function useBufferAttributes(_ref) {
       });
     };
   }, [gl, bufferRecord]);
-  var bufferAttributes = useCallback(function (bufferAttributeAction, context) {
-    var _getGlEnum, _getGlType;
+  var getBufferAttribute = useCallback(function (location) {
+    var attribute = bufferRecord.current[location];
+    if (!attribute) {
+      throw new Error("Attribute " + location + " not created. Make sure \"createBuffer\" is called.");
+    }
+    return attribute;
+  }, [bufferRecord]);
+  var createBuffer = useCallback(function (location) {
+    if (bufferRecord.current[location]) {
+      gl === null || gl === void 0 ? void 0 : gl.deleteBuffer(bufferRecord.current[location].buffer);
+      delete bufferRecord.current[location];
+    }
+    var bufferBuffer = gl === null || gl === void 0 ? void 0 : gl.createBuffer();
+    if (!bufferBuffer) {
+      throw new Error("Unable to create buffer " + location);
+    }
+    bufferRecord.current[location] = {
+      buffer: bufferBuffer,
+      location: getAttributeLocation(location)
+    };
+  }, [bufferRecord, gl, getAttributeLocation]);
+  var vertexAttribPointer = useCallback(function (location, locationOffset, size, type, normalized, stride, offset, rows) {
+    var _bufferRecord$current, _getGlType, _getByteSize;
     if (!gl) {
       return;
     }
-    var location = bufferAttributeAction.location,
-      buffer = bufferAttributeAction.buffer,
-      usage = bufferAttributeAction.usage,
-      size = bufferAttributeAction.size,
-      type = bufferAttributeAction.type,
-      normalized = bufferAttributeAction.normalized,
-      stride = bufferAttributeAction.stride,
-      offset = bufferAttributeAction.offset,
-      divisor = bufferAttributeAction.divisor;
-    var bufferLocation = getAttributeLocation(location);
+    var bufferLocation = (_bufferRecord$current = bufferRecord.current[location].location) != null ? _bufferRecord$current : getAttributeLocation(location);
     if (bufferLocation < 0) {
       return;
     }
-    var glUsage = (_getGlEnum = getGlEnum(usage)) != null ? _getGlEnum : gl.STATIC_DRAW;
-    var bufferBuffer = gl.createBuffer();
-    var bufferArray = buffer instanceof Float32Array ? buffer : Array.isArray(buffer) ? new Float32Array(buffer) : undefined;
-    var bufferSize = typeof buffer === "number" ? buffer : buffer.length;
-    gl.bindBuffer(gl.ARRAY_BUFFER, bufferBuffer);
+    var glType = (_getGlType = getGlType(type)) != null ? _getGlType : gl.FLOAT;
+    var sizeMul = size * ((_getByteSize = getByteSize(type)) != null ? _getByteSize : Float32Array.BYTES_PER_ELEMENT);
+    for (var i = 0; i < rows; i++) {
+      var finalOffset = offset + i * sizeMul;
+      gl.vertexAttribPointer(bufferLocation + i + locationOffset, size, glType, normalized, stride, finalOffset);
+    }
+  }, [getAttributeLocation, getByteSize, getGlType, gl, bufferRecord]);
+  var bufferData = useCallback(function (location, bufferArray, bufferSize, glUsage) {
+    var _bufferRecord$current2;
+    if (!gl) {
+      return;
+    }
+    var bufferLocation = (_bufferRecord$current2 = bufferRecord.current[location].location) != null ? _bufferRecord$current2 : getAttributeLocation(location);
+    if (bufferLocation < 0) {
+      throw new Error("Invalid attribute location " + location);
+    }
+    var bufferInfo = getBufferAttribute(location);
     if (bufferArray) {
       gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
     } else {
       gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
     }
-    gl.vertexAttribPointer(bufferLocation, size, (_getGlType = getGlType(type)) != null ? _getGlType : gl.FLOAT, normalized != null ? normalized : false, stride != null ? stride : 0, offset != null ? offset : 0);
-    gl.vertexAttribDivisor(bufferLocation, divisor != null ? divisor : 0);
-    gl.enableVertexAttribArray(bufferLocation);
-    if (bufferBuffer && !bufferRecord.current[location]) {
-      bufferRecord.current[location] = {
-        buffer: bufferBuffer,
-        bufferArray: bufferArray,
-        bufferSize: bufferSize,
-        usage: glUsage
-      };
-    }
-    context.cleanupActions.push(function () {
-      return gl.disableVertexAttribArray(bufferLocation);
-    });
-  }, [gl, getAttributeLocation, getGlEnum, getGlType]);
-  var bufferSubData = useCallback(function (_ref2) {
-    var dstByteOffset = _ref2.dstByteOffset,
-      buffer = _ref2.buffer,
-      srcOffset = _ref2.srcOffset,
-      length = _ref2.length;
-    var bufferArray = buffer instanceof Float32Array ? buffer : new Float32Array(buffer);
-    gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset != null ? dstByteOffset : 0, bufferArray, srcOffset != null ? srcOffset : 0, length != null ? length : bufferArray.length);
-  }, [gl]);
+    bufferInfo.bufferArray = bufferArray;
+    bufferInfo.bufferSize = bufferSize;
+    bufferInfo.usage = glUsage;
+  }, [gl, getAttributeLocation, getBufferAttribute, bufferRecord]);
   return {
     bindVertexArray: bindVertexArray,
-    bufferAttributes: bufferAttributes,
-    bufferSubData: bufferSubData,
-    getBufferAttribute: useCallback(function (location) {
-      return bufferRecord.current[location];
-    }, [bufferRecord])
+    createBuffer: createBuffer,
+    getBufferAttribute: getBufferAttribute,
+    vertexAttribPointer: vertexAttribPointer,
+    getTypedArray: getTypedArray,
+    bufferData: bufferData,
+    getGlUsage: getGlUsage
   };
 }
 
@@ -28171,10 +28234,12 @@ function useCustomAction(_ref) {
     getBufferAttribute = _ref.getBufferAttribute;
   var executeCustomAction = useCallback(function (_ref2, context) {
     var location = _ref2.location,
-      modifyAttributeBuffer = _ref2.modifyAttributeBuffer;
+      modifyAttributeBuffer = _ref2.modifyAttributeBuffer,
+      updateContext = _ref2.updateContext;
     if (modifyAttributeBuffer) {
       var bufferLocation = getBufferAttribute(location != null ? location : "");
-      if (bufferLocation) {
+      if (bufferLocation && bufferLocation.bufferSize) {
+        var _bufferLocation$usage;
         if (!bufferLocation.bufferArray) {
           bufferLocation.bufferArray = new Float32Array(bufferLocation.bufferSize / Float32Array.BYTES_PER_ELEMENT);
           bufferLocation.bufferArray.fill(0);
@@ -28182,9 +28247,10 @@ function useCustomAction(_ref) {
         gl === null || gl === void 0 ? void 0 : gl.bindBuffer(gl.ARRAY_BUFFER, bufferLocation.buffer);
         gl === null || gl === void 0 ? void 0 : gl.getBufferSubData(gl.ARRAY_BUFFER, 0, bufferLocation.bufferArray);
         modifyAttributeBuffer(bufferLocation.bufferArray, context.time);
-        gl === null || gl === void 0 ? void 0 : gl.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, bufferLocation.usage);
+        gl === null || gl === void 0 ? void 0 : gl.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray, (_bufferLocation$usage = bufferLocation.usage) != null ? _bufferLocation$usage : gl.DYNAMIC_DRAW);
       }
     }
+    updateContext === null || updateContext === void 0 ? void 0 : updateContext(context);
   }, [getBufferAttribute, gl]);
   return {
     executeCustomAction: executeCustomAction
@@ -93049,6 +93115,25 @@ _extends$1(classes, {
 Chain.createProxy(math);
 
 function useDataProvider() {
+  var calculate = useCallback(function (evaluator, scopes, formula) {
+    if (scopes === void 0) {
+      scopes = [];
+    }
+    var scope = scopes[scopes.length - 1];
+    try {
+      return evaluator.evaluate(scope != null ? scope : {});
+    } catch (e) {
+      console.error("Error: " + e + " on formula: " + formula + ", scope: ", scope);
+    }
+    return undefined;
+  }, []);
+  var getFormulaEvaluator = useCallback(function (value) {
+    var formula = typeof value === "string" ? value : value.formula;
+    if (formula.charAt(0) !== "{" || formula.charAt(formula.length - 1) !== "}") {
+      throw new Error("Formula: " + value + " must start and end with brackets.");
+    }
+    return parse(formula.substring(1, formula.length - 1)).compile();
+  }, []);
   var calc = useCallback(function (value, defaultValue) {
     if (defaultValue === void 0) {
       defaultValue = 0;
@@ -93063,38 +93148,125 @@ function useDataProvider() {
         }
       };
     }
-    var parsed = parse(typeof value === "string" ? value : value.formula);
-    var evaluator = parsed.compile();
+    var evaluator = getFormulaEvaluator(value);
     return {
-      valueOf: function valueOf() {
-        var result = evaluator.evaluate();
+      valueOf: function valueOf(context) {
+        var result = calculate(evaluator, context === null || context === void 0 ? void 0 : context.storage, value);
         return typeof result === "number" ? result : defaultValue;
       }
     };
-  }, []);
-  var calcBuffer = useCallback(function (value, defaultValue) {
+  }, [getFormulaEvaluator, calculate]);
+  var calcBuffer = useCallback(function (value, ArrayConstructor, defaultValue) {
+    if (ArrayConstructor === void 0) {
+      ArrayConstructor = Float32Array;
+    }
     if (defaultValue === void 0) {
       defaultValue = 0;
     }
-    if (value instanceof Float32Array) {
+    if (value instanceof Float32Array || value instanceof Int8Array || value instanceof Uint8Array || value instanceof Int16Array || value instanceof Uint16Array || value instanceof Int32Array || value instanceof Uint32Array) {
       return value;
     }
-    var float32Array = new Float32Array(value.length);
-    var compiledArray = value.map(function (value) {
-      return calc(value, defaultValue);
-    });
-    return {
-      valueOf: function valueOf() {
-        for (var i = 0; i < compiledArray.length; i++) {
-          float32Array[i] = compiledArray[i].valueOf();
+    if (Array.isArray(value)) {
+      var array = new ArrayConstructor(value.length);
+      var compiledArray = value.map(function (value) {
+        return calc(value, defaultValue);
+      });
+      return {
+        valueOf: function valueOf(context) {
+          for (var i = 0; i < compiledArray.length; i++) {
+            array[i] = compiledArray[i].valueOf(context);
+          }
+          return array;
         }
-        return float32Array;
+      };
+    }
+    var formula = value;
+    var evaluator = getFormulaEvaluator(formula);
+    var bufferArray;
+    return {
+      valueOf: function valueOf(context) {
+        var value = calculate(evaluator, context === null || context === void 0 ? void 0 : context.storage, formula);
+        if (value instanceof Float32Array || value instanceof Int8Array || value instanceof Uint8Array || value instanceof Int16Array || value instanceof Uint16Array || value instanceof Int32Array || value instanceof Uint32Array) {
+          return value;
+        }
+        if (typeof value === "number") {
+          if (!bufferArray) {
+            bufferArray = new ArrayConstructor(value);
+          }
+          return bufferArray;
+        }
+        throw new Error("Formula " + formula + " doesnt't evaluate to a TypedArray.");
       }
     };
-  }, [calc]);
+  }, [calc, getFormulaEvaluator, calculate]);
+  var calcString = useCallback(function (value, defaultValue) {
+    if (defaultValue === void 0) {
+      defaultValue = "";
+    }
+    if (typeof value === "string" && (value.charAt(0) !== "{" || value.charAt(value.length - 1) !== "}")) {
+      return value;
+    }
+    if (value === undefined) {
+      return {
+        valueOf: function valueOf() {
+          return defaultValue;
+        }
+      };
+    }
+    var evaluator = getFormulaEvaluator(value);
+    return {
+      valueOf: function valueOf(context) {
+        var result = calculate(evaluator, context === null || context === void 0 ? void 0 : context.storage, value);
+        return typeof result === "string" ? result : defaultValue;
+      }
+    };
+  }, [getFormulaEvaluator, calculate]);
+  var evaluate = useCallback(function (value) {
+    if (value === undefined) {
+      return {
+        valueOf: function valueOf() {
+          return undefined;
+        }
+      };
+    }
+    if (value instanceof Float32Array || value instanceof Int8Array || value instanceof Uint8Array || value instanceof Int16Array || value instanceof Uint16Array || value instanceof Int32Array || value instanceof Uint32Array) {
+      return value;
+    }
+    if (typeof value === "number") {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return calcBuffer(value);
+    }
+    if (typeof value === "string" && (value.charAt(0) !== "{" || value.charAt(value.length - 1) !== "}")) {
+      return value;
+    }
+    var evaluator = getFormulaEvaluator(value);
+    return {
+      valueOf: function valueOf(context) {
+        var result = calculate(evaluator, context === null || context === void 0 ? void 0 : context.storage, value);
+        return result;
+      }
+    };
+  }, [calcBuffer, calculate, getFormulaEvaluator]);
   return {
     calc: calc,
-    calcBuffer: calcBuffer
+    calcBuffer: calcBuffer,
+    calcString: calcString,
+    evaluate: evaluate
+  };
+}
+
+function useStorage() {
+  var store = useCallback(function (context, storage) {
+    context.storage.push(storage);
+  }, []);
+  var popStorage = useCallback(function (context) {
+    context.storage.pop();
+  }, []);
+  return {
+    store: store,
+    popStorage: popStorage
   };
 }
 
@@ -93109,8 +93281,12 @@ function useActionPipeline(_ref) {
       getAttributeLocation: getAttributeLocation
     }),
     bindVertexArray = _useBufferAttributes.bindVertexArray,
-    bufferAttributes = _useBufferAttributes.bufferAttributes,
-    getBufferAttribute = _useBufferAttributes.getBufferAttribute;
+    getBufferAttribute = _useBufferAttributes.getBufferAttribute,
+    createBuffer = _useBufferAttributes.createBuffer,
+    vertexAttribPointer = _useBufferAttributes.vertexAttribPointer,
+    bufferData = _useBufferAttributes.bufferData,
+    getTypedArray = _useBufferAttributes.getTypedArray,
+    getGlUsage = _useBufferAttributes.getGlUsage;
   var clear = useClearAction(gl);
   var _useCustomAction = useCustomAction({
       gl: gl,
@@ -93127,7 +93303,18 @@ function useActionPipeline(_ref) {
     executeSteps = _useScriptExecution.executeSteps;
   var _useDataProvider = useDataProvider(),
     calc = _useDataProvider.calc,
-    calcBuffer = _useDataProvider.calcBuffer;
+    calcBuffer = _useDataProvider.calcBuffer,
+    calcString = _useDataProvider.calcString,
+    evaluate = _useDataProvider.evaluate;
+  var _useStorage = useStorage(),
+    store = _useStorage.store,
+    popStorage = _useStorage.popStorage;
+  var resolveLocation = useCallback(function (location) {
+    if (Array.isArray(location)) {
+      return [calcString(location[0]), location[1]];
+    }
+    return [calcString(location), 0];
+  }, [calcString]);
   var convertActions = useCallback(function (actions) {
     return actions.map(function (action) {
       switch (action.action) {
@@ -93135,31 +93322,62 @@ function useActionPipeline(_ref) {
           return function (context) {
             return bindVertexArray(context);
           };
-        case "buffer-attribute":
-          return function (context) {
-            return bufferAttributes(action, context);
-          };
         case "buffer-sub-data":
           {
-            var buffer = calcBuffer(action.buffer);
+            var _getTypedArray;
+            var buffer = calcBuffer(action.buffer, (_getTypedArray = getTypedArray(action.type)) != null ? _getTypedArray : Float32Array);
             var dstByteOffset = calc(action.dstByteOffset);
             var srcOffset = calc(action.srcOffset);
             var length = calc(action.length);
-            return function () {
-              var bufferArray = buffer.valueOf();
-              gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset.valueOf(), bufferArray, srcOffset.valueOf(), length.valueOf() || bufferArray.length);
+            return function (context) {
+              var bufferArray = buffer.valueOf(context);
+              gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset.valueOf(context), bufferArray, srcOffset.valueOf(context), length.valueOf(context) || bufferArray.length);
+            };
+          }
+        case "buffer-data":
+          {
+            var _getTypedArray2;
+            var _buffer = typeof action.buffer === "number" ? undefined : calcBuffer(action.buffer, (_getTypedArray2 = getTypedArray(action.type)) != null ? _getTypedArray2 : Float32Array);
+            var bufferSize = typeof action.buffer === "number" ? action.buffer : undefined;
+            var glUsage = getGlUsage(action.usage);
+            var _resolveLocation = resolveLocation(action.location),
+              _location = _resolveLocation[0];
+            return function (context) {
+              var _ref2;
+              if (!gl) {
+                return;
+              }
+              var bufferArray = _buffer === null || _buffer === void 0 ? void 0 : _buffer.valueOf(context);
+              bufferData(_location.valueOf(context), bufferArray, (_ref2 = bufferSize != null ? bufferSize : bufferArray === null || bufferArray === void 0 ? void 0 : bufferArray.length) != null ? _ref2 : 0, glUsage != null ? glUsage : gl.STATIC_DRAW);
             };
           }
         case "clear":
           return function () {
             return clear(action);
           };
+        case "createBuffer":
+          {
+            var _resolveLocation2 = resolveLocation(action.location),
+              _location2 = _resolveLocation2[0];
+            return function (context) {
+              return createBuffer(_location2.valueOf(context));
+            };
+          }
+        case "bindBuffer":
+          {
+            var _resolveLocation3 = resolveLocation(action.location),
+              _location3 = _resolveLocation3[0];
+            return function (context) {
+              var bufferInfo = getBufferAttribute(_location3.valueOf(context));
+              gl === null || gl === void 0 ? void 0 : gl.bindBuffer(gl.ARRAY_BUFFER, bufferInfo.buffer);
+            };
+          }
         case "draw-arrays":
           {
             var vertexFirst = calc(action.vertexFirst);
             var vertexCount = calc(action.vertexCount);
-            return function () {
-              return gl === null || gl === void 0 ? void 0 : gl.drawArrays(gl.TRIANGLES, vertexFirst.valueOf(), vertexCount.valueOf());
+            return function (context) {
+              return gl === null || gl === void 0 ? void 0 : gl.drawArrays(gl.TRIANGLES, vertexFirst.valueOf(context), vertexCount.valueOf(context));
             };
           }
         case "draw-arrays-instanced":
@@ -93167,8 +93385,8 @@ function useActionPipeline(_ref) {
             var _vertexFirst = calc(action.vertexFirst);
             var _vertexCount = calc(action.vertexCount);
             var instanceCount = calc(action.instanceCount);
-            return function () {
-              return gl === null || gl === void 0 ? void 0 : gl.drawArraysInstanced(gl.TRIANGLES, _vertexFirst.valueOf(), _vertexCount.valueOf(), instanceCount.valueOf());
+            return function (context) {
+              return gl === null || gl === void 0 ? void 0 : gl.drawArraysInstanced(gl.TRIANGLES, _vertexFirst.valueOf(context), _vertexCount.valueOf(context), instanceCount.valueOf(context));
             };
           }
         case "uniform-timer":
@@ -93192,15 +93410,15 @@ function useActionPipeline(_ref) {
         case "uniform":
           if (action["int"] !== undefined) {
             var value = calc(action["int"]);
-            return function () {
+            return function (context) {
               var _getUniformLocation2;
-              return gl === null || gl === void 0 ? void 0 : gl.uniform1i((_getUniformLocation2 = getUniformLocation(action.location)) != null ? _getUniformLocation2 : null, value.valueOf());
+              return gl === null || gl === void 0 ? void 0 : gl.uniform1i((_getUniformLocation2 = getUniformLocation(action.location)) != null ? _getUniformLocation2 : null, value.valueOf(context));
             };
           } else {
             var _value = calc(action["float"]);
-            return function () {
+            return function (context) {
               var _getUniformLocation3;
-              return gl === null || gl === void 0 ? void 0 : gl.uniform1f((_getUniformLocation3 = getUniformLocation(action.location)) != null ? _getUniformLocation3 : null, _value.valueOf());
+              return gl === null || gl === void 0 ? void 0 : gl.uniform1f((_getUniformLocation3 = getUniformLocation(action.location)) != null ? _getUniformLocation3 : null, _value.valueOf(context));
             };
           }
         case "load-texture":
@@ -93212,17 +93430,105 @@ function useActionPipeline(_ref) {
             return executeVideoAction(action, context);
           };
         case "execute-script":
+        case undefined:
           var steps = convertActions(getScript(action.script));
+          var entries = Object.entries(action.context).map(function (_ref3) {
+            var key = _ref3[0],
+              value = _ref3[1];
+            return [key, evaluate(value)];
+          });
+          var newStorage = {};
           return function (context) {
-            return executeSteps(steps, context);
+            for (var _iterator = _createForOfIteratorHelperLoose(entries), _step; !(_step = _iterator()).done;) {
+              var _step$value = _step.value,
+                key = _step$value[0],
+                _value2 = _step$value[1];
+              newStorage[key] = _value2.valueOf(context);
+            }
+            store(context, newStorage);
+            executeSteps(steps, context);
+            popStorage(context);
           };
+        case "vertexAttribPointer":
+          var _resolveLocation4 = resolveLocation(action.location),
+            location = _resolveLocation4[0],
+            locationOffset = _resolveLocation4[1];
+          var size = calc(action.size);
+          var type = action.type;
+          var normalized = !!action.normalized;
+          var stride = calc(action.stride);
+          var offset = calc(action.offset);
+          var rows = calc(action.rows, 1);
+          return function (context) {
+            vertexAttribPointer(location.valueOf(context), locationOffset, size.valueOf(context), type, normalized, stride.valueOf(context), offset.valueOf(context), rows.valueOf(context));
+          };
+        case "vertexAttribDivisor":
+          {
+            var _rows = calc(action.rows, 1);
+            var _resolveLocation5 = resolveLocation(action.location),
+              _location4 = _resolveLocation5[0],
+              _locationOffset = _resolveLocation5[1];
+            var divisor = calc(action.divisor);
+            return function (context) {
+              var bufferInfo = getBufferAttribute(_location4.valueOf(context));
+              var numRows = _rows.valueOf(context);
+              for (var i = 0; i < numRows; i++) {
+                gl === null || gl === void 0 ? void 0 : gl.vertexAttribDivisor(bufferInfo.location + i + _locationOffset, divisor.valueOf(context));
+              }
+            };
+          }
+        case "enableVertexAttribArray":
+          {
+            var _rows2 = calc(action.rows, 1);
+            var _resolveLocation6 = resolveLocation(action.location),
+              _location5 = _resolveLocation6[0],
+              _locationOffset2 = _resolveLocation6[1];
+            return function (context) {
+              var bufferInfo = getBufferAttribute(_location5.valueOf(context));
+              var numRows = _rows2.valueOf(context);
+              var _loop = function _loop() {
+                var location = bufferInfo.location + i + _locationOffset2;
+                gl === null || gl === void 0 ? void 0 : gl.enableVertexAttribArray(location);
+                context.cleanupActions.push(function () {
+                  gl === null || gl === void 0 ? void 0 : gl.disableVertexAttribArray(location);
+                });
+              };
+              for (var i = 0; i < numRows; i++) {
+                _loop();
+              }
+            };
+          }
+        case "store-context":
+          {
+            var _entries = Object.entries(action.context).map(function (_ref4) {
+              var key = _ref4[0],
+                value = _ref4[1];
+              return [key, evaluate(value)];
+            });
+            var _newStorage = {};
+            return function (context) {
+              for (var _iterator2 = _createForOfIteratorHelperLoose(_entries), _step2; !(_step2 = _iterator2()).done;) {
+                var _step2$value = _step2.value,
+                  key = _step2$value[0],
+                  _value3 = _step2$value[1];
+                _newStorage[key] = _value3.valueOf(context);
+              }
+              store(context, _newStorage);
+            };
+          }
+        case "pop-context":
+          {
+            return function (context) {
+              return popStorage(context);
+            };
+          }
       }
       throw new Error("Unreachable");
     });
-  }, [gl, bindVertexArray, bufferAttributes, clear, setActiveProgram, executeCustomAction, executeLoadImageAction, executeLoadTextureAction, executeVideoAction, getScript, executeSteps, getUniformLocation, calc, calcBuffer]);
+  }, [getScript, bindVertexArray, calcBuffer, getTypedArray, calc, gl, getGlUsage, bufferData, clear, createBuffer, getBufferAttribute, getUniformLocation, setActiveProgram, executeCustomAction, executeLoadImageAction, executeLoadTextureAction, executeVideoAction, evaluate, executeSteps, vertexAttribPointer, store, popStorage, resolveLocation]);
   var executePipeline = useCallback(function (steps, context) {
-    for (var _iterator = _createForOfIteratorHelperLoose(steps), _step; !(_step = _iterator()).done;) {
-      var step = _step.value;
+    for (var _iterator3 = _createForOfIteratorHelperLoose(steps), _step3; !(_step3 = _iterator3()).done;) {
+      var step = _step3.value;
       step(context);
     }
   }, []);
@@ -93230,7 +93536,8 @@ function useActionPipeline(_ref) {
     return {
       time: 0,
       executePipeline: executePipeline,
-      cleanupActions: []
+      cleanupActions: [],
+      storage: []
     };
   }, [executePipeline]);
   return {
@@ -93284,7 +93591,14 @@ function useActionScripts(_ref) {
         return;
       }
       if (action.action === "execute-script") {
+        results.push({
+          action: "store-context",
+          context: action.context
+        });
         extractScript(action.script, results);
+        results.push({
+          action: "pop-context"
+        });
         return;
       }
       results.push(action);
@@ -93370,8 +93684,11 @@ function GLCanvas(props) {
   var loopPipeline = useLoopPipeline({
     executePipeline: executePipeline
   });
+  var ready = useMemo(function () {
+    return !!(gl && usedProgram && width && height && glConfig && context);
+  }, [gl, usedProgram, width, height, glConfig, context]);
   useEffect(function () {
-    if (usedProgram && glConfig && context) {
+    if (ready) {
       var pipelineSteps = convertActions(getScript(pipelineActions));
       var loopSteps = convertActions(getScript(loopActions));
       executePipeline(pipelineSteps, context);
@@ -93383,7 +93700,7 @@ function GLCanvas(props) {
         context.cleanupActions.length = 0;
       };
     }
-  }, [usedProgram, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions]);
+  }, [usedProgram, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions, ready]);
   useEffect(function () {
     if (controller) {
       controller.setActiveProgram = setActiveProgram;
@@ -93411,5 +93728,5 @@ function hookupCanvas(div, props, controller) {
 }
 var GLCanvas$1 = GLCanvas;
 
-export { GLCanvas$1 as GLCanvas, hookupCanvas };
+export { GLCanvas$1 as GLCanvas, hookupCanvas, useDataProvider };
 //# sourceMappingURL=index.modern.js.map

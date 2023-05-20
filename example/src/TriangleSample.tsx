@@ -38,6 +38,34 @@ const sample = () => <GLCanvas
             vertexCount: 3,
           },    
         ],
+      },
+      {
+        name: "init-buffer",
+        parameters: ["location", "size", "buffer"],
+        actions: [
+          {
+            action: "createBuffer",
+            location: "{location}"
+          },
+          {
+            action: "bindBuffer",
+            location: "{location}"
+          },
+          {
+            action: "vertexAttribPointer",
+            location: "{location}",
+            size: "{size}",
+          },
+          {
+            action: "enableVertexAttribArray",
+            location: "{location}",
+          },
+          {
+            action: "buffer-data",
+            location: "{location}",
+            buffer: "{buffer}",
+          },              
+        ]
       }
     ]}
     programs={[{
@@ -47,27 +75,30 @@ const sample = () => <GLCanvas
     }]}
     actionPipeline={[
       {
-        action: "bind-vertex",
+        action: "execute-script",
+        script: "init-buffer",
+        context: {
+          location: "position",
+          size: 3, 
+          buffer: [
+              0.0, 0.5, 0.0,
+              -0.5, -0.5, 0.0,
+              0.5, -0.5, 0.0,
+          ],
+        }
       },
       {
-        action: "buffer-attribute",
-        location: "position",
-        buffer: [
-            0.0, 0.5, 0.0,
-            -0.5, -0.5, 0.0,
-            0.5, -0.5, 0.0,
-        ],
-        size: 3,
-      },
-      {
-        action: "buffer-attribute",
-        location: "color",
-        buffer: [
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0
-        ],
-        size: 3,
+        action: "execute-script",
+        script: "init-buffer",
+        context: {
+          location: "color",
+          size: 3, 
+          buffer: [
+              1.0, 0.0, 0.0,
+              0.0, 1.0, 0.0,
+              0.0, 0.0, 1.0
+          ],
+        }
       },
       "redraw",
     ]}

@@ -1,9 +1,7 @@
 import './index.css'
 
 import React from 'react'
-import * as ReactDOMClient from "react-dom/client";
+import { render } from "react-dom";
 import App from './App'
 
-const hudRoot = ReactDOMClient.createRoot(document.getElementById('root')!);
-
-hudRoot.render(<App />)
+render(<App />, document.getElementById('root')!)

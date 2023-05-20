@@ -76,36 +76,69 @@ const sample = () => <GLCanvas
             vertexCount: 6,
           },    
         ],
+      },
+      {
+        name: "init-buffer",
+        parameters: ["location", "size", "buffer"],
+        actions: [
+          {
+            action: "createBuffer",
+            location: "{location}"
+          },
+          {
+            action: "bindBuffer",
+            location: "{location}"
+          },
+          {
+            action: "vertexAttribPointer",
+            location: "{location}",
+            size: "{size}",
+          },
+          {
+            action: "enableVertexAttribArray",
+            location: "{location}",
+          },
+          {
+            action: "buffer-data",
+            location: "{location}",
+            buffer: "{buffer}",
+          },              
+        ]
       }
     ]}
     programs={program}
     actionPipeline={[
-      "bind-vertex",
       {
-        action: "buffer-attribute",
-        location: "position",
-        buffer: [
-          -0.5, 0.5, 0.0,
-          -0.5, -0.5, 0.0,
-          0.5, -0.5, 0.0,
-          -0.5, 0.5, 0.0,
-          0.5, -0.5, 0.0,
-          0.5, 0.5, 0.0,
-        ],
-        size: 3,
+        action: "execute-script",
+        script: "init-buffer",
+        context: {
+          location: "position",
+          buffer: [
+            -0.5, 0.5, 0.0,
+            -0.5, -0.5, 0.0,
+            0.5, -0.5, 0.0,
+            -0.5, 0.5, 0.0,
+            0.5, -0.5, 0.0,
+            0.5, 0.5, 0.0,
+          ],
+          size: 3,  
+        },
       },
       {
-        action: "buffer-attribute",
-        location: "tex",
-        buffer: [
-          0, 0,
-          0, 1,
-          1, 1,
-          0, 0,
-          1, 1,
-          1, 0,
-        ],
-        size: 2,
+        action: "execute-script",
+        script: "init-buffer",
+        context: {
+          location: "tex",
+          buffer: [
+            0, 0,
+            0, 1,
+            1, 1,
+            0, 0,
+            1, 1,
+            1, 0,
+          ],
+          size: 2,  
+        },
       },
       {
         action: "uniform",

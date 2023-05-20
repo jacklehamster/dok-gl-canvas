@@ -25,6 +25,9 @@ const fragment = `#version 300 es
   }
 `;
 
+const instanceCount = 3;
+const vertexCount = 3;
+
 const sample = () => <GLCanvas
     actionScripts={[
       {
@@ -36,10 +39,38 @@ const sample = () => <GLCanvas
           },
           {
             action: "draw-arrays-instanced",
-            vertexCount: 3,
-            instanceCount: 3,
+            vertexCount,
+            instanceCount,
           },    
         ],
+      },
+      {
+        name: "init-buffer",
+        parameters: ["location", "size", "buffer"],
+        actions: [
+          {
+            action: "createBuffer",
+            location: "{location}"
+          },
+          {
+            action: "bindBuffer",
+            location: "{location}"
+          },
+          {
+            action: "vertexAttribPointer",
+            location: "{location}",
+            size: "{size}",
+          },
+          {
+            action: "enableVertexAttribArray",
+            location: "{location}",
+          },
+          {
+            action: "buffer-data",
+            location: "{location}",
+            buffer: "{buffer}",
+          },              
+        ]
       }
     ]}
     programs={[{
@@ -49,39 +80,45 @@ const sample = () => <GLCanvas
     }]}
     actionPipeline={[
       {
-        action: "bind-vertex",
-      },
-      {
-        action: "buffer-attribute",
-        location: "position",
-        buffer: [
+        script: "init-buffer",
+        context: {
+          location: "position",
+          size: 3,
+          buffer: [
             0.0, 0.5, 0.0,
             -0.5, -0.5, 0.0,
             0.5, -0.5, 0.0,
-        ],
-        size: 3,
+          ],
+        }
       },
       {
-        action: "buffer-attribute",
-        location: "color",
-        buffer: [
+        script: "init-buffer",
+        context: {
+          location: "color",
+          size: 3,
+          buffer: [
             1.0, 0.0, 0.0,
             0.0, 1.0, 0.0,
             0.0, 0.0, 1.0,
-        ],
-        size: 3,
+          ],
+        }
       },
       {
-        action: "buffer-attribute",
+        script: "init-buffer",
+        context: {
+          location: "shift",
+          size: 3,
+          buffer: instanceCount * vertexCount * Float32Array.BYTES_PER_ELEMENT,
+        }
+      },
+      {
+        action: "vertexAttribDivisor",
         location: "shift",
-        buffer: 9 * Float32Array.BYTES_PER_ELEMENT,
-        size: 3,
-        divisor: 1,
+        divisor: 1
       },
       {
         action: "buffer-sub-data",
-        location: "shift",
-        dstByteOffset: 6 * Float32Array.BYTES_PER_ELEMENT,
+        dstByteOffset: 2 * vertexCount * Float32Array.BYTES_PER_ELEMENT,
         buffer: [.5, .5, 0],
       },
       "redraw",

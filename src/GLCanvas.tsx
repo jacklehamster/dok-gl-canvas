@@ -55,8 +55,9 @@ export default function GLCanvas(props?: Props): JSX.Element {
     });
     const loopPipeline = useLoopPipeline({ executePipeline });
 
+    const ready = useMemo(() => !!(gl && usedProgram && width && height && glConfig && context), [gl, usedProgram, width, height, glConfig, context]);
     useEffect((): void | (() => void) => {
-        if (usedProgram && glConfig && context) {
+        if (ready) {
             const pipelineSteps = convertActions(getScript(pipelineActions));
             const loopSteps = convertActions(getScript(loopActions));
 
@@ -67,7 +68,7 @@ export default function GLCanvas(props?: Props): JSX.Element {
                 context.cleanupActions.length = 0;
             };
         }
-    }, [usedProgram, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions]);
+    }, [usedProgram, glConfig, executePipeline, loopPipeline, pipelineActions, loopActions, getScript, context, convertActions, ready]);
 
     useEffect(() => {
         if (controller) {

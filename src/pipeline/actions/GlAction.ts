@@ -1,4 +1,4 @@
-import { BufferAttributeAction, BufferSubDataAction } from "./BufferAttributeAction";
+import { BindBufferAction, BufferDataAction, BufferSubDataAction, CreateBufferAction, EnableVertexAttribArray as EnableVertexAttribArrayAction, VertexAttribDivisor as VertexAttribDivisorAction, VertexAttribPointerAction } from "./BufferAttributeAction";
 import { ClearAction } from "./use-clear-action";
 import { DrawArraysAction, DrawArraysInstancedAction } from "./draw-vertex-action";
 import { UniformAction, UniformTimerAction } from "./UniformAction";
@@ -7,11 +7,12 @@ import { BindVertexAction } from "./BindVertexAction";
 import { ImageAction, TextureAction, VideoAction } from "./use-image-action";
 import { ActiveProgramAction } from "./use-program-action";
 import { ExecuteScriptAction } from "./ExecuteScriptAction";
+import { PopContextAction, StoreContextAction } from "./use-store-action";
 
 export type DokGlAction = 
 | BindVertexAction
-| BufferAttributeAction
 | BufferSubDataAction
+| BufferDataAction
 | BindVertexAction
 | ClearAction
 | DrawArraysAction
@@ -23,6 +24,13 @@ export type DokGlAction =
 | ExecuteScriptAction
 | ImageAction
 | TextureAction
-| VideoAction;
+| VideoAction
+| CreateBufferAction
+| BindBufferAction
+| VertexAttribPointerAction
+| VertexAttribDivisorAction
+| EnableVertexAttribArrayAction
+| StoreContextAction
+| PopContextAction;
 
 export type GlAction = string | DokGlAction;

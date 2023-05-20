@@ -91,36 +91,67 @@ const sample = () => <GLCanvas
           "redraw"
         ],
       },
+      {
+        name: "init-buffer",
+        parameters: ["location", "size", "buffer"],
+        actions: [
+          {
+            action: "createBuffer",
+            location: "{location}"
+          },
+          {
+            action: "bindBuffer",
+            location: "{location}"
+          },
+          {
+            action: "vertexAttribPointer",
+            location: "{location}",
+            size: "{size}",
+          },
+          {
+            action: "enableVertexAttribArray",
+            location: "{location}",
+          },
+          {
+            action: "buffer-data",
+            location: "{location}",
+            buffer: "{buffer}",
+          },              
+        ]
+      }
     ]}
     actionPipeline={[
       {
-        action: "bind-vertex",
+        action: "execute-script",
+        script: "init-buffer",
+        context: {
+          location: "position",
+          buffer: [
+            -.5, .5, 0.0,
+            -.5, -.5, 0.0,
+            .5, -.5, 0.0,
+            -.5, .5, 0.0,
+            .5, -.5, 0.0,
+            .5, .5, 0.0,
+          ],
+          size: 3,
+        },  
       },
       {
-        action: "buffer-attribute",
-        location: "position",
-        buffer: [
-          -.5, .5, 0.0,
-          -.5, -.5, 0.0,
-          .5, -.5, 0.0,
-          -.5, .5, 0.0,
-          .5, -.5, 0.0,
-          .5, .5, 0.0,
-        ],
-        size: 3,
-      },
-      {
-        action: "buffer-attribute",
-        location: "gridPosition",
-        buffer: [
-          0, 10,
-          0, 0,
-          10, 0,
-          0, 10,
-          10, 0,
-          10, 10,
-        ],
-        size: 2,
+        action: "execute-script",
+        script: "init-buffer",
+        context: {
+          location: "gridPosition",
+          buffer: [
+            0, 10,
+            0, 0,
+            10, 0,
+            0, 10,
+            10, 0,
+            10, 10,
+          ],
+          size: 2,  
+        },
       },
       "redraw"
     ]}

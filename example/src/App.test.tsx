@@ -1,12 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import App from './App'
-import * as ReactDOMClient from "react-dom/client";
+import { render } from "react-dom";
 
 it('renders without crashing', () => {
   const div = document.createElement('div')
-  const hudRoot = ReactDOMClient.createRoot(div!);
   
-  hudRoot.render(<App />)
+  render(<App />, div)
   ReactDOM.unmountComponentAtNode(div)
 })
