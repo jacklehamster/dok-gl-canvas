@@ -127,13 +127,23 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                 const steps = convertActions(getScript(action.script));
                 const entries: [string, {valueOf(context?: Context): any}][] = Object.entries(action.context)
                     .map(([ key, value ]) => [key, evaluate(value)]);
-                const newStorage: Record<string, string | number | TypedArray> = {};
+                const newStorage: Record<string, string | number | TypedArray> = {
+                    index: 0,
+                };
+                const loop = calc(action.loop, 1);
                 return (context) => {
                     for (let [key, value] of entries) {
                         newStorage[key] = value.valueOf(context);
                     }
                     store(context, newStorage);
-                    executeSteps(steps, context);
+                    const loopCount = loop.valueOf(context);
+                    if (loopCount) {
+                        const topStorage = context.storage[context.storage.length - 1];
+                        for (let i = 0; i < loopCount; i++) {
+                            topStorage.index = i;
+                            executeSteps(steps, context);
+                        }    
+                    }
                     popStorage(context);
                 }
             case "vertexAttribPointer":

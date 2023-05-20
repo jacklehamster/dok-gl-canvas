@@ -93194,7 +93194,7 @@ function useDataProvider() {
         }
         if (typeof value === "number") {
           if (!bufferArray) {
-            bufferArray = new ArrayConstructor(value);
+            bufferArray = new ArrayConstructor(value / ArrayConstructor.BYTES_PER_ELEMENT);
           }
           return bufferArray;
         }
@@ -93440,7 +93440,10 @@ function useActionPipeline(_ref) {
               value = _ref3[1];
             return [key, evaluate(value)];
           });
-          var newStorage = {};
+          var newStorage = {
+            index: 0
+          };
+          var loop = calc(action.loop, 1);
           return function (context) {
             for (var _iterator = _createForOfIteratorHelperLoose(entries), _step; !(_step = _iterator()).done;) {
               var _step$value = _step.value,
@@ -93449,7 +93452,14 @@ function useActionPipeline(_ref) {
               newStorage[key] = _value2.valueOf(context);
             }
             store(context, newStorage);
-            executeSteps(steps, context);
+            var loopCount = loop.valueOf(context);
+            if (loopCount) {
+              var topStorage = context.storage[context.storage.length - 1];
+              for (var i = 0; i < loopCount; i++) {
+                topStorage.index = i;
+                executeSteps(steps, context);
+              }
+            }
             popStorage(context);
           };
         case "vertexAttribPointer":
@@ -93594,6 +93604,9 @@ function useActionScripts(_ref) {
         return;
       }
       if (action.action === "execute-script") {
+        if (action.loop) {
+          throw new Error("Loop not yet implemented");
+        }
         results.push({
           action: "store-context",
           context: action.context

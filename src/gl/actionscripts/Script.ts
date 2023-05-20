@@ -23,6 +23,10 @@ export function useActionScripts({ scripts }: Props) {
                 return;
             }
             if (action.action === "execute-script") {
+                // BUGBUG: Handle loop properly
+                if (action.loop) {
+                    throw new Error("Loop not yet implemented");
+                }
                 results.push({
                     action: "store-context",
                     context: action.context,

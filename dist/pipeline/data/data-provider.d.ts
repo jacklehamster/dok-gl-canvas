@@ -6,6 +6,7 @@ export declare type Expression = {
 };
 interface TypedArrayConstructor {
     new (size: number): TypedArray;
+    BYTES_PER_ELEMENT: number;
 }
 export declare type NumberResolution = number | Formula | Expression | undefined;
 export declare type BufferResolution = TypedArray | NumberResolution[] | Formula | Expression;
@@ -17,7 +18,7 @@ export declare function useDataProvider(): {
     } | {
         valueOf(context?: Context | undefined): number;
     };
-    calcBuffer: (value: BufferResolution, ArrayConstructor?: TypedArrayConstructor, defaultValue?: any) => Uint32Array | Int8Array | Float32Array | Int16Array | Uint8Array | Uint16Array | Int32Array | {
+    calcBuffer: (value: BufferResolution, ArrayConstructor?: TypedArrayConstructor, defaultValue?: any) => Float32Array | Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | {
         valueOf(context?: Context | undefined): TypedArray;
     };
     calcString: (value: StringResolution, defaultValue?: any) => string | {
