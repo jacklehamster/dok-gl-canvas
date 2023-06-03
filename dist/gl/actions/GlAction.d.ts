@@ -1,21 +1,20 @@
-import { BooleanResolution, DokAction, NumberResolution, Script, ScriptProcessor, StringResolution } from "dok-actions";
-import { LocationName } from "../../pipeline/actions/BufferAttributeAction";
+import { BooleanResolution, DokAction, NumberResolution, Script, ScriptProcessor, StringResolution, TypedArrayResolution } from "dok-actions";
 import { ProgramId } from "../program/program";
-import { BufferResolution } from "../../pipeline/data/data-provider";
 import { GlType, GlUsage } from "./types";
 import { ImageId, TextureId, Url } from "../../pipeline/actions/use-image-action";
+export declare type LocationName = string;
 export declare type LocationResolution = LocationName | StringResolution | [LocationName | StringResolution, 0 | 1 | 2 | 3];
 export interface GlAction extends DokAction {
     bufferData?: {
         location: LocationName;
-        buffer?: BufferResolution;
+        buffer?: TypedArrayResolution;
         length?: NumberResolution;
         usage?: StringResolution<GlUsage>;
         glType?: GlType;
     };
     bufferSubData?: {
         location?: LocationName;
-        data: BufferResolution;
+        data: TypedArrayResolution;
         dstByteOffset?: NumberResolution;
         srcOffset?: NumberResolution;
         length?: NumberResolution;

@@ -27917,7 +27917,7 @@ function useProgram(_ref) {
     setUsedProgram = _useState2[1];
   React.useEffect(function () {
     return function () {
-      Object.values(programResults).forEach(removeProgram);
+      return Object.values(programResults).forEach(removeProgram);
     };
   }, [programResults, removeProgram]);
   React.useEffect(function () {
@@ -27993,23 +27993,6 @@ function useProgram(_ref) {
   };
 }
 
-var Usage;
-(function (Usage) {
-  Usage[Usage["STATIC_DRAW"] = 0] = "STATIC_DRAW";
-  Usage[Usage["DYNAMIC_DRAW"] = 1] = "DYNAMIC_DRAW";
-  Usage[Usage["STREAM_DRAW"] = 2] = "STREAM_DRAW";
-})(Usage || (Usage = {}));
-var Type;
-(function (Type) {
-  Type[Type["BYTE"] = 0] = "BYTE";
-  Type[Type["SHORT"] = 1] = "SHORT";
-  Type[Type["UNSIGNED_BYTE"] = 2] = "UNSIGNED_BYTE";
-  Type[Type["UNSIGNED_SHORT"] = 3] = "UNSIGNED_SHORT";
-  Type[Type["FLOAT"] = 4] = "FLOAT";
-  Type[Type["INT"] = 5] = "INT";
-  Type[Type["UNSIGNED_INT"] = 6] = "UNSIGNED_INT";
-})(Type || (Type = {}));
-
 function clearRecord(record, clean) {
   Object.entries(record).forEach(function (_ref) {
     var key = _ref[0],
@@ -28022,60 +28005,6 @@ function clearRecord(record, clean) {
 function useBufferAttributes(_ref) {
   var gl = _ref.gl,
     getAttributeLocation = _ref.getAttributeLocation;
-  var getGlUsage = React.useCallback(function (usage) {
-    switch (usage) {
-      case Usage.DYNAMIC_DRAW:
-        return WebGL2RenderingContext.DYNAMIC_DRAW;
-      case Usage.STREAM_DRAW:
-        return WebGL2RenderingContext.STREAM_DRAW;
-      case Usage.STATIC_DRAW:
-        return WebGL2RenderingContext.STATIC_DRAW;
-      default:
-        return WebGL2RenderingContext.STATIC_DRAW;
-    }
-  }, []);
-  var getGlType = React.useCallback(function (type) {
-    switch (type) {
-      case Type.BYTE:
-        return WebGL2RenderingContext.BYTE;
-      case Type.FLOAT:
-        return WebGL2RenderingContext.FLOAT;
-      case Type.SHORT:
-        return WebGL2RenderingContext.SHORT;
-      case Type.UNSIGNED_BYTE:
-        return WebGL2RenderingContext.UNSIGNED_BYTE;
-      case Type.UNSIGNED_SHORT:
-        return WebGL2RenderingContext.UNSIGNED_SHORT;
-      case Type.INT:
-        return WebGL2RenderingContext.INT;
-      case Type.UNSIGNED_INT:
-        return WebGL2RenderingContext.UNSIGNED_INT;
-    }
-    return WebGL2RenderingContext.FLOAT;
-  }, []);
-  var getTypedArray = React.useCallback(function (type) {
-    switch (type) {
-      case Type.BYTE:
-        return Int8Array;
-      case Type.FLOAT:
-        return Float32Array;
-      case Type.SHORT:
-        return Int16Array;
-      case Type.UNSIGNED_BYTE:
-        return Uint8Array;
-      case Type.UNSIGNED_SHORT:
-        return Uint16Array;
-      case Type.INT:
-        return Int32Array;
-      case Type.UNSIGNED_INT:
-        return Uint32Array;
-    }
-    return;
-  }, []);
-  var getByteSize = React.useCallback(function (type) {
-    var _getTypedArray;
-    return (_getTypedArray = getTypedArray(type)) === null || _getTypedArray === void 0 ? void 0 : _getTypedArray.BYTES_PER_ELEMENT;
-  }, [getTypedArray]);
   var bindVertexArray = React.useCallback(function () {
     var _gl$createVertexArray;
     var triangleArray = (_gl$createVertexArray = gl === null || gl === void 0 ? void 0 : gl.createVertexArray()) != null ? _gl$createVertexArray : null;
@@ -28121,28 +28050,12 @@ function useBufferAttributes(_ref) {
     }
     return attribute;
   }, [bufferRecord, createBuffer]);
-  var vertexAttribPointer = React.useCallback(function (location, locationOffset, size, type, normalized, stride, offset, rows) {
-    var _bufferRecord$current, _getGlType, _getByteSize;
+  var bufferData = React.useCallback(function (location, bufferArray, bufferSize, glUsage) {
+    var _bufferRecord$current;
     if (!gl) {
       return;
     }
     var bufferLocation = (_bufferRecord$current = bufferRecord.current[location].location) != null ? _bufferRecord$current : getAttributeLocation(location);
-    if (bufferLocation < 0) {
-      return;
-    }
-    var glType = (_getGlType = getGlType(type)) != null ? _getGlType : gl.FLOAT;
-    var sizeMul = size * ((_getByteSize = getByteSize(glType)) != null ? _getByteSize : Float32Array.BYTES_PER_ELEMENT);
-    for (var i = 0; i < rows; i++) {
-      var finalOffset = offset + i * sizeMul;
-      gl.vertexAttribPointer(bufferLocation + i + locationOffset, size, glType, normalized, stride, finalOffset);
-    }
-  }, [getAttributeLocation, getByteSize, getGlType, gl, bufferRecord]);
-  var bufferData = React.useCallback(function (location, bufferArray, bufferSize, glUsage) {
-    var _bufferRecord$current2;
-    if (!gl) {
-      return;
-    }
-    var bufferLocation = (_bufferRecord$current2 = bufferRecord.current[location].location) != null ? _bufferRecord$current2 : getAttributeLocation(location);
     if (bufferLocation < 0) {
       throw new Error("Invalid attribute location " + location);
     }
@@ -28160,10 +28073,7 @@ function useBufferAttributes(_ref) {
     bindVertexArray: bindVertexArray,
     createBuffer: createBuffer,
     getBufferAttribute: getBufferAttribute,
-    vertexAttribPointer: vertexAttribPointer,
-    getTypedArray: getTypedArray,
-    bufferData: bufferData,
-    getGlUsage: getGlUsage
+    bufferData: bufferData
   };
 }
 
@@ -28715,7 +28625,9 @@ function GLCanvas(props) {
   React.useEffect(function () {
     if (ready) {
       var initCleanup = processor === null || processor === void 0 ? void 0 : processor.runByTags(["init"]);
-      var loopCleanup = processor === null || processor === void 0 ? void 0 : processor.loopByTags(["loop"]);
+      var loopCleanup = processor === null || processor === void 0 ? void 0 : processor.loopByTags(["loop"], {
+        cleanupAfterLoop: false
+      });
       return function () {
         initCleanup === null || initCleanup === void 0 ? void 0 : initCleanup();
         loopCleanup === null || loopCleanup === void 0 ? void 0 : loopCleanup();

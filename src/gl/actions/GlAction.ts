@@ -1,27 +1,26 @@
-import { BooleanResolution, Context, Convertor, DEFAULT_CONVERTORS, DokAction, ExecutionParameters, ExecutionStep, Formula, NumberResolution, Script, ScriptProcessor, StringResolution, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute } from "dok-actions";
+import { BooleanResolution, Context, Convertor, DEFAULT_CONVERTORS, DokAction, ExecutionParameters, ExecutionStep, Formula, NumberResolution, Script, ScriptProcessor, StringResolution, TypedArrayResolution, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute } from "dok-actions";
 import { useCallback, useEffect, useRef } from "react";
 import useBufferAttributes, { BufferInfo } from "../../pipeline/actions/use-buffer-attributes";
-import { LocationName } from "../../pipeline/actions/BufferAttributeAction";
 import { ProgramId } from "../program/program";
 import { clearRecord } from "../../utils/object-utils";
-import { BufferResolution } from "../../pipeline/data/data-provider";
 import { GlType, GlUsage, useTypes } from "./types";
 import useImageAction, { ImageId, TextureId, Url } from "../../pipeline/actions/use-image-action";
 import useCustomAction, { CustomAction } from "../../pipeline/actions/custom/use-custom-action";
 
+export type LocationName = string;
 export type LocationResolution = LocationName | StringResolution | [LocationName|StringResolution, 0|1|2|3];
 
 export interface GlAction extends DokAction {
     bufferData?: {
       location: LocationName;
-      buffer?: BufferResolution;
+      buffer?: TypedArrayResolution;
       length?: NumberResolution;
       usage?: StringResolution<GlUsage>;
       glType?: GlType;
     };
     bufferSubData?: {
       location?: LocationName;
-      data: BufferResolution;
+      data: TypedArrayResolution;
       dstByteOffset?: NumberResolution;
       srcOffset?: NumberResolution;
       length?: NumberResolution;

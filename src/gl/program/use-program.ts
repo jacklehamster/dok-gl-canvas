@@ -12,11 +12,7 @@ export function useProgram({ gl, programs }: Props) {
     const [programResults, setProgramResults] = useState<Record<ProgramId, ProgramResult>>({});
     const [usedProgram, setUsedProgram] = useState<WebGLProgram | undefined>();
 
-    useEffect(() => {
-        return () => {
-            Object.values(programResults).forEach(removeProgram);
-        };
-    }, [programResults, removeProgram]);
+    useEffect(() => () => Object.values(programResults).forEach(removeProgram), [programResults, removeProgram]);
 
     useEffect(() => {
         setProgramResults(results => {
