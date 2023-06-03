@@ -62,18 +62,34 @@ const programs = [
 
 const sample = () => <GLCanvas
     programs={programs}
-    actionScripts={[
+    scripts={[
+      {
+        name: "initBuffer",
+        actions: [
+          {
+            vertexAttribPointer: {
+              location: "{location}",
+              size: "{size}",
+              enable: true,
+            },
+            bufferData: {
+              location: "{location}",
+              buffer: "{buffer}",
+            },
+          },
+        ],
+      },
       {
         name: "redraw",
         actions: [
           {
-            action: "clear",
-            color: true,
+            clear: {
+              color: true,
+            },
+            drawArrays: {
+              vertexCount: 6,
+            },
           },
-          {
-            action: "draw-arrays",
-            vertexCount: 6,
-          },    
         ],
       },
       {
@@ -87,75 +103,53 @@ const sample = () => <GLCanvas
               positions[9] = (Math.sin(time / 100)) / 2;
               positions[15] = (2 + Math.sin(time / 100)) / 2;
             },
-          },
-          "redraw"
+          },  
         ],
-      },
+      },      
       {
-        name: "init-buffer",
-        parameters: ["location", "size", "buffer"],
         actions: [
           {
-            action: "createBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "position",
+              buffer: [
+                -.5, .5, 0.0,
+                -.5, -.5, 0.0,
+                .5, -.5, 0.0,
+                -.5, .5, 0.0,
+                .5, -.5, 0.0,
+                .5, .5, 0.0,
+              ],
+              size: 3,
+            },  
           },
           {
-            action: "bindBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "gridPosition",
+              buffer: [
+                0, 10,
+                0, 0,
+                10, 0,
+                0, 10,
+                10, 0,
+                10, 10,
+              ],
+              size: 2,  
+            },
           },
-          {
-            action: "vertexAttribPointer",
-            location: "{location}",
-            size: "{size}",
-          },
-          {
-            action: "enableVertexAttribArray",
-            location: "{location}",
-          },
-          {
-            action: "buffer-data",
-            location: "{location}",
-            buffer: "{buffer}",
-          },              
-        ]
-      }
-    ]}
-    actionPipeline={[
-      {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "position",
-          buffer: [
-            -.5, .5, 0.0,
-            -.5, -.5, 0.0,
-            .5, -.5, 0.0,
-            -.5, .5, 0.0,
-            .5, -.5, 0.0,
-            .5, .5, 0.0,
-          ],
-          size: 3,
-        },  
+        ],
+        tags: ["init"],
       },
       {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "gridPosition",
-          buffer: [
-            0, 10,
-            0, 0,
-            10, 0,
-            0, 10,
-            10, 0,
-            10, 10,
-          ],
-          size: 2,  
-        },
+        actions: [
+          { script: "loadTexture" },
+          { script: "animate" },
+          { script: "redraw" },
+        ],
+        tags: ["loop"],
       },
-      "redraw"
     ]}
-    actionLoop={["animate"]}
 />;
 
 export default sample;

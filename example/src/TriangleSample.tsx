@@ -25,93 +25,78 @@ const fragment = `#version 300 es
 `;
 
 const sample = () => <GLCanvas
-    actionScripts={[
+    scripts={[
       {
-        name: "redraw",
+        name: "initBuffer",
         actions: [
           {
-            action: "clear",
-            color: true,
+            vertexAttribPointer: {
+              location: "{location}",
+              size: "{size}",
+              enable: true,
+            },
+            bufferData: {
+              location: "{location}",
+              buffer: "{buffer}",
+            },
           },
-          {
-            action: "draw-arrays",
-            vertexCount: 3,
-          },    
         ],
       },
       {
-        name: "init-buffer",
-        parameters: ["location", "size", "buffer"],
         actions: [
           {
-            action: "createBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "position",
+              size: 3, 
+              buffer: [
+                  0.0, 0.5, 0.0,
+                  -0.5, -0.5, 0.0,
+                  0.5, -0.5, 0.0,
+              ],
+            },
           },
           {
-            action: "bindBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "color",
+              size: 3, 
+              buffer: [
+                  1.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0,
+                  0.0, 0.0, 1.0
+              ],
+            },
+          }
+        ],
+        tags: ["init"],
+      },
+      {
+        actions: [
+          {
+            action: "custom",
+            location: "position",
+            modifyAttributeBuffer(positions, time) {
+              positions[0] = Math.sin(time / 100);                
+            },
           },
           {
-            action: "vertexAttribPointer",
-            location: "{location}",
-            size: "{size}",
+            clear: {
+              color: true,
+            },
+            drawArrays: {
+              vertexCount: 3,
+            },
           },
-          {
-            action: "enableVertexAttribArray",
-            location: "{location}",
-          },
-          {
-            action: "buffer-data",
-            location: "{location}",
-            buffer: "{buffer}",
-          },              
-        ]
-      }
+        ],
+        tags: ["loop"],
+      },
     ]}
     programs={[{
         id: "sample-multicolor",
         vertex,
         fragment,
     }]}
-    actionPipeline={[
-      {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "position",
-          size: 3, 
-          buffer: [
-              0.0, 0.5, 0.0,
-              -0.5, -0.5, 0.0,
-              0.5, -0.5, 0.0,
-          ],
-        }
-      },
-      {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "color",
-          size: 3, 
-          buffer: [
-              1.0, 0.0, 0.0,
-              0.0, 1.0, 0.0,
-              0.0, 0.0, 1.0
-          ],
-        }
-      },
-      "redraw",
-    ]}
-    actionLoop={[
-      {
-        action: "custom",
-        location: "position",
-        modifyAttributeBuffer(positions, time) {
-          positions[0] = Math.sin(time / 100);
-        },
-      },
-      "redraw",
-    ]}
 />;
 
 export default sample;

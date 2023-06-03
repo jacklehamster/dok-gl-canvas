@@ -1,36 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
-import { GlAction } from "./GlAction";
-import { Context } from "../use-action-pipeline";
-import { ExecutionStep } from "../use-script-execution";
 import { clearRecord } from "../../utils/object-utils";
 
-type TextureId = "TEXTURE0"|"TEXTURE1"|"TEXTURE2"|"TEXTURE3"|"TEXTURE4"|"TEXTURE5"|"TEXTURE6"|"TEXTURE7"|"TEXTURE8"|"TEXTURE9"
+export type TextureId = "TEXTURE0"|"TEXTURE1"|"TEXTURE2"|"TEXTURE3"|"TEXTURE4"|"TEXTURE5"|"TEXTURE6"|"TEXTURE7"|"TEXTURE8"|"TEXTURE9"
 |"TEXTURE10"|"TEXTURE11"|"TEXTURE12"|"TEXTURE13"|"TEXTURE14"|"TEXTURE15"|"TEXTURE16"|"TEXTURE17"|"TEXTURE18"|"TEXTURE19"
 |"TEXTURE20"|"TEXTURE21"|"TEXTURE22"|"TEXTURE23"|"TEXTURE24"|"TEXTURE25"|"TEXTURE26"|"TEXTURE27"|"TEXTURE28"|"TEXTURE29"
 |"TEXTURE30"|"TEXTURE31";
 
-type Url = string;
-type ImageId = string;
-
-export interface ImageAction {
-    action: "load-image";
-    src: Url;
-    imageId: ImageId;
-    onLoad?: GlAction[];
-}
-
-export interface VideoAction {
-    action: "load-video";
-    src: Url;
-    imageId: ImageId;
-    volume?: number;
-}
-
-export interface TextureAction {
-    action: "load-texture";
-    imageId: ImageId;
-    textureId: TextureId;
-}
+export type Url = string;
+export type ImageId = string;
 
 interface ImageInfo {
     src: TexImageSource;
@@ -67,10 +44,11 @@ export default function useImageAction({ gl }: Props) {
         gl?.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     }, [gl, textImage2d]);
 
-    const executeLoadImageAction = useCallback(
-            ({src, imageId }: ImageAction,
-            context: Context,
-            onLoad: ExecutionStep[]) => {
+    const loadImage = useCallback(<T>(
+            src: Url,
+            imageId: ImageId,
+            onLoad?: (param?: T) => void,
+            onLoadParam?: T) => {
         const image = new Image();
         image.src = src;
         const imageLoaded = () => {
@@ -78,16 +56,16 @@ export default function useImageAction({ gl }: Props) {
                 src: image,
                 activated: false,
             };
-            context.executePipeline(onLoad, context);
+            onLoad?.(onLoadParam);
         };
         image.addEventListener("load", imageLoaded, { once: true });
         image.addEventListener("error", (e: ErrorEvent) => {
             console.error("image error", e.error);
         });
-        context.cleanupActions.push(() => image.removeEventListener("load", imageLoaded));
+        return () => image.removeEventListener("load", imageLoaded);
     }, [images]);
 
-    const executeVideoAction = useCallback(({ src, imageId, volume }: VideoAction, context: Context) => {
+    const loadVideo = useCallback((src: Url, imageId: ImageId, volume?: number): () => void => {
         const video = document.createElement("video");
         video.src = src;
         video.loop = true;
@@ -106,10 +84,10 @@ export default function useImageAction({ gl }: Props) {
             console.error("video error", e.error);
         });
     
-        context.cleanupActions.push(() => {
+        return () => {
             video.pause();
             video.removeEventListener("playing", videoPlaying);
-        });
+        };
     }, [images]);
 
     const getTexture = useCallback((textureId: TextureId) => {
@@ -123,7 +101,7 @@ export default function useImageAction({ gl }: Props) {
         return textureBuffers.current[textureId];
     }, [textureBuffers, gl]);
 
-    const executeLoadTextureAction = useCallback(({ imageId, textureId }: TextureAction): void => {
+    const executeLoadTextureAction = useCallback((imageId: ImageId, textureId: TextureId): void => {
         const imageInfo = images.current[imageId];
         if (imageInfo) {
             const texture = getTexture(textureId);
@@ -139,8 +117,8 @@ export default function useImageAction({ gl }: Props) {
     }, [loadTexture, textImage2d, images, getTexture]);
 
     return {
-        executeLoadImageAction,
-        executeVideoAction,
+        loadImage,
+        loadVideo,
         executeLoadTextureAction,
     }
 }

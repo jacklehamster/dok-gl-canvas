@@ -29,48 +29,95 @@ const instanceCount = 3;
 const vertexCount = 3;
 
 const sample = () => <GLCanvas
-    actionScripts={[
+  scripts={[
       {
         name: "redraw",
         actions: [
           {
-            action: "clear",
-            color: true,
+            clear: { color: true },
+            drawArrays: {
+              vertexCount,
+              instanceCount,
+            },
           },
+        ]
+      },
+      {
+        name: "initBuffer",
+        actions: [
           {
-            action: "draw-arrays-instanced",
-            vertexCount,
-            instanceCount,
-          },    
+            vertexAttribPointer: {
+              location: "{location}",
+              size: "{size}",
+              enable: true,
+              divisor: "{divisor}",
+            },
+            bufferData: {
+              location: "{location}",
+              buffer: "{buffer}",
+            },
+          },
         ],
       },
       {
-        name: "init-buffer",
-        parameters: ["location", "size", "buffer"],
         actions: [
           {
-            action: "createBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "position",
+              size: 3,
+              buffer: [
+                0.0, 0.5, 0.0,
+                -0.5, -0.5, 0.0,
+                0.5, -0.5, 0.0,
+              ],
+              divisor: 0,  
+            },
           },
           {
-            action: "bindBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "color",
+              size: 3,
+              buffer: [
+                1.0, 0.0, 0.0,
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0,
+              ],
+              divisor: 0,  
+            },
           },
           {
-            action: "vertexAttribPointer",
-            location: "{location}",
-            size: "{size}",
+            script: "initBuffer",
+            parameters: {
+              location: "shift",
+              size: 3,
+              buffer: instanceCount * vertexCount * Float32Array.BYTES_PER_ELEMENT,    
+              divisor: 1,  
+            },
+            bufferSubData: {
+              dstByteOffset: 2 * vertexCount * Float32Array.BYTES_PER_ELEMENT,
+              data: [.5, .5, 0],      
+            },
+          },
+        ],
+        tags: ["init"],
+      },
+      {
+        actions: [
+          {
+            action: "custom",
+            location: "shift",
+            modifyAttributeBuffer(shift, time) {
+                shift[3] = Math.sin(time / 100);
+                shift[4] = Math.cos(time / 100);
+            },
           },
           {
-            action: "enableVertexAttribArray",
-            location: "{location}",
+            script: "redraw",
           },
-          {
-            action: "buffer-data",
-            location: "{location}",
-            buffer: "{buffer}",
-          },              
-        ]
+        ],
+        tags: ["loop"],
       }
     ]}
     programs={[{
@@ -78,62 +125,6 @@ const sample = () => <GLCanvas
         vertex,
         fragment,
     }]}
-    actionPipeline={[
-      {
-        script: "init-buffer",
-        context: {
-          location: "position",
-          size: 3,
-          buffer: [
-            0.0, 0.5, 0.0,
-            -0.5, -0.5, 0.0,
-            0.5, -0.5, 0.0,
-          ],
-        }
-      },
-      {
-        script: "init-buffer",
-        context: {
-          location: "color",
-          size: 3,
-          buffer: [
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-          ],
-        }
-      },
-      {
-        script: "init-buffer",
-        context: {
-          location: "shift",
-          size: 3,
-          buffer: instanceCount * vertexCount * Float32Array.BYTES_PER_ELEMENT,
-        }
-      },
-      {
-        action: "vertexAttribDivisor",
-        location: "shift",
-        divisor: 1
-      },
-      {
-        action: "buffer-sub-data",
-        dstByteOffset: 2 * vertexCount * Float32Array.BYTES_PER_ELEMENT,
-        buffer: [.5, .5, 0],
-      },
-      "redraw",
-    ]}
-    actionLoop={[
-      {
-        action: "custom",
-        location: "shift",
-        modifyAttributeBuffer(shift, time) {
-            shift[3] = Math.sin(time / 100);
-            shift[4] = Math.cos(time / 100);
-        },
-      },
-      "redraw",
-    ]}
 />;
 
 export default sample;

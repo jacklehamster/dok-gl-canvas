@@ -31,7 +31,7 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
     const { bindVertexArray, getBufferAttribute, createBuffer, vertexAttribPointer, bufferData, getTypedArray, getGlUsage } = useBufferAttributes({ gl, getAttributeLocation });
     const clear = useClearAction(gl);
     const { executeCustomAction } = useCustomAction({ gl, getBufferAttribute });
-    const { executeLoadImageAction, executeVideoAction, executeLoadTextureAction } = useImageAction({ gl });
+    const { loadImage, loadVideo, executeLoadTextureAction } = useImageAction({ gl });
     const { executeSteps } = useScriptExecution();
     const { calc, calcBuffer, calcString, evaluate } = useDataProvider();
     const { store, popStorage } = useStorage();
@@ -45,9 +45,9 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
 
     const convertActions = useCallback((actions: DokGlAction[]): ExecutionStep[] => actions.map(action => {
         switch(action.action) {
-            case "bind-vertex":
-                return (context) => bindVertexArray(context);
-            case "buffer-sub-data":
+            case "bind-vertex": //
+                return (context) => context.cleanupActions.push(bindVertexArray());
+            case "buffer-sub-data": //
                 {
                     const buffer = calcBuffer(action.buffer, getTypedArray(action.type) ?? Float32Array);
                     const dstByteOffset = calc(action.dstByteOffset);
@@ -59,28 +59,27 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                         gl?.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset.valueOf(context), bufferArray, srcOffset.valueOf(context), length.valueOf(context) || bufferArray.length);
                     };
                 }
-            case "buffer-data":
+            case "buffer-data": //  
                 {
                     const buffer = typeof(action.buffer) === "number" ? undefined : calcBuffer(action.buffer, getTypedArray(action.type) ?? Float32Array);
                     const bufferSize = typeof(action.buffer) === "number" ? action.buffer : undefined;
                     const glUsage = getGlUsage(action.usage);
                     const [location] = resolveLocation(action.location);
                     return (context) => {
-                        if (!gl) {
-                            return;
-                        }
                         const bufferArray = buffer?.valueOf(context);
-                        bufferData(location.valueOf(context), bufferArray, bufferSize ?? bufferArray?.length ?? 0, glUsage ?? gl.STATIC_DRAW);
+                        if (gl) {
+                            bufferData(location.valueOf(context), bufferArray, bufferSize ?? bufferArray?.length ?? 0, glUsage ?? gl.STATIC_DRAW);
+                        }
                     };                    
                 }
-            case "clear":
+            case "clear":   //
                 return () => clear(action);
-            case "createBuffer":
+            case "createBuffer":    //
                 {
                     const [location] = resolveLocation(action.location);
                     return (context) => createBuffer(location.valueOf(context));    
                 }
-            case "bindBuffer":
+            case "bindBuffer":  //
                 {
                     const [location] = resolveLocation(action.location);
                     return (context) => {
@@ -88,29 +87,29 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                         gl?.bindBuffer(gl.ARRAY_BUFFER, bufferInfo.buffer);    
                     };    
                 }
-            case "draw-arrays":
+            case "draw-arrays": //
                 {
                     const vertexFirst = calc(action.vertexFirst);
                     const vertexCount = calc(action.vertexCount);
                     return (context) => gl?.drawArrays(gl.TRIANGLES, vertexFirst.valueOf(context), vertexCount.valueOf(context));
                 }
-            case "draw-arrays-instanced":
+            case "draw-arrays-instanced":   //  
                 {
                     const vertexFirst = calc(action.vertexFirst);
                     const vertexCount = calc(action.vertexCount);
                     const instanceCount = calc(action.instanceCount);
                     return (context) => gl?.drawArraysInstanced(gl.TRIANGLES, vertexFirst.valueOf(context), vertexCount.valueOf(context), instanceCount.valueOf(context));
                 }
-            case "uniform-timer":
+            case "uniform-timer":   //
                 return (context) => gl?.uniform1f(getUniformLocation(action.location) ?? null, context.time);
-            case "active-program":
+            case "active-program":  //
                 return () => setActiveProgram(action.id);
-            case "custom":
-                return (context) => executeCustomAction(action, context);
-            case "load-image":
+            case "custom":  //
+                return (context) => executeCustomAction(action, context.time);
+            case "load-image":  //
                 const onLoad = convertActions(getScript(action.onLoad));
-                return (context) => executeLoadImageAction(action, context, onLoad);
-            case "uniform":
+                return (context) => context.cleanupActions.push(loadImage(action.src, action.src, (context) => context?.executePipeline(onLoad, context), context));
+            case "uniform": //
                 if (action.int !== undefined) {
                     const value = calc(action.int);
                     return (context) => gl?.uniform1i(getUniformLocation(action.location) ?? null, value.valueOf(context));    
@@ -118,11 +117,11 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                     const value = calc(action.float);
                     return (context) => gl?.uniform1f(getUniformLocation(action.location) ?? null, value.valueOf(context));
                 }
-            case "load-texture":
-                return () => executeLoadTextureAction(action);
-            case "load-video":
-                return (context) => executeVideoAction(action, context);                
-            case "execute-script":
+            case "load-texture":    //
+                return () => executeLoadTextureAction(action.imageId, action.textureId);
+            case "load-video":  //
+                return (context) => context.cleanupActions.push(loadVideo(action.src, action.imageId, action.volume));
+            case "execute-script":  //
             case undefined:
                 const steps = convertActions(getScript(action.script));
                 const entries: [string, {valueOf(context?: Context): any}][] = Object.entries(action.context)
@@ -146,7 +145,7 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                     }
                     popStorage(context);
                 }
-            case "vertexAttribPointer":
+            case "vertexAttribPointer": //
                 const [location, locationOffset] = resolveLocation(action.location);
                 const size = calc(action.size);
                 const type = action.type;
@@ -157,7 +156,7 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                 return (context) => {
                     vertexAttribPointer(location.valueOf(context), locationOffset, size.valueOf(context), type, normalized, stride.valueOf(context), offset.valueOf(context), rows.valueOf(context));
                 }
-            case "vertexAttribDivisor":
+            case "vertexAttribDivisor": //
                 {
                     const rows = calc(action.rows, 1);
                     const [location, locationOffset] = resolveLocation(action.location);
@@ -170,7 +169,7 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                         }
                     };    
                 }
-            case "enableVertexAttribArray":
+            case "enableVertexAttribArray": //  
                 {
                     const rows = calc(action.rows, 1);
                     const [location, locationOffset] = resolveLocation(action.location);
@@ -204,7 +203,7 @@ export default function useActionPipeline({ gl, getAttributeLocation, getUniform
                 }
         }
         throw new Error("Unreachable");
-    }), [getScript, bindVertexArray, calcBuffer, getTypedArray, calc, gl, getGlUsage, bufferData, clear, createBuffer, getBufferAttribute, getUniformLocation, setActiveProgram, executeCustomAction, executeLoadImageAction, executeLoadTextureAction, executeVideoAction, evaluate, executeSteps, vertexAttribPointer, store, popStorage, resolveLocation]);
+    }), [getScript, calc, resolveLocation, bindVertexArray, calcBuffer, getTypedArray, gl, getGlUsage, bufferData, clear, createBuffer, getBufferAttribute, getUniformLocation, setActiveProgram, executeCustomAction, loadImage, executeLoadTextureAction, loadVideo, evaluate, store, popStorage, executeSteps, vertexAttribPointer]);
 
 
     const executePipeline = useCallback((steps: ExecutionStep[], context: Context): void => {

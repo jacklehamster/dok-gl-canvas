@@ -65,109 +65,118 @@ const program = [
 ];
 
 const sample = () => <GLCanvas 
-      actionScripts={[
+    scripts={[
+      {
+        name: "initBuffer",
+        actions: [
+          {
+            vertexAttribPointer: {
+              location: "{location}",
+              size: "{size}",
+              enable: true,
+            },
+            bufferData: {
+              location: "{location}",
+              buffer: "{buffer}",
+            },
+          },
+        ],
+      },
       {
         name: "redraw",
         actions: [
           {
-            action: "clear",
-            color: true,
+            clear: {
+              color: true,
+            },
+            drawArrays: {
+              vertexCount: 6,
+            },
           },
-          {
-            action: "draw-arrays",
-            vertexCount: 6,
-          },    
         ],
       },
       {
-        name: "init-buffer",
-        parameters: ["location", "size", "buffer"],
+        name: "loadImage",
         actions: [
           {
-            action: "createBuffer",
-            location: "{location}"
+            uniform: {
+              location: "uTexture",
+              int: 0,
+            },
+            image: {
+              src: "{src}",
+              imageId: "{imageId}",  
+              onLoad: [
+                {
+                  loadTexture: {
+                    textureId: "TEXTURE0",
+                    imageId: "{imageId}",
+                  },
+                },
+                {
+                  script: "redraw",
+                },
+              ],
+            },
+          },    
+        ],        
+      },
+      {
+        actions: [
+          {
+            script: "initBuffer",
+            parameters: {
+              location: "position",
+              size: 3,
+              buffer: [
+                -0.5, 0.5, 0.0,
+                -0.5, -0.5, 0.0,
+                0.5, -0.5, 0.0,
+                -0.5, 0.5, 0.0,
+                0.5, -0.5, 0.0,
+                0.5, 0.5, 0.0,
+              ],
+            },
           },
           {
-            action: "bindBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "tex",
+              size: 2,
+              buffer: [
+                0, 0,
+                0, 1,
+                w, 1,
+                0, 0,
+                w, 1,
+                w, 0,
+              ],
+            },
           },
           {
-            action: "vertexAttribPointer",
-            location: "{location}",
-            size: "{size}",
+            script: "loadImage",
+            parameters: {
+              src: "turtle.png",
+              imageId: "turtle",
+            },
           },
+        ],
+        tags: ["init"],
+      },
+      {
+        actions: [
           {
-            action: "enableVertexAttribArray",
-            location: "{location}",
+            uniform: {
+              location: "time",
+              float: "{time}",
+            },
           },
-          {
-            action: "buffer-data",
-            location: "{location}",
-            buffer: "{buffer}",
-          },              
-        ]
-      }
+          { script: "redraw" },
+        ],
+        tags: ["loop"],
+      },
     ]}
     programs={program}
-    actionPipeline={[
-      {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "position",
-          size: 3,
-          buffer: [
-            -0.5, 0.5, 0.0,
-            -0.5, -0.5, 0.0,
-            0.5, -0.5, 0.0,
-            -0.5, 0.5, 0.0,
-            0.5, -0.5, 0.0,
-            0.5, 0.5, 0.0,
-          ],
-        }
-      },
-      {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "tex",
-          size: 2,
-          buffer: [
-            0, 0,
-            0, 1,
-            w, 1,
-            0, 0,
-            w, 1,
-            w, 0,
-          ],
-        }
-      },
-      {
-        action: "uniform",
-        location: "uTexture",
-        int: 0,
-      },
-      {
-        action: "load-image",
-        src: "turtle.png",
-        imageId: "turtle",
-        onLoad: [
-            {
-                action: "load-texture",
-                imageId: "turtle",
-                textureId: "TEXTURE0",
-            },        
-            "redraw",
-          ],
-      },
-    ]}
-    actionLoop={[
-        {
-            action: "uniform-timer",
-            location: "time",
-        },
-        "redraw",
-    ]}
 />;
 
 export default sample;

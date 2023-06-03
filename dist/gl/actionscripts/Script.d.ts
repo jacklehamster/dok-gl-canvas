@@ -1,11 +1,11 @@
 import { DokGlAction, GlAction } from "../../pipeline/actions/GlAction";
-export interface Script {
+export interface OldScript {
     name: string;
     actions: GlAction[];
     parameters?: string[];
 }
 interface Props {
-    scripts: Script[];
+    scripts: OldScript[];
 }
 export declare function useActionScripts({ scripts }: Props): {
     getScript: (script: string | GlAction[] | undefined) => DokGlAction[];

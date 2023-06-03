@@ -1,14 +1,14 @@
 import { useCallback } from "react";
 import { DokGlAction, GlAction } from "../../pipeline/actions/GlAction";
 
-export interface Script {
+export interface OldScript {
     name: string;
     actions: GlAction[];
     parameters?: string[];
 }
 
 interface Props {
-    scripts: Script[];
+    scripts: OldScript[];
 }
 
 export function useActionScripts({ scripts }: Props) {

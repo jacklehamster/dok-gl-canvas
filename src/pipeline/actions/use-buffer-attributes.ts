@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { ProgramId } from "../../gl/program/program";
 import { LocationName, Type, Usage } from "./BufferAttributeAction";
 import { clearRecord } from "../../utils/object-utils";
-import { Context } from "../use-action-pipeline";
 
 interface Props {
     gl?: WebGL2RenderingContext;
@@ -20,41 +19,38 @@ export interface BufferInfo {
 }
 
 export default function useBufferAttributes({ gl, getAttributeLocation }: Props) {
-    const getGlUsage = useCallback((usage: Usage | undefined): GLenum | undefined => {
-        if (!gl) {
-          return;
-        }
+    const getGlUsage = useCallback((usage: Usage | undefined): GLenum => {
         switch(usage) {
           case Usage.DYNAMIC_DRAW:
-            return gl.DYNAMIC_DRAW;
+            return WebGL2RenderingContext.DYNAMIC_DRAW;
           case Usage.STREAM_DRAW:
-            return gl.STREAM_DRAW;
+            return WebGL2RenderingContext.STREAM_DRAW;
           case Usage.STATIC_DRAW:
-            return gl.STATIC_DRAW;
+            return WebGL2RenderingContext.STATIC_DRAW;
           default:
-            return;
+            return WebGL2RenderingContext.STATIC_DRAW;
         }
-      }, [gl]);
+      }, []);
   
-    const getGlType = useCallback((type: Type | undefined): GLenum | undefined => {
+    const getGlType = useCallback((type: Type | GLenum | undefined): GLenum => {
         switch(type) {
           case Type.BYTE:
-            return gl?.BYTE;
+            return WebGL2RenderingContext.BYTE;
           case Type.FLOAT:
-            return gl?.FLOAT;
+            return WebGL2RenderingContext.FLOAT;
           case Type.SHORT:
-            return gl?.SHORT;
+            return WebGL2RenderingContext.SHORT;
           case Type.UNSIGNED_BYTE:
-            return gl?.UNSIGNED_BYTE;
+            return WebGL2RenderingContext.UNSIGNED_BYTE;
           case Type.UNSIGNED_SHORT:
-            return gl?.UNSIGNED_SHORT;
+            return WebGL2RenderingContext.UNSIGNED_SHORT;
           case Type.INT:
-            return gl?.INT;
+            return WebGL2RenderingContext.INT;
           case Type.UNSIGNED_INT:
-            return gl?.UNSIGNED_INT;
+            return WebGL2RenderingContext.UNSIGNED_INT;
         }
-        return;
-    }, [gl]);
+        return WebGL2RenderingContext.FLOAT;
+    }, []);
 
     const getTypedArray = useCallback((type: Type | undefined) => {
       switch(type) {
@@ -80,10 +76,10 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       return getTypedArray(type)?.BYTES_PER_ELEMENT;
     }, [getTypedArray])
 
-    const bindVertexArray = useCallback((context: Context) => {
+    const bindVertexArray = useCallback(() => {
         const triangleArray = gl?.createVertexArray() ?? null;
         gl?.bindVertexArray(triangleArray);
-        context.cleanupActions.push(() => gl?.deleteVertexArray(triangleArray));
+        return () => gl?.deleteVertexArray(triangleArray);
     }, [gl]);
 
     const bufferRecord = useRef<Record<LocationName, BufferInfo>>({});
@@ -98,15 +94,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       };
     }, [gl, bufferRecord]);
 
-    const getBufferAttribute = useCallback((location: LocationName) => {
-      const attribute = bufferRecord.current[location];
-      if (!attribute) {
-        throw new Error(`Attribute ${location} not created. Make sure "createBuffer" is called.`);
-      }
-      return attribute;
-    }, [bufferRecord])
-
-    const createBuffer = useCallback((location: LocationName): void => {
+    const createBuffer = useCallback((location: LocationName): BufferInfo => {
       if (bufferRecord.current[location]) {
         gl?.deleteBuffer(bufferRecord.current[location].buffer);
         delete bufferRecord.current[location];
@@ -115,13 +103,26 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       if (!bufferBuffer) {
         throw new Error(`Unable to create buffer ${location}`);
       }
-      bufferRecord.current[location] = {
+      const record = {
         buffer: bufferBuffer,
         location: getAttributeLocation(location),
       };
+      bufferRecord.current[location] = record;
+      return record;
     }, [bufferRecord, gl, getAttributeLocation]);
 
-    const vertexAttribPointer = useCallback((location: string, locationOffset: 0|1|2|3, size: GLint, type: Type | undefined, normalized: boolean, stride: GLsizei, offset: GLintptr, rows: number) => {
+    const getBufferAttribute = useCallback((location: LocationName, autoCreate?: boolean) => {
+      const attribute = bufferRecord.current[location];
+      if (!attribute) {
+        if (autoCreate) {
+          return createBuffer(location);
+        }
+        throw new Error(`Attribute ${location} not created. Make sure "createBuffer" is called.`);
+      }
+      return attribute;
+    }, [bufferRecord, createBuffer])
+
+    const vertexAttribPointer = useCallback((location: string, locationOffset: 0|1|2|3, size: GLint, type: GLenum | Type | undefined, normalized: boolean, stride: GLsizei, offset: GLintptr, rows: number) => {
       if (!gl) {
           return;
       }
@@ -130,7 +131,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         return;
       }
       const glType = getGlType(type) ?? gl.FLOAT;
-      const sizeMul = size * (getByteSize(type) ?? Float32Array.BYTES_PER_ELEMENT);
+      const sizeMul = size * (getByteSize(glType) ?? Float32Array.BYTES_PER_ELEMENT);
       for (let i = 0; i < rows; i++) {
         const finalOffset = offset + i * sizeMul;
         gl.vertexAttribPointer(bufferLocation + i + locationOffset, size, glType, normalized, stride, finalOffset);
@@ -146,12 +147,12 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       if (bufferLocation < 0) {
         throw new Error(`Invalid attribute location ${location}`);
       }
-      const bufferInfo = getBufferAttribute(location);
       if (bufferArray) {
         gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
       } else {
         gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
       }
+      const bufferInfo = getBufferAttribute(location);
       bufferInfo.bufferArray = bufferArray;
       bufferInfo.bufferSize = bufferSize;
       bufferInfo.usage = glUsage;

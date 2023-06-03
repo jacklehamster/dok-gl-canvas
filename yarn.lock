@@ -5292,6 +5292,13 @@ doctrine@^3.0.0:
   dependencies:
     esutils "^2.0.2"
 
+dok-actions@^1.1.7:
+  version "1.1.7"
+  resolved "https://registry.npmjs.org/dok-actions/-/dok-actions-1.1.7.tgz"
+  integrity sha512-ZlOZdAEMk6BAlWF7cNpBOYh1j8mtKNAiZkndI7ls8UST7swBB15gPF7k5RM0bhPiLQPM1q+fgC5TjG0yntWjCQ==
+  dependencies:
+    mathjs "^11.8.0"
+
 dom-accessibility-api@^0.3.0:
   version "0.3.0"
   resolved "https://registry.npmjs.org/dom-accessibility-api/-/dom-accessibility-api-0.3.0.tgz"

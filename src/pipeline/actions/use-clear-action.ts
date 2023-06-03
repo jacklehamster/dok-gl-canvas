@@ -17,13 +17,13 @@ export default function useClearAction(gl?: WebGL2RenderingContext) {
         if (action.bit === undefined) {
             action.bit = 0;
             if (color) {
-                action.bit |= gl?.COLOR_BUFFER_BIT;
+                action.bit |= WebGL2RenderingContext.COLOR_BUFFER_BIT;
             }
             if (depth) {
-                action.bit |= gl?.DEPTH_BUFFER_BIT;
+                action.bit |= WebGL2RenderingContext.DEPTH_BUFFER_BIT;
             }
             if (stencil) {
-                action.bit |= gl?.STENCIL_BUFFER_BIT;
+                action.bit |= WebGL2RenderingContext.STENCIL_BUFFER_BIT;
             }    
         }
         if (action.bit) {

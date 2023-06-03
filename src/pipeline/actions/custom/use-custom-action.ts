@@ -1,12 +1,10 @@
 import { useCallback } from "react";
 import { BufferInfo, TypedArray } from "../use-buffer-attributes";
-import { Context } from "../../use-action-pipeline";
 
-export interface CustomAction {
+export interface CustomAction extends Record<string, any> {
     action: "custom",
     location?: string;
     modifyAttributeBuffer?(bufferArray: TypedArray, time: number): void;
-    updateContext?(context: Context): void;
 }
 
 export interface Props {
@@ -15,7 +13,7 @@ export interface Props {
 }
 
 export default function useCustomAction({ gl, getBufferAttribute }: Props) {
-    const executeCustomAction = useCallback(({location, modifyAttributeBuffer, updateContext }: CustomAction, context: Context) => {
+    const executeCustomAction = useCallback(({location, modifyAttributeBuffer }: CustomAction, time: number) => {
         if (modifyAttributeBuffer) {
             const bufferLocation = getBufferAttribute(location ?? "");
             if (bufferLocation && bufferLocation.bufferSize) {
@@ -25,11 +23,10 @@ export default function useCustomAction({ gl, getBufferAttribute }: Props) {
                 }
                 gl?.bindBuffer(gl.ARRAY_BUFFER, bufferLocation.buffer);
                 gl?.getBufferSubData(gl.ARRAY_BUFFER, 0, bufferLocation.bufferArray);
-                modifyAttributeBuffer(bufferLocation.bufferArray!, context.time);
+                modifyAttributeBuffer(bufferLocation.bufferArray!, time);
                 gl?.bufferData(gl.ARRAY_BUFFER, bufferLocation.bufferArray!, bufferLocation.usage ?? gl.DYNAMIC_DRAW);
             }
         }
-        updateContext?.(context);
     }, [getBufferAttribute, gl]);
 
     return {

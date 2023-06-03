@@ -63,112 +63,117 @@ const program = [
 ];
 
 const sample = () => <GLCanvas 
-      actionScripts={[
+    scripts={[
+      {
+        name: "initBuffer",
+        actions: [
+          {
+            vertexAttribPointer: {
+              location: "{location}",
+              size: "{size}",
+              enable: true,
+            },
+            bufferData: {
+              location: "{location}",
+              buffer: "{buffer}",
+            },
+          },
+        ],
+      },
+      {
+        name: "loadTexture",
+        actions: [
+          {
+            loadTexture: {
+              textureId: "TEXTURE0",
+              imageId: "video",
+            },
+          }
+        ],
+      },
       {
         name: "redraw",
         actions: [
           {
-            action: "clear",
-            color: true,
+            clear: {
+              color: true,
+            },
+            drawArrays: {
+              vertexCount: 6,
+            },
           },
-          {
-            action: "draw-arrays",
-            vertexCount: 6,
-          },    
         ],
       },
       {
-        name: "init-buffer",
-        parameters: ["location", "size", "buffer"],
+        name: "animate",
         actions: [
           {
-            action: "createBuffer",
-            location: "{location}"
+            action: "custom",
+            location: "position",
+            modifyAttributeBuffer(positions, time) {
+              positions[0] = (Math.sin(time / 500)) / 2;
+              positions[9] = (Math.sin(time / 500)) / 2;
+              positions[15] = (2 + Math.sin(time / 500)) / 2;
+            },
+          },  
+        ],
+      },
+      {
+        actions: [
+          {
+            script: "initBuffer",
+            parameters: {
+              location: "position",
+              size: 3, 
+              buffer: [
+                -0.5, 0.5, 0.0,
+                -0.5, -0.5, 0.0,
+                0.5, -0.5, 0.0,
+                -0.5, 0.5, 0.0,
+                0.5, -0.5, 0.0,
+                0.5, 0.5, 0.0,
+              ],
+            },
           },
           {
-            action: "bindBuffer",
-            location: "{location}"
+            script: "initBuffer",
+            parameters: {
+              location: "tex",
+              size: 2, 
+              buffer: [
+                0, 0,
+                0, 1,
+                1, 1,
+                0, 0,
+                1, 1,
+                1, 0,
+              ],
+            },
           },
           {
-            action: "vertexAttribPointer",
-            location: "{location}",
-            size: "{size}",
+            uniform: {
+              location: "uTexture",
+              int: 0,
+            },
+            video: {
+              src: "sample.mp4",
+              imageId: "video",
+              volume: 0,
+            },
           },
-          {
-            action: "enableVertexAttribArray",
-            location: "{location}",
-          },
-          {
-            action: "buffer-data",
-            location: "{location}",
-            buffer: "{buffer}",
-          },              
-        ]
+        ],
+        tags: ["init"],
+      },
+      {
+        actions: [
+          { script: "loadTexture" },
+          { script: "animate" },
+          { script: "redraw" },
+        ],
+        tags: ["loop"],
       }
     ]}
     programs={program}
-    actionPipeline={[
-      {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "position",
-          buffer: [
-            -0.5, 0.5, 0.0,
-            -0.5, -0.5, 0.0,
-            0.5, -0.5, 0.0,
-            -0.5, 0.5, 0.0,
-            0.5, -0.5, 0.0,
-            0.5, 0.5, 0.0,
-          ],
-          size: 3,  
-        },
-      },
-      {
-        action: "execute-script",
-        script: "init-buffer",
-        context: {
-          location: "tex",
-          buffer: [
-            0, 0,
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 1,
-            1, 0,
-          ],
-          size: 2,  
-        },
-      },
-      {
-        action: "uniform",
-        location: "uTexture",
-        int: 0,
-      },
-      {
-        action: "load-video",
-        src: "sample.mp4",
-        imageId: "video",
-        volume: 0,
-      },
-    ]}
-    actionLoop={[
-        {
-          action: "load-texture",
-          imageId: "video",
-          textureId: "TEXTURE0",
-        },
-        {
-          action: "custom",
-          location: "position",
-          modifyAttributeBuffer(positions, time) {
-            positions[0] = (Math.sin(time / 500)) / 2;
-            positions[9] = (Math.sin(time / 500)) / 2;
-            positions[15] = (2 + Math.sin(time / 500)) / 2;
-          },
-        },
-        "redraw",
-    ]}
 />;
 
 export default sample;
