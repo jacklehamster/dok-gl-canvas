@@ -91,7 +91,8 @@
    ],
    "homepage": "https://github.com/jacklehamster/dok-gl-canvas#readme",
    "dependencies": {
-      "dok-actions": "^1.1.7",
-      "gl-matrix": "^3.4.3"
+      "dok-actions": "^1.1.12",
+      "gl-matrix": "^3.4.3",
+      "node-fetch": "^3.3.1"
    }
 }

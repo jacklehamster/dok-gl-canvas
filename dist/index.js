@@ -28233,10 +28233,14 @@ function useImageAction(_ref) {
       }
     }
   }, [loadTexture, textImage2d, images, getTexture]);
+  var hasImageId = React.useCallback(function (imageId) {
+    return !!images.current[imageId];
+  }, [images]);
   return {
     loadImage: loadImage,
     loadVideo: loadVideo,
-    executeLoadTextureAction: executeLoadTextureAction
+    executeLoadTextureAction: executeLoadTextureAction,
+    hasImageId: hasImageId
   };
 }
 
@@ -28299,7 +28303,8 @@ function useGlAction(_ref) {
     }),
     executeLoadTextureAction = _useImageAction.executeLoadTextureAction,
     loadVideo = _useImageAction.loadVideo,
-    loadImage = _useImageAction.loadImage;
+    loadImage = _useImageAction.loadImage,
+    hasImageId = _useImageAction.hasImageId;
   var _useCustomAction = useCustomAction({
       gl: gl,
       getBufferAttribute: getBufferAttribute
@@ -28538,16 +28543,25 @@ function useGlAction(_ref) {
     (_image$onLoad = image.onLoad) === null || _image$onLoad === void 0 ? void 0 : _image$onLoad.forEach(function (action) {
       return dokActions.convertAction(action, onLoadSteps, getSteps, external, actionConverionMap);
     });
-    var onLoadParameters = {};
+    var onLoadParameters;
     var onLoad = onLoadSteps.length ? function (context) {
       dokActions.execute(onLoadSteps, onLoadParameters, context);
       for (var i in onLoadParameters) {
         delete onLoadParameters[i];
       }
+      if (onLoadParameters) {
+        var _context$objectPool;
+        context === null || context === void 0 ? void 0 : (_context$objectPool = context.objectPool) === null || _context$objectPool === void 0 ? void 0 : _context$objectPool.push(onLoadParameters);
+        onLoadParameters = undefined;
+      }
     } : undefined;
     results.push(function (context, parameters) {
-      for (var i in parameters) {
-        onLoadParameters[i] = parameters[i];
+      if (onLoad) {
+        var _context$objectPool$p, _context$objectPool2;
+        onLoadParameters = (_context$objectPool$p = context === null || context === void 0 ? void 0 : (_context$objectPool2 = context.objectPool) === null || _context$objectPool2 === void 0 ? void 0 : _context$objectPool2.pop()) != null ? _context$objectPool$p : {};
+        for (var i in parameters) {
+          onLoadParameters[i] = parameters[i];
+        }
       }
       loadImage(src.valueOf(context), imageId.valueOf(context), onLoad, context);
     });
@@ -28562,8 +28576,10 @@ function useGlAction(_ref) {
     });
   }, [executeCustomAction]);
   var getScriptProcessor = React.useCallback(function (scripts) {
-    return new dokActions.ScriptProcessor(scripts, undefined, [].concat(dokActions.DEFAULT_CONVERTORS, [convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]));
-  }, [convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]);
+    return new dokActions.ScriptProcessor(scripts, _extends({}, dokActions.DEFAULT_EXTERNALS, {
+      hasImageId: hasImageId
+    }), [].concat(dokActions.getDefaultConvertors(), [convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]));
+  }, [hasImageId, convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]);
   return {
     getScriptProcessor: getScriptProcessor
   };

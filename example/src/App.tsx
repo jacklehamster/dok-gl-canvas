@@ -28,7 +28,7 @@ const samples: Record<string, React.JSX.Element> = {
 export const App = () => {
   const [sample, setSample] = useState<string>(Sample.TEXTURE);
   return <>
-    <select style={{ position: "sticky", top: 0 }} value={sample} onChange={({ target }) => setSample(target.value)}>
+    <select id="sample" style={{ position: "sticky", top: 0 }} value={sample} onChange={({ target }) => setSample(target.value)}>
       {Object.keys(samples).map(type => <option key={type} value={type}>{type} sample</option>)}
     </select>
     {samples[sample]}

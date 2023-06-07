@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { calculateString, calculateTypedArray, calculateNumber, calculateBoolean, convertAction, ScriptProcessor, DEFAULT_CONVERTORS, execute } from 'dok-actions';
+import { calculateString, calculateTypedArray, calculateNumber, calculateBoolean, convertAction, ScriptProcessor, DEFAULT_EXTERNALS, getDefaultConvertors, execute } from 'dok-actions';
 
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -28230,10 +28230,14 @@ function useImageAction(_ref) {
       }
     }
   }, [loadTexture, textImage2d, images, getTexture]);
+  var hasImageId = useCallback(function (imageId) {
+    return !!images.current[imageId];
+  }, [images]);
   return {
     loadImage: loadImage,
     loadVideo: loadVideo,
-    executeLoadTextureAction: executeLoadTextureAction
+    executeLoadTextureAction: executeLoadTextureAction,
+    hasImageId: hasImageId
   };
 }
 
@@ -28296,7 +28300,8 @@ function useGlAction(_ref) {
     }),
     executeLoadTextureAction = _useImageAction.executeLoadTextureAction,
     loadVideo = _useImageAction.loadVideo,
-    loadImage = _useImageAction.loadImage;
+    loadImage = _useImageAction.loadImage,
+    hasImageId = _useImageAction.hasImageId;
   var _useCustomAction = useCustomAction({
       gl: gl,
       getBufferAttribute: getBufferAttribute
@@ -28535,16 +28540,25 @@ function useGlAction(_ref) {
     (_image$onLoad = image.onLoad) === null || _image$onLoad === void 0 ? void 0 : _image$onLoad.forEach(function (action) {
       return convertAction(action, onLoadSteps, getSteps, external, actionConverionMap);
     });
-    var onLoadParameters = {};
+    var onLoadParameters;
     var onLoad = onLoadSteps.length ? function (context) {
       execute(onLoadSteps, onLoadParameters, context);
       for (var i in onLoadParameters) {
         delete onLoadParameters[i];
       }
+      if (onLoadParameters) {
+        var _context$objectPool;
+        context === null || context === void 0 ? void 0 : (_context$objectPool = context.objectPool) === null || _context$objectPool === void 0 ? void 0 : _context$objectPool.push(onLoadParameters);
+        onLoadParameters = undefined;
+      }
     } : undefined;
     results.push(function (context, parameters) {
-      for (var i in parameters) {
-        onLoadParameters[i] = parameters[i];
+      if (onLoad) {
+        var _context$objectPool$p, _context$objectPool2;
+        onLoadParameters = (_context$objectPool$p = context === null || context === void 0 ? void 0 : (_context$objectPool2 = context.objectPool) === null || _context$objectPool2 === void 0 ? void 0 : _context$objectPool2.pop()) != null ? _context$objectPool$p : {};
+        for (var i in parameters) {
+          onLoadParameters[i] = parameters[i];
+        }
       }
       loadImage(src.valueOf(context), imageId.valueOf(context), onLoad, context);
     });
@@ -28559,8 +28573,10 @@ function useGlAction(_ref) {
     });
   }, [executeCustomAction]);
   var getScriptProcessor = useCallback(function (scripts) {
-    return new ScriptProcessor(scripts, undefined, [].concat(DEFAULT_CONVERTORS, [convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]));
-  }, [convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]);
+    return new ScriptProcessor(scripts, _extends({}, DEFAULT_EXTERNALS, {
+      hasImageId: hasImageId
+    }), [].concat(getDefaultConvertors(), [convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]));
+  }, [hasImageId, convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]);
   return {
     getScriptProcessor: getScriptProcessor
   };

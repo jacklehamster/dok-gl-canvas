@@ -99,26 +99,37 @@ const sample = () => <GLCanvas
         name: "loadImage",
         actions: [
           {
-            uniform: {
-              location: "uTexture",
-              int: 0,
-            },
-            image: {
-              src: "{src}",
-              imageId: "{imageId}",  
-              onLoad: [
-                {
-                  loadTexture: {
-                    textureId: "TEXTURE0",
-                    imageId: "{imageId}",
-                  },
+            hooks: ["hasImageId"],
+            actions: [
+              {
+                uniform: {
+                  location: "uTexture",
+                  int: 0,
                 },
-                {
-                  script: "redraw",
+                image: {
+                  src: "{src}",
+                  imageId: "{imageId}",  
+                  onLoad: [
+                    {
+                      loadTexture: {
+                        textureId: "TEXTURE0",
+                        imageId: "{imageId}",
+                      },
+                    },
+                    {
+                      script: "redraw",
+                    },
+                  ],
                 },
-              ],
-            },
-          },    
+              },
+              {
+                pause: "{hasImageId(imageId)}",
+              },
+              {
+                log: "Image loaded",
+              },    
+            ],
+          },
         ],        
       },
       {

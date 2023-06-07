@@ -1,4 +1,4 @@
-import { BooleanResolution, Context, Convertor, DEFAULT_CONVERTORS, DokAction, ExecutionParameters, ExecutionStep, Formula, NumberResolution, Script, ScriptProcessor, StringResolution, TypedArrayResolution, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute } from "dok-actions";
+import { BooleanResolution, Context, Convertor, DEFAULT_EXTERNALS, getDefaultConvertors, DokAction, ExecutionParameters, ExecutionStep, Formula, NumberResolution, Script, ScriptProcessor, StringResolution, TypedArrayResolution, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute } from "dok-actions";
 import { useCallback, useEffect, useRef } from "react";
 import useBufferAttributes, { BufferInfo } from "../../pipeline/actions/use-buffer-attributes";
 import { ProgramId } from "../program/program";
@@ -98,7 +98,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, setA
 
     const { getTypedArray, getGlUsage, getGlType, getByteSize } = useTypes();
 
-    const { executeLoadTextureAction, loadVideo, loadImage } = useImageAction({ gl });
+    const { executeLoadTextureAction, loadVideo, loadImage, hasImageId } = useImageAction({ gl });
 
     const { executeCustomAction } = useCustomAction({ gl, getBufferAttribute });
 
@@ -321,17 +321,24 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, setA
 
       const onLoadSteps: ExecutionStep[] = [];
       image.onLoad?.forEach(action => convertAction(action, onLoadSteps, getSteps, external, actionConverionMap));
-      const onLoadParameters:ExecutionParameters = {};
+      let onLoadParameters:ExecutionParameters | undefined;
       const onLoad = onLoadSteps.length ? (context?: Context) => { 
         execute(onLoadSteps, onLoadParameters, context);
         for (let i in onLoadParameters) {
           delete onLoadParameters[i];
         }
+        if (onLoadParameters) {
+          context?.objectPool?.push(onLoadParameters);
+          onLoadParameters = undefined;  
+        }
       } : undefined;
 
       results.push((context, parameters) => {
-        for (let i in parameters) {
-          onLoadParameters[i] = parameters[i];
+        if (onLoad) {
+          onLoadParameters = context?.objectPool?.pop() ?? {};
+          for (let i in parameters) {
+            onLoadParameters[i] = parameters[i];
+          }  
         }
         loadImage(src.valueOf(context), imageId.valueOf(context), onLoad, context);
       });
@@ -348,8 +355,11 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, setA
     }, [executeCustomAction]);
 
     const getScriptProcessor = useCallback(<T>(scripts: Script<T>[]) => {
-      return new ScriptProcessor(scripts, undefined, [
-        ...DEFAULT_CONVERTORS,
+      return new ScriptProcessor(scripts, {
+        ...DEFAULT_EXTERNALS,
+        hasImageId,
+      }, [
+        ...getDefaultConvertors(),
         convertClear,
         convertBufferData,
         convertBufferSubData,
@@ -363,7 +373,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, setA
         convertCustom,
         convertDrawArrays,
       ]);
-    }, [convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]);
+    }, [hasImageId, convertClear, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertCustom, convertDrawArrays]);
 
     return {
       getScriptProcessor,

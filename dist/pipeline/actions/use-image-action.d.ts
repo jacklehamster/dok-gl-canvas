@@ -8,5 +8,6 @@ export default function useImageAction({ gl }: Props): {
     loadImage: <T>(src: Url, imageId: ImageId, onLoad?: ((param?: T | undefined) => void) | undefined, onLoadParam?: T | undefined) => () => void;
     loadVideo: (src: Url, imageId: ImageId, volume?: number | undefined) => () => void;
     executeLoadTextureAction: (imageId: ImageId, textureId: TextureId) => void;
+    hasImageId: (imageId: ImageId) => boolean;
 };
 export {};

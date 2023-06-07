@@ -116,9 +116,14 @@ export default function useImageAction({ gl }: Props) {
         }
     }, [loadTexture, textImage2d, images, getTexture]);
 
+    const hasImageId = useCallback((imageId: ImageId): boolean => {
+        return !!images.current[imageId];
+    }, [images]);
+
     return {
         loadImage,
         loadVideo,
         executeLoadTextureAction,
+        hasImageId,
     }
 }
