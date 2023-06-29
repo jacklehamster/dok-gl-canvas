@@ -1,6 +1,6 @@
 import { BufferInfo, TypedArray } from "../use-buffer-attributes";
 export interface CustomAction extends Record<string, any> {
-    action: "custom";
+    action?: "custom";
     location?: string;
     modifyAttributeBuffer?(bufferArray: TypedArray, time: number): void;
 }

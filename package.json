@@ -13,6 +13,7 @@
       "node": ">=10"
    },
    "scripts": {
+      "create-schema": "typescript-json-schema -o \"example/src/schema.json\" \"src/gl/actions/GlDokConfig.ts\" GlDokConfig",
       "build": "microbundle-crl --no-compress --format modern,cjs",
       "start": "microbundle-crl watch --no-compress --format modern,cjs",
       "prepare": "run-s build",
@@ -70,7 +71,8 @@
       "react-scripts": "^5.0.1",
       "react-test-renderer": "^16.9.0",
       "resize-observer-polyfill": "^1.5.1",
-      "typescript": "^4.9.5"
+      "typescript": "^4.9.5",
+      "typescript-json-schema": "^0.57.0"
    },
    "overrides": {
       "eslint": "^8.39.0",
@@ -91,8 +93,7 @@
    ],
    "homepage": "https://github.com/jacklehamster/dok-gl-canvas#readme",
    "dependencies": {
-      "dok-actions": "^1.1.12",
-      "gl-matrix": "^3.4.3",
-      "node-fetch": "^3.3.1"
+      "dok-gl-actions": "^1.0.12",
+      "gl-matrix": "^3.4.3"
    }
 }

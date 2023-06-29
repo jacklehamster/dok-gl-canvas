@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - name: refresh
+    actions:
+    - updateAttributeBuffer: position
+      set:
+        variable: attributeBuffer
+        access: [0]
+        value: ~{sin(time/100)}
+    - clear: { color: true }
+      drawArrays: { vertexCount: 3 }
+  - actions:
+    - script: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          0.0, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+        ]
+    - script: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+        ]
+    - script: refresh
+      refresh: {}
+    tags: [main]
+programs:
+  - id: sample-multicolor
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

@@ -8,3 +8,4 @@ export function hookupCanvas(div: HTMLDivElement, props?: Props, controller?: Co
 }
 
 export const GLCanvas = GLCanvasExport;
+

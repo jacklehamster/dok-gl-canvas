@@ -1,15 +1,14 @@
 import { CSSProperties } from "react";
-import { ProgramConfig } from "./gl/program/program";
 import { GlController } from "./control/gl-controller";
 import { Script } from "dok-actions";
-import { GlAction } from "./gl/actions/GlAction";
-import { CustomAction } from "./pipeline/actions/custom/use-custom-action";
+import { ProgramConfig } from "dok-gl-actions/dist/program/program";
+import { GlAction } from "dok-gl-actions";
 export interface Props {
     pixelRatio?: number;
     style?: CSSProperties;
     webglAttributes?: WebGLContextAttributes;
     programs?: ProgramConfig[];
     controller?: GlController;
-    scripts?: Script<GlAction | CustomAction>[];
+    scripts?: Script<GlAction>[];
 }
 export default function GLCanvas(props?: Props): JSX.Element;

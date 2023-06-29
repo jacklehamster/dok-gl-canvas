@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json#/definitions/GlScript
+
+name: initBuffer
+actions:
+- defaultParameters:
+    buffer: null
+  bindBuffer: ~{location}
+  bufferData:
+    location: ~{location}
+    buffer: ~{buffer}
+    length: ~{length}
+- defaultParameters:
+    divisor: 0
+    stride: 0
+    rows: 1
+  loop: ~{rows}
+  vertexAttribPointer:
+    location: ["~{location}", "~{index}"]
+    size: ~{size}
+    enable: true
+    divisor: ~{divisor}
+    stride: ~{stride}

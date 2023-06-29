@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true }
+      drawArrays:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - updateAttributeBuffer: shift
+      actions:
+      - set:
+          variable: attributeBuffer
+          access: [3]
+          value: ~{sin(time/100)}
+      - set:
+          variable: attributeBuffer
+          access: [4]
+          value: ~{cos(time/100)}
+    - script: redraw
+  - actions:
+    - set:
+        variable: instanceCount
+        value: 3
+    - set:
+        variable: vertexCount
+        value: 3
+    - set:
+        variable: BYTES_PER_FLOAT
+        value: 4
+    - script: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          0.0, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+        ]
+    - script: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+        ]
+    - script: initBuffer
+      parameters:
+        location: shift
+        size: 3
+        buffer: ~{vertexCount * instanceCount * BYTES_PER_FLOAT}
+        divisor: 1
+      bufferSubData:
+        dstByteOffset: ~{2 * vertexCount * BYTES_PER_FLOAT}
+        data: [.5, .5, 0]
+    - script: refresh
+      refresh: {}
+    tags: [main]
+programs:
+  - id: sample-triangle-instance
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

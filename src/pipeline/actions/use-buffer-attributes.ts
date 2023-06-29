@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
-import { ProgramId } from "../../gl/program/program";
 import { clearRecord } from "../../utils/object-utils";
-import { LocationName } from "../../gl/actions/GlAction";
+import { ProgramId } from "dok-gl-actions/dist/program/program";
+import { LocationName } from "dok-gl-actions";
 
 interface Props {
     gl?: WebGL2RenderingContext;
@@ -80,8 +80,8 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
       }
       const bufferInfo = getBufferAttribute(location);
-      bufferInfo.bufferArray = bufferArray;
       bufferInfo.bufferSize = bufferSize;
+      bufferInfo.bufferArray = bufferArray ?? new Float32Array(bufferInfo.bufferSize! / Float32Array.BYTES_PER_ELEMENT).fill(0);
       bufferInfo.usage = glUsage;
 
     }, [gl, getAttributeLocation, getBufferAttribute, bufferRecord]);

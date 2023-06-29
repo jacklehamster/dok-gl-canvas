@@ -1,32 +1,32 @@
 import React from 'react'
-import TextureSample from './TextureSample';
-import TriangleSample from './TriangleSample';
+import SampleRenderer from './triangle-sample/SampleRenderer';
 import { useState } from 'react';
-import GridSample from './GridSample';
-import VideoSample from './VideoSample';
-import TriangleInstancedSample from './TriangleInstancedSample';
-import InstancedMotionSample from "./InstanceMotionSample";
+import { Assembler } from 'obj-assembler';
 
 enum Sample {
-  TEXTURE = "texture",
   TRIANGLE = "triangle",
+  TEXTURE = "texture",
   GRID = "grid",
   VIDEO = "video",
   INSTANCED = "instanced",
-  INSTANED_MOTION = "instanced-motion",
+  INSTANCED_MOTION = "instanced-motion",
+  ROTATION = "rotation",
 }
 
+const assembler = new Assembler();
+
 const samples: Record<string, React.JSX.Element> = {
-  [Sample.TEXTURE]: <TextureSample />,
-  [Sample.TRIANGLE]: <TriangleSample />,
-  [Sample.GRID]: <GridSample />,
-  [Sample.VIDEO]: <VideoSample />,
-  [Sample.INSTANCED]: <TriangleInstancedSample />,
-  [Sample.INSTANED_MOTION]: <InstancedMotionSample />,
+  [Sample.TRIANGLE]: <SampleRenderer assembler={assembler} path="resources/triangle-sample/triangle-sample.yml" />,
+  [Sample.TEXTURE]: <SampleRenderer assembler={assembler} path="resources/texture-sample/texture-sample.yml" />,
+  [Sample.GRID]: <SampleRenderer assembler={assembler} path="resources/grid-sample/grid-sample.yml" />,
+  [Sample.VIDEO]: <SampleRenderer assembler={assembler} path="resources/video-sample/video-sample.yml" />,
+  [Sample.INSTANCED]: <SampleRenderer assembler={assembler} path="resources/triangle-instance-sample/triangle-instance-sample.yml" />,
+  [Sample.INSTANCED_MOTION]: <SampleRenderer assembler={assembler} path="resources/triangle-motion/triangle-motion.yml" />,
+  [Sample.ROTATION]: <SampleRenderer assembler={assembler} path="resources/rotation-sample/rotation.yml" />,
 };
 
 export const App = () => {
-  const [sample, setSample] = useState<string>(Sample.TEXTURE);
+  const [sample, setSample] = useState<string>(Sample.TRIANGLE);
   return <>
     <select id="sample" style={{ position: "sticky", top: 0 }} value={sample} onChange={({ target }) => setSample(target.value)}>
       {Object.keys(samples).map(type => <option key={type} value={type}>{type} sample</option>)}
@@ -35,4 +35,4 @@ export const App = () => {
   </>
 }
 
-export default App
+export default App;

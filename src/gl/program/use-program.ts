@@ -1,54 +1,55 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProgramResult, useShader } from "../use-shader";
-import { ProgramConfig, ProgramId } from "./program";
+import { ProgramConfig, ProgramId } from "dok-gl-actions/dist/program/program";
 
 interface Props {
     gl?: WebGL2RenderingContext;
     programs?: ProgramConfig[];
+    initialPrograms?: ProgramConfig[];
 }
 
 export function useProgram({ gl, programs }: Props) {
     const { createProgram, removeProgram } = useShader({ gl });
+
     const [programResults, setProgramResults] = useState<Record<ProgramId, ProgramResult>>({});
-    const [usedProgram, setUsedProgram] = useState<WebGLProgram | undefined>();
+    const [activeProgram, setActiveProgram] = useState<WebGLProgram>();
 
-    useEffect(() => () => Object.values(programResults).forEach(removeProgram), [programResults, removeProgram]);
-
-    useEffect(() => {
+    const updatePrograms = useCallback((programs?: ProgramConfig[]) => {
         setProgramResults(results => {
-            const newResults: Record<ProgramId, ProgramResult> = {
-                ...results,
-            };
-            const existingProgramIds = new Set();
-            for (let id in results) {
-                existingProgramIds.add(id);
-            }
-
-            programs?.forEach(program => {
-                existingProgramIds.add(program.id);
-                if (!results[program.id]) {
-                    const result = createProgram(program);
-                    if (result) {
-                        newResults[program.id] = result;
-                    }
-                }
-            });
-            Object.entries(newResults).forEach(([programId, result]) => {
-                if (!existingProgramIds.has(programId)) {
+            const newResults = {...results};
+            Object.entries(results).forEach(([programId, result]) => {
+                if (!programs?.find(({id, vertex, fragment}) => id === programId && result.vertex === vertex && result.fragment === fragment)) {
                     removeProgram(result);
                     delete newResults[programId];
                 }
             });
+
+            (programs??[]).forEach(program => {
+                if (program.id && !newResults[program.id]) {
+                    const result = createProgram(program);
+                    if (result) {
+                        newResults[program.id] = result;    
+                    }
+                }
+            });
             return newResults;
         });
-    }, [programs, createProgram, removeProgram]);
+    }, [createProgram, removeProgram]);
 
-    const setActiveProgram = useCallback((programId?: ProgramId): boolean => {
+    useEffect(() => {
+        setActiveProgram(undefined);
+        updatePrograms(programs);
+        return () => {
+            updatePrograms(undefined);
+        };
+    }, [programs, updatePrograms]);
+
+    const activateProgram = useCallback((programId?: ProgramId): boolean => {
         if (gl && programId) {
             const result = programResults[programId];
             if (result?.program) {
+                setActiveProgram(result.program);
                 gl.useProgram(result.program);
-                setUsedProgram(result.program);
                 return true;
             }
         }
@@ -57,34 +58,33 @@ export function useProgram({ gl, programs }: Props) {
 
     const getUniformLocation = useCallback((name: string, programId?: ProgramId): WebGLUniformLocation | undefined => {
         if (gl) {
-            const program = programId ? (programResults[programId])?.program : usedProgram;
+            const program = programResults[programId ?? ""]?.program ?? activeProgram;
             if (program) {
                 return gl.getUniformLocation(program, name) ?? undefined;
             }
         }
         return;
-    }, [gl, programResults, usedProgram]);
+    }, [gl, programResults, activeProgram]);
 
     const getAttributeLocation = useCallback((name: string, programId?: ProgramId): number => {
         if (gl) {
-            const program = programId ? (programResults[programId])?.program : usedProgram;
+            const program = programResults[programId ?? ""]?.program ?? activeProgram;
             if (program) {
                 return gl.getAttribLocation(program, name) ?? -1;
             }
         }
         return -1;
-    }, [gl, programResults, usedProgram]);
+    }, [gl, programResults, activeProgram]);
 
     useEffect(() => {
-        if (gl && !usedProgram) {
-            setActiveProgram(programs?.[0].id);
-        }
-    }, [gl, setActiveProgram, usedProgram, programs]);
+        const programId = programs?.[0]?.id;
+        activateProgram(programId);
+    }, [gl, activateProgram, programs]);
 
     return {
-        usedProgram,
         getAttributeLocation,
         getUniformLocation,
-        setActiveProgram,
+        activateProgram,
+        activeProgram,
     }
 }

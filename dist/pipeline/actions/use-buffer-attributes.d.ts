@@ -1,5 +1,5 @@
-import { ProgramId } from "../../gl/program/program";
-import { LocationName } from "../../gl/actions/GlAction";
+import { ProgramId } from "dok-gl-actions/dist/program/program";
+import { LocationName } from "dok-gl-actions";
 interface Props {
     gl?: WebGL2RenderingContext;
     getAttributeLocation(name: LocationName, programId?: ProgramId): number;

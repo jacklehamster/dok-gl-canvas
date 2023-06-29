@@ -1,5 +1,5 @@
+import { ProgramConfig } from "dok-gl-actions/dist/program/program";
 import { useCallback } from "react";
-import { ProgramConfig } from "./program/program";
 
 let nextId = 1;
 
@@ -9,6 +9,8 @@ interface Props {
 
 export interface ProgramResult {
     id: number;
+    vertex: string;
+    fragment: string;
     program?: WebGLProgram;
     ready?: boolean;
 }
@@ -41,7 +43,7 @@ export function useShader({ gl }: Props) {
         return shader;      
     }, [gl, typeName]);
 
-    const createProgram = useCallback(({ vertex, fragment}: ProgramConfig): ProgramResult | undefined => {
+    const createProgram = useCallback(({ vertex, fragment }: ProgramConfig): ProgramResult | undefined => {
         if (!gl) {
             return;
         }
@@ -67,6 +69,8 @@ export function useShader({ gl }: Props) {
         const result = {
             id: nextId++,
             program,
+            vertex,
+            fragment,
         };
         return result;
     }, [createShader, gl]);

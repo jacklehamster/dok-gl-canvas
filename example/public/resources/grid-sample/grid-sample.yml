@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - name: redraw
+    actions:
+    - clear:
+        color: true
+      drawArrays:
+        vertexCount: 6
+  - name: animate
+    actions:
+    - updateAttributeBuffer: position
+      actions:
+      - set:
+          variable: attributeBuffer
+          access: [0]
+          value: ~{sin(time/100) / 2}
+      - set:
+          variable: attributeBuffer
+          access: [9]
+          value: ~{sin(time/100) / 2}
+      - set:
+          variable: attributeBuffer
+          access: [15]
+          value: ~{1 + sin(time/100) / 2}
+  - name: refresh
+    actions:
+    - script: animate
+    - script: redraw
+  - actions:
+    - script: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          -.5, .5, 0.0,
+          -.5, -.5, 0.0,
+          .5, -.5, 0.0,
+          -.5, .5, 0.0,
+          .5, -.5, 0.0,
+          .5, .5, 0.0,
+        ]
+    - script: initBuffer
+      parameters:
+        location: gridPosition
+        size: 2
+        buffer: [
+          0, 10,
+          0, 0,
+          10, 0,
+          0, 10,
+          10, 0,
+          10, 10,
+        ]
+    - script: refresh
+      refresh: {}
+    tags: [main]
+programs:
+  - id: sample-grid-cell
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl
+      

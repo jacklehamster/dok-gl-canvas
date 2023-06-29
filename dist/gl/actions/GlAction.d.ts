@@ -5,21 +5,27 @@ import { ImageId, TextureId, Url } from "../../pipeline/actions/use-image-action
 export declare type LocationName = string;
 export declare type LocationResolution = LocationName | StringResolution | [LocationName | StringResolution, 0 | 1 | 2 | 3];
 export interface GlAction extends DokAction {
+    program?: {
+        id: StringResolution;
+        vertexShader: StringResolution;
+        fragmentShader: StringResolution;
+    };
     bufferData?: {
-        location: LocationName;
+        location: StringResolution<LocationName>;
         buffer?: TypedArrayResolution;
         length?: NumberResolution;
         usage?: StringResolution<GlUsage>;
         glType?: GlType;
     };
     bufferSubData?: {
-        location?: LocationName;
+        location?: StringResolution<LocationName>;
         data: TypedArrayResolution;
         dstByteOffset?: NumberResolution;
         srcOffset?: NumberResolution;
         length?: NumberResolution;
         glType?: GlType;
     };
+    updateAttributeBuffer?: StringResolution<LocationName>;
     bindVertexArray?: boolean;
     drawArrays?: {
         vertexFirst?: NumberResolution;

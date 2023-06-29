@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true }
+      drawArrays:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - updateAttributeBuffer: matrix
+      actions:
+      - loop: ~{attributeBufferLength}
+        set:
+          variable: attributeBuffer
+          access: ["~{index}"]
+          value: ~{value + (random() - 0.5) / 100}
+    - script: redraw
+  - actions:
+    - log: WORK IN PROGRESS
+    - set:
+        variable: instanceCount
+        value: 3
+    - set:
+        variable: vertexCount
+        value: 3
+    - set:
+        variable: BYTES_PER_FLOAT
+        value: 4
+    - script: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          0.0, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+        ]
+    - script: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+        ]
+    - script: initBuffer
+      parameters:
+        location: shift
+        size: 3
+        buffer: [
+          0, 0, 0,
+          -.5, -.5, 0,
+          .5, .5, 0,
+        ]
+        divisor: 1
+    - script: initBuffer
+      parameters:
+        location: matrix
+        size: 4
+        length: ~{3 * 16 * BYTES_PER_FLOAT}
+        rows: 4
+        divisor: 1
+        stride: ~{4 * 4 * BYTES_PER_FLOAT}
+    - updateAttributeBuffer: matrix
+      loop: [3, 4]
+      set:
+        variable: attributeBuffer
+        access: ["~{i * 16 + j + j * 4}"]
+        value: 1
+    - script: refresh
+      refresh: {}
+    tags: [main]
+programs:
+  - id: sample-motion
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

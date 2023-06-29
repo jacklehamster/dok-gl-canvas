@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - name: refresh
+    actions:
+    - uniform:
+        location: time
+        float: ~{time}
+    - clear: { color: true }
+      drawArrays: { vertexCount: 6 }
+  - name: loadImage
+    actions:
+    - hooks: [hasImageId]
+      actions:
+      - uniform:
+          location: uTexture
+          int: 0
+      - image:
+          src: ~{src}
+          imageId: ~{imageId}
+          onLoad:
+          - loadTexture:
+              textureId: TEXTURE0
+              imageId: ~{imageId}
+          - script: redraw
+      - pause: ~{hasImageId(imageId)}
+      - log: Image loaded
+  - actions:
+    - actions:
+      - set:
+          variable: spriteWidth
+          value: 238
+      - set:
+          variable: spriteSheetWidth
+          value: 1886
+      - set:
+          variable: w
+          value: ~{spriteWidth / spriteSheetWidth}
+    - script: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          -0.5, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+          -0.5, 0.5, 0.0,
+          0.5, -0.5, 0.0,
+          0.5, 0.5, 0.0,
+        ]
+    - script: initBuffer
+      parameters:
+        location: tex
+        size: 2
+        buffer: [
+          0, 0,
+          0, 1,
+          "~{w}", 1,
+          0, 0,
+          "~{w}", 1,
+          "~{w}", 0,
+        ]
+    - script: loadImage
+      parameters:
+        src: turtle.png
+        imageId: turtle
+    - script: refresh
+      refresh: {}
+    tags: [main]
+programs:
+  - id: sample-texture
+    vertex: ~reference=vertex.glsl
+    fragment: ~reference=fragment.glsl
