@@ -7,6 +7,7 @@ import useImageAction, { ImageId, Url } from "../../pipeline/actions/use-image-a
 import { GlAction, LocationName, LocationResolution } from "dok-gl-actions";
 import { GlUsage, ValueOf } from "dok-gl-actions/dist/types";
 import { ProgramId } from "dok-gl-actions/dist/program/program";
+import { mat4, quat, vec3 } from "gl-matrix";
 
 interface Props {
     gl?: WebGL2RenderingContext;
@@ -299,6 +300,42 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       });
     }, [loadImage]);
 
+    const convertSpriteMatrixTransform = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.spriteMatrixTransform) {
+        return;
+      }
+      const { translate, rotation, scale, index } = action.spriteMatrixTransform;
+      const translateResolution = translate?.map(r => calculateNumber(r, 0)) ?? [0,0,0];
+      const rotationResolution = rotation?.map(r => calculateNumber(r, 0)) ?? [0,0,0];
+      const scaleResolution = scale?.map(r => calculateNumber(r, 1)) ?? [1,1,1];
+      const indexResolution = calculateNumber(index);
+
+      const matrix = new Float32Array(16);
+      const quaternion = quat.create();
+      const translationVec3 = vec3.create();
+      const scaleVec3 = vec3.create();
+      
+      const bytesPerInstance = 16 * Float32Array.BYTES_PER_ELEMENT;
+      results.push((parameters) => {
+        mat4.fromRotationTranslationScale(
+          matrix,
+          quat.fromEuler(quaternion,
+            rotationResolution[0].valueOf(parameters),
+            rotationResolution[1].valueOf(parameters),
+            rotationResolution[2].valueOf(parameters)),
+          vec3.set(translationVec3,
+            translateResolution[0].valueOf(parameters),
+            translateResolution[1].valueOf(parameters),
+            translateResolution[2].valueOf(parameters)),
+          vec3.set(scaleVec3,
+            scaleResolution[0].valueOf(parameters),
+            scaleResolution[1].valueOf(parameters),
+            scaleResolution[2].valueOf(parameters)));
+          const indexValue = indexResolution.valueOf(parameters);
+          gl?.bufferSubData(gl.ARRAY_BUFFER, indexValue * bytesPerInstance, matrix);
+        });
+    }, [gl]);
+
     const convertAttributesBufferUpdate = useCallback<Convertor<GlAction>>(async (action, results, utils, external, actionConversionMap) => {
       if (!action.updateAttributeBuffer) {
         return;
@@ -347,9 +384,10 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         convertLoadTexture,
         convertVideo,
         convertImage,
+        convertSpriteMatrixTransform,
         convertDrawArrays,
       ]);
-    }, [hasImageId, convertAttributesBufferUpdate, convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertDrawArrays]);
+    }, [hasImageId, convertAttributesBufferUpdate, convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertDrawArrays]);
 
     return {
       getScriptProcessor,

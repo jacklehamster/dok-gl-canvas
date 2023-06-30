@@ -2,6 +2,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var React = require('react');
 var React__default = _interopDefault(React);
+var glMatrix = require('gl-matrix');
 
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -94893,6 +94894,42 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [loadImage]);
+  var convertSpriteMatrixTransform = React.useCallback(function (action, results) {
+    try {
+      var _translate$map, _rotation$map, _scale$map;
+      if (!action.spriteMatrixTransform) {
+        return Promise.resolve();
+      }
+      var _action$spriteMatrixT = action.spriteMatrixTransform,
+        translate = _action$spriteMatrixT.translate,
+        rotation = _action$spriteMatrixT.rotation,
+        scale = _action$spriteMatrixT.scale,
+        index = _action$spriteMatrixT.index;
+      var translateResolution = (_translate$map = translate === null || translate === void 0 ? void 0 : translate.map(function (r) {
+        return calculateNumber(r, 0);
+      })) != null ? _translate$map : [0, 0, 0];
+      var rotationResolution = (_rotation$map = rotation === null || rotation === void 0 ? void 0 : rotation.map(function (r) {
+        return calculateNumber(r, 0);
+      })) != null ? _rotation$map : [0, 0, 0];
+      var scaleResolution = (_scale$map = scale === null || scale === void 0 ? void 0 : scale.map(function (r) {
+        return calculateNumber(r, 1);
+      })) != null ? _scale$map : [1, 1, 1];
+      var indexResolution = calculateNumber(index);
+      var matrix = new Float32Array(16);
+      var quaternion = glMatrix.quat.create();
+      var translationVec3 = glMatrix.vec3.create();
+      var scaleVec3 = glMatrix.vec3.create();
+      var bytesPerInstance = 16 * Float32Array.BYTES_PER_ELEMENT;
+      results.push(function (parameters) {
+        glMatrix.mat4.fromRotationTranslationScale(matrix, glMatrix.quat.fromEuler(quaternion, rotationResolution[0].valueOf(parameters), rotationResolution[1].valueOf(parameters), rotationResolution[2].valueOf(parameters)), glMatrix.vec3.set(translationVec3, translateResolution[0].valueOf(parameters), translateResolution[1].valueOf(parameters), translateResolution[2].valueOf(parameters)), glMatrix.vec3.set(scaleVec3, scaleResolution[0].valueOf(parameters), scaleResolution[1].valueOf(parameters), scaleResolution[2].valueOf(parameters)));
+        var indexValue = indexResolution.valueOf(parameters);
+        gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, indexValue * bytesPerInstance, matrix);
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [gl]);
   var convertAttributesBufferUpdate = React.useCallback(function (action, results, utils, external, actionConversionMap) {
     try {
       if (!action.updateAttributeBuffer) {
@@ -94927,8 +94964,8 @@ function useGlAction(_ref) {
     return new ScriptProcessor(scripts, _extends({}, DEFAULT_EXTERNALS, {
       hasImageId: hasImageId,
       Math: Math
-    }), [convertAttributesBufferUpdate].concat(getDefaultConvertors(), [convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertDrawArrays]));
-  }, [hasImageId, convertAttributesBufferUpdate, convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertDrawArrays]);
+    }), [convertAttributesBufferUpdate].concat(getDefaultConvertors(), [convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertDrawArrays]));
+  }, [hasImageId, convertAttributesBufferUpdate, convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertDrawArrays]);
   return {
     getScriptProcessor: getScriptProcessor
   };

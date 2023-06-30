@@ -5375,10 +5375,10 @@ dok-actions@^1.1.35:
   dependencies:
     mathjs "^11.8.0"
 
-dok-gl-actions@^1.0.14:
-  version "1.0.14"
-  resolved "https://registry.npmjs.org/dok-gl-actions/-/dok-gl-actions-1.0.14.tgz"
-  integrity sha512-cMY2tRWGYcbVC6qa7ElSb2PD+WTKHhoS8On46urge/knH7vs0s9qN+kzfVL4cr1+mVC2C94gboDinc+UjPwTXg==
+dok-gl-actions@^1.0.15:
+  version "1.0.15"
+  resolved "https://registry.npmjs.org/dok-gl-actions/-/dok-gl-actions-1.0.15.tgz"
+  integrity sha512-Dykh5qGZnX9fTtuaBIuSIyR7WFQ79tz892BeYDblD3cDMErkQyLXXu9vkaRDnNd/SQo4hUOB9Myxbis1yPn1WA==
   dependencies:
     dok-actions "^1.1.35"
 
