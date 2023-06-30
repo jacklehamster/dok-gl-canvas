@@ -94984,7 +94984,6 @@ function GLCanvas(props) {
   }, [gl, activeProgram, width, height, glConfig]);
   useEffect(function () {
     if (ready) {
-      console.log(activeProgram, ready, processor, programs);
       var cleanup = processor === null || processor === void 0 ? void 0 : processor.runByTags(["main"]);
       return function () {
         return Promise.resolve(cleanup).then(function (_cleanup) {
@@ -94992,7 +94991,7 @@ function GLCanvas(props) {
         });
       };
     }
-  }, [activeProgram, ready, processor, programs]);
+  }, [activeProgram, ready, processor]);
   useEffect(function () {
     if (controller) {
       controller.setActiveProgram = activateProgram;

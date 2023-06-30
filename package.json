@@ -37,8 +37,8 @@
       "@types/node": "^12.12.38",
       "@types/react": "^16.9.0",
       "@types/react-dom": "^16.9.0",
-      "@typescript-eslint/eslint-plugin": "^5.59.6",
-      "@typescript-eslint/parser": "^5.59.6",
+      "@typescript-eslint/eslint-plugin": "^5.60.1",
+      "@typescript-eslint/parser": "^5.60.1",
       "babel-eslint": "^10.0.3",
       "cross-env": "^7.0.2",
       "eslint": "^8.39.0",
@@ -93,7 +93,7 @@
    ],
    "homepage": "https://github.com/jacklehamster/dok-gl-canvas#readme",
    "dependencies": {
-      "dok-gl-actions": "^1.0.13",
+      "dok-gl-actions": "^1.0.14",
       "gl-matrix": "^3.4.3"
    }
 }
