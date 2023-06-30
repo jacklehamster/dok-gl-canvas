@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json#/definitions/GlScript
+
+name: matrixIdentity
+actions:
+- updateAttributeBuffer: ~{attributeName}
+  loop: [3, 4]
+  set:
+    variable: attributeBuffer
+    access: ["~{i * 16 + j + j * 4}"]
+    value: 1
+    

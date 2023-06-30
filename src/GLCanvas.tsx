@@ -43,14 +43,9 @@ export default function GLCanvas(props?: Props): JSX.Element {
     useEffect((): void | (() => void) => {
         if (ready) {
             const cleanup = processor?.runByTags(["main"]);
-            const loopCleanup = processor?.refreshByTags(["loop"], { cleanupAfterRefresh: false });
-
-            return async () => {
-                (await cleanup)?.();
-                (await loopCleanup)?.();
-            };
+            return async () => (await cleanup)?.();
         }
-    }, [activeProgram, glConfig, ready, processor]);
+    }, [activeProgram, ready, processor]);
 
     useEffect(() => {
         if (controller) {

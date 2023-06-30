@@ -16,7 +16,7 @@ scripts:
       - uniform:
           location: uTexture
           int: 0
-      - image:
+        image:
           src: ~{src}
           imageId: ~{imageId}
           onLoad:
@@ -25,7 +25,7 @@ scripts:
               imageId: ~{imageId}
           - script: redraw
       - pause: ~{hasImageId(imageId)}
-      - log: Image loaded
+      - log: "~Image loaded: {imageId}"
   - actions:
     - actions:
       - set:

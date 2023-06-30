@@ -2,6 +2,7 @@
 
 scripts:
   - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/matrix-identity.yaml
   - name: redraw
     actions:
     - clear: { color: true }
@@ -61,16 +62,13 @@ scripts:
       parameters:
         location: matrix
         size: 4
-        length: ~{3 * 16 * BYTES_PER_FLOAT}
+        length: ~{instanceCount * 16 * BYTES_PER_FLOAT}
         rows: 4
         divisor: 1
         stride: ~{4 * 4 * BYTES_PER_FLOAT}
-    - updateAttributeBuffer: matrix
-      loop: [3, 4]
-      set:
-        variable: attributeBuffer
-        access: ["~{i * 16 + j + j * 4}"]
-        value: 1
+    - script: matrixIdentity
+      parameters:
+        attributeName: matrix
     - script: refresh
       refresh: {}
     tags: [main]

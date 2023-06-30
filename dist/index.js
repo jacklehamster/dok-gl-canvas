@@ -26827,7 +26827,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React__default.createElement(Control, {
       controller: controller
-    }, React__default.createElement(Node, _extends({}, props))), hud);
+    }, React__default.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -27969,7 +27969,7 @@ function useProgram(_ref) {
     setActiveProgram(undefined);
     updatePrograms(programs);
     return function () {
-      updatePrograms(undefined);
+      return updatePrograms(undefined);
     };
   }, [programs, updatePrograms]);
   var activateProgram = React.useCallback(function (programId) {
@@ -93315,7 +93315,7 @@ function recycleParams(params, context) {
   (_context$objectPool2 = context.objectPool) === null || _context$objectPool2 === void 0 ? void 0 : _context$objectPool2.push(params);
 }
 
-var FORMULA_SEPERATORS = ["~{", "}"];
+var FORMULA_SEPERATORS = ["~", "{", "}"];
 
 function hasFormula(resolution) {
   if (isFormula(resolution)) {
@@ -93339,16 +93339,38 @@ function isFormula(value) {
     return false;
   }
   var formula = typeof value === "string" ? value : value.formula;
-  var prefix = FORMULA_SEPERATORS[0],
-    suffix = FORMULA_SEPERATORS[1];
-  return (formula === null || formula === void 0 ? void 0 : formula.indexOf(prefix)) === 0 && (formula === null || formula === void 0 ? void 0 : formula.indexOf(suffix)) === formula.length - suffix.length;
+  var _FORMULA_SEPERATORS$m = FORMULA_SEPERATORS.map(function (_char) {
+      return formula === null || formula === void 0 ? void 0 : formula.indexOf(_char);
+    }),
+    startCharacter = _FORMULA_SEPERATORS$m[0],
+    prefix = _FORMULA_SEPERATORS$m[1],
+    suffix = _FORMULA_SEPERATORS$m[2];
+  return startCharacter === 0 && prefix > startCharacter && suffix > prefix;
 }
-function getInnerFormula(value) {
+function getInnerFormulas(value) {
   var formula = typeof value === "string" ? value : value.formula;
-  var prefix = FORMULA_SEPERATORS[0],
-    suffix = FORMULA_SEPERATORS[1];
-  var innerFormula = formula.substring(prefix.length, formula.length - suffix.length);
-  return innerFormula;
+  var startCharacter = FORMULA_SEPERATORS[0],
+    prefix = FORMULA_SEPERATORS[1],
+    suffix = FORMULA_SEPERATORS[2];
+  return formula.substring(startCharacter.length).split(prefix).map(function (chunk, index) {
+    if (index === 0) {
+      return {
+        textSuffix: chunk,
+        formula: ""
+      };
+    }
+    var _chunk$split = chunk.split(suffix),
+      formula = _chunk$split[0],
+      textSuffix = _chunk$split[1];
+    return {
+      formula: formula,
+      textSuffix: textSuffix
+    };
+  }).filter(function (_ref) {
+    var textSuffix = _ref.textSuffix,
+      formula = _ref.formula;
+    return textSuffix.length || formula.length;
+  });
 }
 var IDENTIFIER_REGEX = /^([^\x00-\x7F]|[A-Za-z_])([^\x00-\x7F]|\w)+$/;
 function isSimpleInnerFormula(innerFormula) {
@@ -93368,21 +93390,51 @@ function calculateEvaluator(evaluator, parameters, formula, defaultValue) {
   }
   return defaultValue;
 }
-function getFormulaEvaluator(value) {
-  if (!isFormula(value)) {
-    throw new Error("Formula: " + value + " must match the format: \"" + FORMULA_SEPERATORS[0] + "formula" + FORMULA_SEPERATORS[1] + "\".");
+function getEvaluator(formula) {
+  if (!formula.length) {
+    return {
+      evaluate: function evaluate() {
+        return "";
+      }
+    };
   }
-  var innerFormula = getInnerFormula(value);
-  var mathEvaluator = parse(innerFormula).compile();
-  if (isSimpleInnerFormula(innerFormula)) {
+  var mathEvaluator = parse(formula).compile();
+  if (isSimpleInnerFormula(formula)) {
     return {
       evaluate: function evaluate(scope) {
-        var _scope$innerFormula;
-        return (_scope$innerFormula = scope[innerFormula]) != null ? _scope$innerFormula : mathEvaluator.evaluate(scope);
+        var _scope$formula;
+        return (_scope$formula = scope[formula]) != null ? _scope$formula : mathEvaluator.evaluate(scope);
       }
     };
   }
   return mathEvaluator;
+}
+function getFormulaEvaluator(value) {
+  if (!isFormula(value)) {
+    throw new Error("Formula: " + value + " must match the format: \"" + FORMULA_SEPERATORS[0] + "formula" + FORMULA_SEPERATORS[1] + "\".");
+  }
+  var values = getInnerFormulas(value);
+  if (values.length === 1 && !values[0].textSuffix.length) {
+    return getEvaluator(values[0].formula);
+  } else {
+    var evaluators = values.map(function (_ref) {
+      var formula = _ref.formula,
+        textSuffix = _ref.textSuffix;
+      return {
+        mathEvaluator: getEvaluator(formula),
+        textSuffix: textSuffix
+      };
+    });
+    return {
+      evaluate: function evaluate(scope) {
+        return evaluators.map(function (_ref2) {
+          var mathEvaluator = _ref2.mathEvaluator,
+            textSuffix = _ref2.textSuffix;
+          return mathEvaluator.evaluate(scope) + textSuffix;
+        }).join("");
+      }
+    };
+  }
 }
 
 function calculateArray(value) {
@@ -94934,20 +94986,15 @@ function GLCanvas(props) {
   }, [gl, activeProgram, width, height, glConfig]);
   React.useEffect(function () {
     if (ready) {
+      console.log(activeProgram, ready, processor, programs);
       var cleanup = processor === null || processor === void 0 ? void 0 : processor.runByTags(["main"]);
-      var loopCleanup = processor === null || processor === void 0 ? void 0 : processor.refreshByTags(["loop"], {
-        cleanupAfterRefresh: false
-      });
       return function () {
         return Promise.resolve(cleanup).then(function (_cleanup) {
-          _cleanup === null || _cleanup === void 0 ? void 0 : _cleanup();
-          return Promise.resolve(loopCleanup).then(function (_loopCleanup) {
-            _loopCleanup === null || _loopCleanup === void 0 ? void 0 : _loopCleanup();
-          });
+          return _cleanup === null || _cleanup === void 0 ? void 0 : _cleanup();
         });
       };
     }
-  }, [activeProgram, glConfig, ready, processor]);
+  }, [activeProgram, ready, processor, programs]);
   React.useEffect(function () {
     if (controller) {
       controller.setActiveProgram = activateProgram;

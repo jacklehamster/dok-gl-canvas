@@ -39,9 +39,7 @@ export function useProgram({ gl, programs }: Props) {
     useEffect(() => {
         setActiveProgram(undefined);
         updatePrograms(programs);
-        return () => {
-            updatePrograms(undefined);
-        };
+        return () => updatePrograms(undefined);
     }, [programs, updatePrograms]);
 
     const activateProgram = useCallback((programId?: ProgramId): boolean => {
