@@ -20,15 +20,10 @@ scripts:
           value: ~{value + (random() - 0.5) / 100}
     - script: redraw
   - actions:
-    - set:
-        variable: instanceCount
-        value: 3
-    - set:
-        variable: vertexCount
-        value: 3
-    - set:
-        variable: BYTES_PER_FLOAT
-        value: 4
+    - sets:
+        instanceCount: 3
+        vertexCount: 3
+        BYTES_PER_FLOAT: 4
     - script: initBuffer
       parameters:
         location: position

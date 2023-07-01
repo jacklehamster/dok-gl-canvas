@@ -93832,17 +93832,45 @@ var convertDelayProperty = function convertDelayProperty(action, results, utils,
   }
 };
 
+var convertSetsProperty = function convertSetsProperty(action, results) {
+  try {
+    if (!action.sets) {
+      return Promise.resolve();
+    }
+    var sets = action.sets;
+    var setsEntries = !sets ? [] : Object.entries(sets).map(function (_ref) {
+      var key = _ref[0],
+        value = _ref[1];
+      return [key, calculateResolution(value)];
+    });
+    results.push(function (parameters, context) {
+      var paramCopy = newParams(parameters, context);
+      for (var _iterator = _createForOfIteratorHelperLoose(setsEntries), _step; !(_step = _iterator()).done;) {
+        var _step$value = _step.value,
+          key = _step$value[0],
+          value = _step$value[1];
+        paramCopy.value = paramCopy[key];
+        parameters[key] = value === null || value === void 0 ? void 0 : value.valueOf(paramCopy);
+      }
+      recycleParams(paramCopy, context);
+    });
+    return Promise.resolve();
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
 var convertSetProperty = function convertSetProperty(action, results) {
   try {
-    var _action$set$access$ma, _action$set$access;
+    var _set$access$map, _set$access;
     if (!action.set) {
       return Promise.resolve();
     }
-    var variable = calculateString(action.set.variable);
-    var access = [variable].concat((_action$set$access$ma = (_action$set$access = action.set.access) === null || _action$set$access === void 0 ? void 0 : _action$set$access.map(function (a) {
+    var set = action.set;
+    var variable = calculateString(set.variable);
+    var access = [variable].concat((_set$access$map = (_set$access = set.access) === null || _set$access === void 0 ? void 0 : _set$access.map(function (a) {
       return calculateResolution(a);
-    })) != null ? _action$set$access$ma : []);
-    var value = calculateResolution(action.set.value);
+    })) != null ? _set$access$map : []);
+    var value = calculateResolution(set.value);
     results.push(function (parameters) {
       var root = parameters;
       for (var i = 0; i < access.length; i++) {
@@ -94089,7 +94117,7 @@ var convertScriptProperty = function convertScriptProperty(action, results, _ref
 };
 
 function getDefaultConvertors() {
-  return [convertHooksProperty, convertParametersProperty, convertRefreshProperty, convertLoopProperty, convertConditionProperty, convertDelayProperty, convertPauseProperty, convertLockProperty, convertSetProperty, convertLogProperty, convertScriptProperty, convertActionsProperty];
+  return [convertHooksProperty, convertParametersProperty, convertRefreshProperty, convertLoopProperty, convertConditionProperty, convertDelayProperty, convertPauseProperty, convertLockProperty, convertSetProperty, convertSetsProperty, convertLogProperty, convertScriptProperty, convertActionsProperty];
 }
 
 var ScriptProcessor = /*#__PURE__*/function () {
