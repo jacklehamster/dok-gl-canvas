@@ -26,10 +26,10 @@ scripts:
           value: ~{1 + sin(time/100) / 2}
   - name: refresh
     actions:
-    - script: animate
-    - script: redraw
+    - executeScript: animate
+    - executeScript: redraw
   - actions:
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: position
         size: 3
@@ -41,7 +41,7 @@ scripts:
           .5, -.5, 0.0,
           .5, .5, 0.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: gridPosition
         size: 2
@@ -53,7 +53,7 @@ scripts:
           10, 0,
           10, 10,
         ]
-    - script: refresh
+    - executeScript: refresh
       refresh: {}
     tags: [main]
 programs:

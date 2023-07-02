@@ -31,11 +31,11 @@ scripts:
           value: ~{1 + sin(time/500) / 2}
   - name: refresh
     actions:
-    - script: loadTexture
-    - script: animate
-    - script: redraw
+    - executeScript: loadTexture
+    - executeScript: animate
+    - executeScript: redraw
   - actions:
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: position
         size: 3
@@ -47,7 +47,7 @@ scripts:
           0.5, -0.5, 0.0,
           0.5, 0.5, 0.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: tex
         size: 2
@@ -66,7 +66,7 @@ scripts:
         src: sample.mp4
         imageId: video
         volume: 0
-    - script: refresh
+    - executeScript: refresh
       refresh: {}
     tags: [main]
 programs:

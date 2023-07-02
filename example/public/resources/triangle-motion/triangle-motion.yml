@@ -18,13 +18,13 @@ scripts:
           variable: attributeBuffer
           access: ["~{index}"]
           value: ~{value + (random() - 0.5) / 100}
-    - script: redraw
+    - executeScript: redraw
   - actions:
     - sets:
         instanceCount: 3
         vertexCount: 3
         BYTES_PER_FLOAT: 4
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: position
         size: 3
@@ -33,7 +33,7 @@ scripts:
           -0.5, -0.5, 0.0,
           0.5, -0.5, 0.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: color
         size: 3
@@ -43,7 +43,7 @@ scripts:
           0.0, 0.0, 1.0,
         ]
         divisor: 1
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: shift
         size: 3
@@ -53,7 +53,7 @@ scripts:
           .5, .5, 0,
         ]
         divisor: 1
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: matrix
         size: 4
@@ -61,10 +61,10 @@ scripts:
         rows: 4
         divisor: 1
         stride: ~{4 * 4 * BYTES_PER_FLOAT}
-    - script: matrixIdentity
+    - executeScript: matrixIdentity
       parameters:
         attributeName: matrix
-    - script: refresh
+    - executeScript: refresh
       refresh: {}
     tags: [main]
 programs:

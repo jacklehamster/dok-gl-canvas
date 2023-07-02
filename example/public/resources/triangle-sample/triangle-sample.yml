@@ -12,7 +12,7 @@ scripts:
     - clear: { color: true }
       drawArrays: { vertexCount: 3 }
   - actions:
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: position
         size: 3
@@ -21,7 +21,7 @@ scripts:
           -0.5, -0.5, 0.0,
           0.5, -0.5, 0.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: color
         size: 3
@@ -30,7 +30,7 @@ scripts:
           0.0, 1.0, 0.0,
           0.0, 0.0, 1.0,
         ]
-    - script: refresh
+    - executeScript: refresh
       refresh: {}
     tags: [main]
 programs:

@@ -20,7 +20,7 @@ scripts:
           variable: attributeBuffer
           access: [4]
           value: ~{cos(time/100)}
-    - script: redraw
+    - executeScript: redraw
   - actions:
     - set:
         variable: instanceCount
@@ -31,7 +31,7 @@ scripts:
     - set:
         variable: BYTES_PER_FLOAT
         value: 4
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: position
         size: 3
@@ -40,7 +40,7 @@ scripts:
           -0.5, -0.5, 0.0,
           0.5, -0.5, 0.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: color
         size: 3
@@ -49,7 +49,7 @@ scripts:
           0.0, 1.0, 0.0,
           0.0, 0.0, 1.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: shift
         size: 3
@@ -58,7 +58,7 @@ scripts:
       bufferSubData:
         dstByteOffset: ~{2 * vertexCount * BYTES_PER_FLOAT}
         data: [.5, .5, 0]
-    - script: refresh
+    - executeScript: refresh
       refresh: {}
     tags: [main]
 programs:

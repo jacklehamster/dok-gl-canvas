@@ -23,7 +23,7 @@ scripts:
           - loadTexture:
               textureId: TEXTURE0
               imageId: ~{imageId}
-          - script: redraw
+          - executeScript: redraw
       - pause: ~{hasImageId(imageId)}
       - log: "~Image loaded: {imageId}"
   - actions:
@@ -37,7 +37,7 @@ scripts:
       - set:
           variable: w
           value: ~{spriteWidth / spriteSheetWidth}
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: position
         size: 3
@@ -49,7 +49,7 @@ scripts:
           0.5, -0.5, 0.0,
           0.5, 0.5, 0.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: tex
         size: 2
@@ -61,11 +61,11 @@ scripts:
           "~{w}", 1,
           "~{w}", 0,
         ]
-    - script: loadImage
+    - executeScript: loadImage
       parameters:
         src: turtle.png
         imageId: turtle
-    - script: refresh
+    - executeScript: refresh
       refresh: {}
     tags: [main]
 programs:

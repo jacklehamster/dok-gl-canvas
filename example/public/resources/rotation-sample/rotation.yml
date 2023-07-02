@@ -26,7 +26,7 @@ scripts:
         translate: [.5, 0 ,0]
         scale: [.7, .7, .7]
         rotation: [0, 0, "~{mod(time / 100, 360)}"]
-    - script: redraw
+    - executeScript: redraw
   - actions:
     - log: WORK IN PROGRESS
     - set:
@@ -38,7 +38,7 @@ scripts:
     - set:
         variable: BYTES_PER_FLOAT
         value: 4
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: position
         size: 3
@@ -47,7 +47,7 @@ scripts:
           -0.5, -0.5, 0.0,
           0.5, -0.5, 0.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: color
         size: 3
@@ -56,7 +56,7 @@ scripts:
           0.0, 1.0, 0.0,
           0.0, 0.0, 1.0,
         ]
-    - script: initBuffer
+    - executeScript: initBuffer
       parameters:
         location: matrix
         size: 4
@@ -64,10 +64,10 @@ scripts:
         rows: 4
         divisor: 1
         stride: ~{4 * 4 * BYTES_PER_FLOAT}
-    - script: matrixIdentity
+    - executeScript: matrixIdentity
       parameters:
         attributeName: matrix
-    - script: refresh
+    - executeScript: refresh
       refresh: {}
     tags: [main]
 programs:
