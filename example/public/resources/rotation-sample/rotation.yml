@@ -28,16 +28,10 @@ scripts:
         rotation: [0, 0, "~{mod(time / 100, 360)}"]
     - executeScript: redraw
   - actions:
-    - log: WORK IN PROGRESS
-    - set:
-        variable: instanceCount
-        value: 3
-    - set:
-        variable: vertexCount
-        value: 3
-    - set:
-        variable: BYTES_PER_FLOAT
-        value: 4
+    - sets:
+        instanceCount: 3
+        vertexCount: 3
+        BYTES_PER_FLOAT: 4
     - executeScript: initBuffer
       parameters:
         location: position

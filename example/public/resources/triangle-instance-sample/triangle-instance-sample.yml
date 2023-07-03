@@ -21,16 +21,14 @@ scripts:
           access: [4]
           value: ~{cos(time/100)}
     - executeScript: redraw
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
   - actions:
-    - set:
-        variable: instanceCount
-        value: 3
-    - set:
-        variable: vertexCount
-        value: 3
-    - set:
-        variable: BYTES_PER_FLOAT
-        value: 4
+    - sets:
+        instanceCount: 3
+        vertexCount: 3
+        BYTES_PER_FLOAT: 4
     - executeScript: initBuffer
       parameters:
         location: position
@@ -55,10 +53,13 @@ scripts:
         size: 3
         buffer: ~{vertexCount * instanceCount * BYTES_PER_FLOAT}
         divisor: 1
-      bufferSubData:
+    - bufferSubData:
         dstByteOffset: ~{2 * vertexCount * BYTES_PER_FLOAT}
         data: [.5, .5, 0]
     - executeScript: refresh
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
       refresh: {}
     tags: [main]
 programs:

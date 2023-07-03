@@ -2,14 +2,14 @@
 
 name: initBuffer
 actions:
-- defaultParameters:
+- defaultValues:
     buffer: null
   bindBuffer: ~{location}
   bufferData:
     location: ~{location}
     buffer: ~{buffer}
     length: ~{length}
-- defaultParameters:
+- defaultValues:
     divisor: 0
     stride: 0
     rows: 1

@@ -93303,8 +93303,10 @@ var convertAction = function convertAction(action, stepResults, utils, external,
 function newParams(parameters, context) {
   var _context$objectPool$p, _context$objectPool;
   var params = (_context$objectPool$p = (_context$objectPool = context.objectPool) === null || _context$objectPool === void 0 ? void 0 : _context$objectPool.pop()) != null ? _context$objectPool$p : {};
-  for (var k in parameters) {
-    params[k] = parameters[k];
+  if (parameters) {
+    for (var k in parameters) {
+      params[k] = parameters[k];
+    }
   }
   return params;
 }
@@ -93835,6 +93837,41 @@ var convertDelayProperty = function convertDelayProperty(action, results, utils,
   }
 };
 
+var convertDefaultValuesProperty = function convertDefaultValuesProperty(action, results) {
+  try {
+    if (!action.defaultValues) {
+      return Promise.resolve();
+    }
+    var defaultValues = action.defaultValues;
+    var defaultValuesEntries = !defaultValues ? [] : Object.entries(defaultValues).map(function (_ref2) {
+      var key = _ref2[0],
+        value = _ref2[1];
+      return [key, calculateResolution(value)];
+    });
+    results.push(function (parameters, context) {
+      var paramsTemp = newParams(undefined, context);
+      for (var _iterator3 = _createForOfIteratorHelperLoose(defaultValuesEntries), _step3; !(_step3 = _iterator3()).done;) {
+        var _step3$value = _step3.value,
+          key = _step3$value[0],
+          value = _step3$value[1];
+        parameters.value = parameters[key];
+        paramsTemp[key] = value === null || value === void 0 ? void 0 : value.valueOf(parameters);
+      }
+      delete parameters.value;
+      for (var _iterator4 = _createForOfIteratorHelperLoose(defaultValuesEntries), _step4; !(_step4 = _iterator4()).done;) {
+        var _step4$value = _step4.value,
+          _key2 = _step4$value[0];
+        if (parameters[_key2] === undefined) {
+          parameters[_key2] = paramsTemp[_key2];
+        }
+      }
+      recycleParams(paramsTemp, context);
+    });
+    return Promise.resolve();
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
 var convertSetsProperty = function convertSetsProperty(action, results) {
   try {
     if (!action.sets) {
@@ -93847,15 +93884,21 @@ var convertSetsProperty = function convertSetsProperty(action, results) {
       return [key, calculateResolution(value)];
     });
     results.push(function (parameters, context) {
-      var paramCopy = newParams(parameters, context);
+      var paramsTemp = newParams(undefined, context);
       for (var _iterator = _createForOfIteratorHelperLoose(setsEntries), _step; !(_step = _iterator()).done;) {
         var _step$value = _step.value,
           key = _step$value[0],
           value = _step$value[1];
-        paramCopy.value = paramCopy[key];
-        parameters[key] = value === null || value === void 0 ? void 0 : value.valueOf(paramCopy);
+        parameters.value = parameters[key];
+        paramsTemp[key] = value === null || value === void 0 ? void 0 : value.valueOf(parameters);
       }
-      recycleParams(paramCopy, context);
+      delete parameters.value;
+      for (var _iterator2 = _createForOfIteratorHelperLoose(setsEntries), _step2; !(_step2 = _iterator2()).done;) {
+        var _step2$value = _step2.value,
+          _key = _step2$value[0];
+        parameters[_key] = paramsTemp[_key];
+      }
+      recycleParams(paramsTemp, context);
     });
     return Promise.resolve();
   } catch (e) {
@@ -93910,6 +93953,34 @@ var convertSetProperty = function convertSetProperty(action, results) {
   }
 };
 
+var convertHooksProperty = function convertHooksProperty(action, results, _, external) {
+  try {
+    if (!action.hooks) {
+      return Promise.resolve();
+    }
+    var hooks = action.hooks;
+    var hooksResolution = hooks;
+    var hooksValueOf = hooksResolution.map(function (hook) {
+      return calculateString(hook);
+    });
+    results.push(function (parameters) {
+      for (var _iterator = _createForOfIteratorHelperLoose(hooksValueOf), _step; !(_step = _iterator()).done;) {
+        var hook = _step.value;
+        var h = hook.valueOf(parameters);
+        var x = external[h];
+        if (x) {
+          parameters[h] = x;
+        } else {
+          console.warn("Does not exist", x);
+        }
+      }
+    });
+    return Promise.resolve();
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+
 var convertLogProperty = function convertLogProperty(action, results, _, external) {
   try {
     if (action.log === undefined) {
@@ -93931,23 +94002,6 @@ var convertLogProperty = function convertLogProperty(action, results, _, externa
 };
 
 var _excluded$2 = ["loop"];
-function keepLooping(parameters, context, loops, steps, depth) {
-  if (depth === void 0) {
-    depth = 0;
-  }
-  if (depth >= loops.length) {
-    execute(steps, parameters, context);
-    return;
-  }
-  var length = loops[depth].valueOf(parameters);
-  var p = newParams(parameters, context);
-  var letter = String.fromCharCode('i'.charCodeAt(0) + depth);
-  for (var i = 0; i < length; i++) {
-    p.index = p[letter] = i;
-    keepLooping(p, context, loops, steps, depth + 1);
-  }
-  recycleParams(p, context);
-}
 var convertLoopProperty = function convertLoopProperty(action, stepResults, utils, external, actionConversionMap) {
   try {
     if (action.loop === undefined) {
@@ -93976,85 +94030,46 @@ var convertLoopProperty = function convertLoopProperty(action, stepResults, util
     return Promise.reject(e);
   }
 };
-
-var _excluded$3 = ["parameters", "defaultParameters"],
-  _excluded2$1 = ["hooks"];
-var convertHooksProperty = function convertHooksProperty(action, results, utils, external, actionConversionMap) {
-  try {
-    if (!action.hooks) {
-      return Promise.resolve();
-    }
-    var hooks = action.hooks,
-      subAction = _objectWithoutPropertiesLoose$1(action, _excluded2$1);
-    var hooksResolution = hooks;
-    var hooksValueOf = hooksResolution.map(function (hook) {
-      return calculateString(hook);
-    });
-    var postStepResults = [];
-    var remainingActions = utils.getRemainingActions();
-    return Promise.resolve(convertAction(subAction, postStepResults, utils, external, actionConversionMap)).then(function () {
-      function _temp2() {
-        results.push(function (parameters, context) {
-          var paramValues = newParams(parameters, context);
-          for (var _iterator3 = _createForOfIteratorHelperLoose(hooksValueOf), _step3; !(_step3 = _iterator3()).done;) {
-            var hook = _step3.value;
-            var h = hook.valueOf(parameters);
-            var x = external[h];
-            if (x) {
-              paramValues[h] = x;
-            } else {
-              console.warn("Does not exist", x);
-            }
-          }
-          execute(postStepResults, paramValues, context);
-          recycleParams(paramValues, context);
-        });
-        return ConvertBehavior.SKIP_REMAINING_ACTIONS;
-      }
-      var _temp = _forOf$1(remainingActions, function (action) {
-        return Promise.resolve(convertAction(action, postStepResults, utils, external, actionConversionMap)).then(function () {});
-      });
-      return _temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp);
-    });
-  } catch (e) {
-    return Promise.reject(e);
+var VARIABLE_NAMES = "ijklmnopqrstuvwxyzabcdefgh".split("");
+function keepLooping(parameters, context, loops, steps, depth) {
+  if (depth === void 0) {
+    depth = 0;
   }
-};
+  if (depth >= loops.length) {
+    execute(steps, parameters, context);
+    return;
+  }
+  var length = loops[depth].valueOf(parameters);
+  var p = parameters;
+  var letter = VARIABLE_NAMES[depth];
+  for (var i = 0; i < length; i++) {
+    p.index = p[letter] = i;
+    keepLooping(p, context, loops, steps, depth + 1);
+  }
+}
+
+var _excluded$3 = ["parameters"];
 var convertParametersProperty = function convertParametersProperty(action, results, utils, external, actionConversionMap) {
   try {
-    if (!action.parameters && !action.defaultParameters) {
+    if (!action.parameters) {
       return Promise.resolve();
     }
     var parameters = action.parameters,
-      defaultParameters = action.defaultParameters,
       subAction = _objectWithoutPropertiesLoose$1(action, _excluded$3);
     var paramEntries = Object.entries(parameters != null ? parameters : {}).map(function (_ref) {
       var key = _ref[0],
         resolution = _ref[1];
       return [key, calculateResolution(resolution)];
     });
-    var defaultParamEntries = Object.entries(defaultParameters != null ? defaultParameters : {}).map(function (_ref2) {
-      var key = _ref2[0],
-        resolution = _ref2[1];
-      return [key, calculateResolution(resolution)];
-    });
     var subStepResults = [];
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, actionConversionMap)).then(function () {
       results.push(function (parameters, context) {
-        var paramValues = newParams(parameters, context);
+        var paramValues = newParams(undefined, context);
         for (var _iterator = _createForOfIteratorHelperLoose(paramEntries), _step; !(_step = _iterator()).done;) {
           var _entry$;
           var entry = _step.value;
           var key = entry[0];
           paramValues[key] = (_entry$ = entry[1]) === null || _entry$ === void 0 ? void 0 : _entry$.valueOf(parameters);
-        }
-        for (var _iterator2 = _createForOfIteratorHelperLoose(defaultParamEntries), _step2; !(_step2 = _iterator2()).done;) {
-          var _entry = _step2.value;
-          var _key = _entry[0];
-          if (paramValues[_key] === undefined) {
-            var _entry$2;
-            paramValues[_key] = (_entry$2 = _entry[1]) === null || _entry$2 === void 0 ? void 0 : _entry$2.valueOf(parameters);
-          }
         }
         execute(subStepResults, paramValues, context);
         recycleParams(paramValues, context);
@@ -94120,7 +94135,7 @@ var convertScriptProperty = function convertScriptProperty(action, results, _ref
 };
 
 function getDefaultConvertors() {
-  return [convertHooksProperty, convertParametersProperty, convertRefreshProperty, convertLoopProperty, convertConditionProperty, convertDelayProperty, convertPauseProperty, convertLockProperty, convertSetProperty, convertSetsProperty, convertLogProperty, convertScriptProperty, convertActionsProperty];
+  return [convertHooksProperty, convertParametersProperty, convertDefaultValuesProperty, convertRefreshProperty, convertLoopProperty, convertConditionProperty, convertDelayProperty, convertPauseProperty, convertLockProperty, convertSetProperty, convertSetsProperty, convertLogProperty, convertScriptProperty, convertActionsProperty];
 }
 
 var ScriptProcessor = /*#__PURE__*/function () {
