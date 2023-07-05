@@ -1,4 +1,4 @@
-import { BooleanResolution, Context, Convertor, DEFAULT_EXTERNALS, getDefaultConvertors, ExecutionParameters, ExecutionStep, Formula, Script, ScriptProcessor, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute, ConvertBehavior, newParams, recycleParams } from "dok-actions";
+import { BooleanResolution, Context, Convertor, DEFAULT_EXTERNALS, getDefaultConvertors, ExecutionParameters, ExecutionStep, Formula, Script, ScriptProcessor, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute, ConvertBehavior } from "dok-actions";
 import { useCallback, useEffect, useRef } from "react";
 import useBufferAttributes, { BufferInfo } from "../../pipeline/actions/use-buffer-attributes";
 import { clearRecord } from "../../utils/object-utils";
@@ -354,11 +354,9 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         const array = bufferInfo.bufferArray!;
         gl?.getBufferSubData(gl.ARRAY_BUFFER, 0, array);
         
-        const paramValues: ExecutionParameters = newParams(parameters, context);
-        paramValues.attributeBuffer = array;
-        paramValues.attributeBufferLength = array.length;
-        execute(subStepResults, paramValues, context);
-        recycleParams(paramValues, context);
+        parameters.attributeBuffer = array;
+        parameters.attributeBufferLength = array.length
+        execute(subStepResults, parameters, context);
 
         gl?.bufferData(gl.ARRAY_BUFFER, array, bufferInfo.usage ?? gl.DYNAMIC_DRAW);
       });
@@ -370,9 +368,9 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         ...DEFAULT_EXTERNALS,
         hasImageId,
         Math,
-      }, [
+      }, { actionsConvertor: [
         convertAttributesBufferUpdate,
-        ...getDefaultConvertors(),
+        ...getDefaultConvertors().actionsConvertor,
         convertClear,
         convertBindBuffer,
         convertBufferData,
@@ -386,7 +384,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         convertImage,
         convertSpriteMatrixTransform,
         convertDrawArrays,
-      ]);
+      ]});
     }, [hasImageId, convertAttributesBufferUpdate, convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertDrawArrays]);
 
     return {

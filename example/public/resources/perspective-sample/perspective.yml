@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/matrix-identity.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true }
+      drawArrays:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - bindBuffer: matrix
+    - parameters:
+        size: .3
+        time: ~{time}
+        rotateSpeed: ~{1/10}
+      loopEach:
+      - index: 0
+        size: ~{size}
+        rotateSpeed: ~{rotateSpeed}
+      - index: 1
+        size: ~{size}
+        rotateSpeed: ~{rotateSpeed}
+      - index: 2
+        size: ~{size}
+        rotateSpeed: ~{rotateSpeed}
+      spriteMatrixTransform:
+        index: ~{element.index}
+        translate: ["~{-0.5 + element.index * 0.5}", 0, 0]
+        scale: ["~{element.size}", "~{element.size}", "~{element.size}"]
+        rotation: [0, "~{mod(time * element.rotateSpeed, 360)}", 0]
+    - executeScript: redraw
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - actions:
+    - sets:
+        instanceCount: 3
+        vertexCount: 3
+        BYTES_PER_FLOAT: 4
+    - executeScript: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          0.0, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: matrix
+        size: 4
+        length: ~{3 * 16 * BYTES_PER_FLOAT}
+        rows: 4
+        divisor: 1
+        stride: ~{4 * 4 * BYTES_PER_FLOAT}
+    - executeScript: matrixIdentity
+      parameters:
+        attributeName: matrix
+    - executeScript: refresh
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+      refresh: {}
+    tags: [main]
+programs:
+  - id: sample-motion
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

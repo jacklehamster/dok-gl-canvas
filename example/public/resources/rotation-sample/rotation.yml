@@ -12,20 +12,21 @@ scripts:
   - name: refresh
     actions:
     - bindBuffer: matrix
-    - spriteMatrixTransform:
-        index: 0
-        translate: [-0.5, 0 ,0]
-        scale: [.3, .3, .3]
-        rotation: [0, 0, "~{mod(time / 10, 360)}"]
-    - spriteMatrixTransform:
-        index: 1
-        scale: [.5, .5, .5]
-        rotation: [0, 0, "~{mod(time / 50, 360)}"]
-    - spriteMatrixTransform:
-        index: 2
-        translate: [.5, 0 ,0]
-        scale: [.7, .7, .7]
-        rotation: [0, 0, "~{mod(time / 100, 360)}"]
+    - loopEach:
+      - index: 0
+        size: .3
+        rotateSpeed: ~{1 / 10}
+      - index: 1
+        size: .5
+        rotateSpeed: ~{1 / 50}
+      - index: 2
+        size: .7
+        rotateSpeed: ~{1 / 100}
+      spriteMatrixTransform:
+        index: ~{element.index}
+        translate: ["~{-0.5 + element.index * 0.5}", 0, 0]
+        scale: ["~{element.size}", "~{element.size}", "~{element.size}"]
+        rotation: [0, 0, "~{mod(time * element.rotateSpeed, 360)}"]
     - executeScript: redraw
   - actions:
     - sets:
@@ -63,6 +64,9 @@ scripts:
         attributeName: matrix
     - executeScript: refresh
       refresh: {}
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
     tags: [main]
 programs:
   - id: sample-motion

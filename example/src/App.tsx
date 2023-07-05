@@ -1,5 +1,5 @@
 import React from 'react'
-import SampleRenderer from './triangle-sample/SampleRenderer';
+import SampleRenderer from './renderer/SampleRenderer';
 import { useState } from 'react';
 import { Assembler } from 'obj-assembler';
 
@@ -11,6 +11,7 @@ enum Sample {
   INSTANCED = "instanced",
   INSTANCED_MOTION = "instanced-motion",
   ROTATION = "rotation",
+  PERSPECTIVE = "perspective",
 }
 
 const assembler = new Assembler();
@@ -23,6 +24,7 @@ const samples: Record<string, React.JSX.Element> = {
   [Sample.INSTANCED]: <SampleRenderer assembler={assembler} path="resources/triangle-instance-sample/triangle-instance-sample.yml" />,
   [Sample.INSTANCED_MOTION]: <SampleRenderer assembler={assembler} path="resources/triangle-motion/triangle-motion.yml" />,
   [Sample.ROTATION]: <SampleRenderer assembler={assembler} path="resources/rotation-sample/rotation.yml" />,
+  [Sample.PERSPECTIVE]: <SampleRenderer assembler={assembler} path="resources/perspective-sample/perspective.yml" />,
 };
 
 export const App = () => {
