@@ -5,9 +5,12 @@ import { clearRecord } from "../../utils/object-utils";
 import { useTypes } from "./types";
 import useImageAction, { ImageId, Url } from "../../pipeline/actions/use-image-action";
 import { GlAction, LocationName, LocationResolution } from "dok-gl-actions";
-import { GlUsage, ValueOf } from "dok-gl-actions/dist/types";
+import { GlDepthFunction, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
 import { ProgramId } from "dok-gl-actions/dist/program/program";
 import { mat4, quat, vec3 } from "gl-matrix";
+import { newParams, recycleParams } from "dok-gl-actions"
+
+const MATRIX_SIZE = 16;
 
 interface Props {
     gl?: WebGL2RenderingContext;
@@ -193,9 +196,14 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       if (uniform?.int !== undefined) {
         const value = calculateNumber(uniform.int);
         results.push((parameters) => gl?.uniform1i(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));    
-      } else if (uniform?.float !== undefined) {
+      }
+      if (uniform?.float !== undefined) {
         const value = calculateNumber(uniform.float);
         results.push((parameters) => gl?.uniform1f(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
+      }
+      if (uniform?.buffer !== undefined) {
+        const value = calculateTypedArray(uniform.buffer) as ValueOf<Float32Array>;
+        results.push((parameters) => gl?.uniformMatrix4fv(getUniformLocation(location.valueOf(parameters)) ?? null, false, value.valueOf(parameters)));
       }
     }, [getUniformLocation, gl]);
 
@@ -283,40 +291,51 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         for (let i in onLoadParameters) {
           delete onLoadParameters[i];
         }
-        if (onLoadParameters) {
-          context?.objectPool?.push(onLoadParameters);
+        if (onLoadParameters && context) {
+          recycleParams(onLoadParameters, context);
           onLoadParameters = undefined;  
         }
       } : undefined;
 
       results.push((parameters, context) => {
         if (onLoad) {
-          onLoadParameters = context?.objectPool?.pop() ?? {};
-          for (let i in parameters) {
-            onLoadParameters[i] = parameters[i];
-          }  
+          onLoadParameters = newParams(parameters, context);
         }
         loadImage(src.valueOf(parameters), imageId.valueOf(parameters), onLoad, context);
       });
     }, [loadImage]);
 
+    const initializeMatrix = useCallback((parameters: ExecutionParameters) => {
+      const m = new Float32Array(MATRIX_SIZE);
+      mat4.identity(m);
+      parameters.matrix = m;
+    }, []);
+
+    const convertInitMatrix = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.initMatrix) {
+        return;
+      }
+      results.push(initializeMatrix);
+    }, [initializeMatrix]);
+
     const convertSpriteMatrixTransform = useCallback<Convertor<GlAction>>(async (action, results) => {
       if (!action.spriteMatrixTransform) {
         return;
       }
-      const { translate, rotation, scale, index } = action.spriteMatrixTransform;
+      const { translate, rotation, scale } = action.spriteMatrixTransform;
       const translateResolution = translate?.map(r => calculateNumber(r, 0)) ?? [0,0,0];
       const rotationResolution = rotation?.map(r => calculateNumber(r, 0)) ?? [0,0,0];
       const scaleResolution = scale?.map(r => calculateNumber(r, 1)) ?? [1,1,1];
-      const indexResolution = calculateNumber(index);
 
-      const matrix = new Float32Array(16);
       const quaternion = quat.create();
       const translationVec3 = vec3.create();
       const scaleVec3 = vec3.create();
       
-      const bytesPerInstance = 16 * Float32Array.BYTES_PER_ELEMENT;
       results.push((parameters) => {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        const matrix = parameters.matrix as mat4;
         mat4.fromRotationTranslationScale(
           matrix,
           quat.fromEuler(quaternion,
@@ -331,10 +350,25 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
             scaleResolution[0].valueOf(parameters),
             scaleResolution[1].valueOf(parameters),
             scaleResolution[2].valueOf(parameters)));
-          const indexValue = indexResolution.valueOf(parameters);
-          gl?.bufferSubData(gl.ARRAY_BUFFER, indexValue * bytesPerInstance, matrix);
-        });
-    }, [gl]);
+      });
+    }, [initializeMatrix]);
+
+    const convertMatrixBufferSubData = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.bufferSubDataMatrix) {
+        return;
+      }
+      const { index } = action.bufferSubDataMatrix;
+      const indexResolution = calculateNumber(index);
+      results.push((parameters) => {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        const matrix = parameters.matrix as Float32Array;
+        const bytesPerInstance = matrix.length * Float32Array.BYTES_PER_ELEMENT;
+        const indexValue = indexResolution.valueOf(parameters);
+        gl?.bufferSubData(gl.ARRAY_BUFFER, indexValue * bytesPerInstance, matrix);
+    });
+    }, [gl, initializeMatrix]);
 
     const convertAttributesBufferUpdate = useCallback<Convertor<GlAction>>(async (action, results, utils, external, actionConversionMap) => {
       if (!action.updateAttributeBuffer) {
@@ -363,29 +397,109 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
     }, [getBufferInfo, gl, bindBuffer]);
 
+    const convertOrthographicProjection = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.orthogonalProjectionMatrixTransform) {
+        return;
+      }
+      const { left, right, top, bottom, zFar, zNear } = action.orthogonalProjectionMatrixTransform;
+      const leftValue = calculateNumber(left);
+      const rightValue = calculateNumber(right);
+      const topValue = calculateNumber(top);
+      const bottomValue = calculateNumber(bottom);
+      const zFarValue = calculateNumber(zFar, 5000);
+      const zNearValue = calculateNumber(zNear, -100);
+      results.push((parameters) => {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        const matrix = parameters.matrix as Float32Array;
+        mat4.ortho(
+          matrix,
+          leftValue.valueOf(parameters),
+          rightValue.valueOf(parameters),
+          topValue.valueOf(parameters),
+          bottomValue.valueOf(parameters),
+          zFarValue.valueOf(parameters),
+          zNearValue.valueOf(parameters),
+        );
+    });
+    }, [initializeMatrix]);
+
+    const convertPerspectiveProjection = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.perspectiveProjectionMatrixTransform) {
+        return;
+      }
+      const { viewAngle, zNear, zFar, aspect } = action.perspectiveProjectionMatrixTransform;
+      const viewAngleValue = calculateNumber(viewAngle, 45);
+      const zFarValue = calculateNumber(zFar, 5000);
+      const zNearValue = calculateNumber(zNear, -100);
+      const aspectValue = calculateNumber(aspect, 1);
+      const DEG_TO_RADIANT = Math.PI / 90;
+      results.push((parameters) => {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        const matrix = parameters.matrix as Float32Array;
+        mat4.perspective(matrix,
+          viewAngleValue.valueOf(parameters) * DEG_TO_RADIANT,
+          aspectValue.valueOf(parameters),
+          zNearValue.valueOf(parameters),
+          zFarValue.valueOf(parameters)
+        );
+      });
+    }, [initializeMatrix]);
+
+    const convertEnableDepth = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.enableDepth) {
+        return;
+      }
+      const { enable, depthFunc } = action.enableDepth;
+      const enableValue = calculateBoolean(enable, true);
+      const depthFuncValue = calculateString<GlDepthFunction>(depthFunc);
+      results.push((parameters) => {
+        if (enableValue.valueOf(parameters)) {
+          gl?.enable(WebGL2RenderingContext.DEPTH_TEST);  
+        } else {
+          gl?.disable(WebGL2RenderingContext.DEPTH_TEST);
+        }
+        const depthFunction = depthFuncValue.valueOf(parameters);
+        if (depthFunction.length) {
+          gl?.depthFunc(WebGL2RenderingContext[depthFunction as GlDepthFunction]);
+        }
+
+        gl?.enable(WebGL2RenderingContext.BLEND);
+        gl?.blendFunc(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA);
+      });
+    }, [gl]);
+
     const getScriptProcessor = useCallback(<T>(scripts: Script<T>[]) => {
       return new ScriptProcessor(scripts, {
         ...DEFAULT_EXTERNALS,
         hasImageId,
-        Math,
+        gl,
       }, { actionsConvertor: [
         convertAttributesBufferUpdate,
         ...getDefaultConvertors().actionsConvertor,
+        convertEnableDepth,
         convertClear,
+        convertInitMatrix,
         convertBindBuffer,
         convertBufferData,
         convertBufferSubData,
         convertVertexArray,
         convertVertexAttribPointer,
-        convertUniform,
         convertActivateProgram,
         convertLoadTexture,
         convertVideo,
         convertImage,
         convertSpriteMatrixTransform,
+        convertMatrixBufferSubData,
+        convertOrthographicProjection,
+        convertPerspectiveProjection,
+        convertUniform,
         convertDrawArrays,
       ]});
-    }, [hasImageId, convertAttributesBufferUpdate, convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertDrawArrays]);
+    }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays]);
 
     return {
       getScriptProcessor,

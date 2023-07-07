@@ -7,8 +7,12 @@ layout (location=1) in vec3 color;
 layout (location=3) in mat4 matrix;
 
 out vec3 vColor;
+uniform mat4 perspective;
+uniform mat4 orthogonal;
+uniform float isPerspective;
 
 void main() {
     vColor = color;
-    gl_Position = matrix * position;
+    mat4 projection = perspective * isPerspective + orthogonal * (1. - isPerspective);
+    gl_Position = projection * matrix * position;
 }

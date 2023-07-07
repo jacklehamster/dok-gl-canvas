@@ -5,7 +5,7 @@ scripts:
   - reference: ../lib/matrix-identity.yaml
   - name: redraw
     actions:
-    - clear: { color: true }
+    - clear: { color: true, depth: true }
       drawArrays:
         vertexCount: ~{vertexCount}
         instanceCount: ~{instanceCount}
@@ -13,31 +13,24 @@ scripts:
     actions:
     - bindBuffer: matrix
     - parameters:
-        size: .3
+        size: 1
         time: ~{time}
         rotateSpeed: ~{1/10}
-      loopEach:
-      - index: 0
-        size: ~{size}
-        rotateSpeed: ~{rotateSpeed}
-      - index: 1
-        size: ~{size}
-        rotateSpeed: ~{rotateSpeed}
-      - index: 2
-        size: ~{size}
-        rotateSpeed: ~{rotateSpeed}
+        instanceCount: ~{instanceCount}
+      loop: ~{instanceCount}
       spriteMatrixTransform:
-        index: ~{element.index}
-        translate: ["~{-0.5 + element.index * 0.5}", 0, 0]
-        scale: ["~{element.size}", "~{element.size}", "~{element.size}"]
-        rotation: [0, "~{mod(time * element.rotateSpeed, 360)}", 0]
+        translate: ["~{-0.5 + index * 0.01}", 0, "~{-index * .5}"]
+        scale: ["~{size}", "~{size}", "~{size}"]
+        rotation: [0, "~{mod(time * index / 100, 360)}", 0]
+      bufferSubDataMatrix:
+        index: ~{index}        
     - executeScript: redraw
       parameters:
         vertexCount: ~{vertexCount}
         instanceCount: ~{instanceCount}
   - actions:
     - sets:
-        instanceCount: 3
+        instanceCount: 100
         vertexCount: 3
         BYTES_PER_FLOAT: 4
     - executeScript: initBuffer
@@ -62,13 +55,54 @@ scripts:
       parameters:
         location: matrix
         size: 4
-        length: ~{3 * 16 * BYTES_PER_FLOAT}
+        length: ~{instanceCount * 16 * BYTES_PER_FLOAT}
         rows: 4
         divisor: 1
         stride: ~{4 * 4 * BYTES_PER_FLOAT}
-    - executeScript: matrixIdentity
-      parameters:
-        attributeName: matrix
+    - initMatrix: true
+    - orthogonalProjectionMatrixTransform:
+        left: -10
+        right: 10
+        top: -10
+        bottom: 10
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: orthogonal
+        buffer: ~{matrix}
+    - perspectiveProjectionMatrixTransform:
+        viewAngle: 45
+        aspect: 1
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: perspective
+        buffer: ~{matrix}
+    - uniform:
+        location: isPerspective
+        float: 1
+    - initMatrix: true
+    - hooks:
+      - gl
+      actions:
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [BLEND]}
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [DEPTH_TEST]}
+      - callExternal:
+          subject: ~{gl}
+          method: depthFunc
+          arguments: {subject: "~{gl}", access: [LEQUAL]}
+      - callExternal:
+          subject: ~{gl}
+          method: blendFunc
+          arguments:
+          - {subject: "~{gl}", access: [SRC_ALPHA]}
+          - {subject: "~{gl}", access: [ONE_MINUS_SRC_ALPHA]}
     - executeScript: refresh
       parameters:
         vertexCount: ~{vertexCount}

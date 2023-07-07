@@ -3,6 +3,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 var React = require('react');
 var React__default = _interopDefault(React);
 var glMatrix = require('gl-matrix');
+var dokGlActions = require('dok-gl-actions');
 
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -26828,7 +26829,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React__default.createElement(Control, {
       controller: controller
-    }, React__default.createElement(Node, _extends({}, props))), hud);
+    }, React__default.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -92982,6 +92983,24 @@ var DEFAULT_EXTERNALS = {
   fetch: global.fetch
 };
 
+var ObjectPool = /*#__PURE__*/function () {
+  function ObjectPool(factory, cleanup) {
+    this.pool = [];
+    this.factory = factory;
+    this.cleanup = cleanup;
+  }
+  var _proto = ObjectPool.prototype;
+  _proto.generate = function generate() {
+    var _this$pool$pop;
+    return (_this$pool$pop = this.pool.pop()) != null ? _this$pool$pop : this.factory();
+  };
+  _proto.recycle = function recycle(value) {
+    this.cleanup(value);
+    this.pool.push(value);
+  };
+  return ObjectPool;
+}();
+
 function createContext(_temp) {
   var _ref = _temp === void 0 ? {} : _temp,
     _ref$parameters = _ref.parameters,
@@ -92989,7 +93008,13 @@ function createContext(_temp) {
     _ref$cleanupActions = _ref.cleanupActions,
     cleanupActions = _ref$cleanupActions === void 0 ? [] : _ref$cleanupActions,
     _ref$objectPool = _ref.objectPool,
-    objectPool = _ref$objectPool === void 0 ? [] : _ref$objectPool,
+    objectPool = _ref$objectPool === void 0 ? new ObjectPool(function () {
+      return {};
+    }, function (value) {
+      for (var k in value) {
+        delete value[k];
+      }
+    }) : _ref$objectPool,
     _ref$postActionListen = _ref.postActionListener,
     postActionListener = _ref$postActionListen === void 0 ? new Set() : _ref$postActionListen,
     _ref$external = _ref.external,
@@ -93301,24 +93326,17 @@ var convertAction = function convertAction(action, stepResults, utils, external,
 };
 
 function newParams(parameters, context) {
-  var _context$objectPool$p, _context$objectPool;
-  var params = (_context$objectPool$p = (_context$objectPool = context.objectPool) === null || _context$objectPool === void 0 ? void 0 : _context$objectPool.pop()) != null ? _context$objectPool$p : {};
-  if (parameters) {
-    for (var k in parameters) {
-      params[k] = parameters[k];
-    }
+  var params = context.objectPool.generate();
+  for (var k in parameters) {
+    params[k] = parameters[k];
   }
   return params;
 }
 function recycleParams(params, context) {
-  var _context$objectPool2;
-  for (var k in params) {
-    delete params[k];
-  }
-  (_context$objectPool2 = context.objectPool) === null || _context$objectPool2 === void 0 ? void 0 : _context$objectPool2.push(params);
+  context.objectPool.recycle(params);
 }
 
-var FORMULA_SEPERATORS = ["~", "{", "}"];
+var FORMULA_SEPARATORS = ["~", "{", "}"];
 
 function hasFormula(resolution) {
   if (isFormula(resolution)) {
@@ -93342,18 +93360,18 @@ function isFormula(value) {
     return false;
   }
   var formula = typeof value === "string" ? value : value.formula;
-  var _FORMULA_SEPERATORS$m = FORMULA_SEPERATORS.map(function (_char) {
+  var _FORMULA_SEPARATORS$m = FORMULA_SEPARATORS.map(function (_char) {
       return formula === null || formula === void 0 ? void 0 : formula.indexOf(_char);
     }),
-    startCharacter = _FORMULA_SEPERATORS$m[0],
-    prefix = _FORMULA_SEPERATORS$m[1],
-    suffix = _FORMULA_SEPERATORS$m[2];
+    startCharacter = _FORMULA_SEPARATORS$m[0],
+    prefix = _FORMULA_SEPARATORS$m[1],
+    suffix = _FORMULA_SEPARATORS$m[2];
   return startCharacter === 0 && prefix > startCharacter && suffix > prefix;
 }
 function getInnerFormulas(formula) {
-  var startCharacter = FORMULA_SEPERATORS[0],
-    prefix = FORMULA_SEPERATORS[1],
-    suffix = FORMULA_SEPERATORS[2];
+  var startCharacter = FORMULA_SEPARATORS[0],
+    prefix = FORMULA_SEPARATORS[1],
+    suffix = FORMULA_SEPARATORS[2];
   return formula.substring(startCharacter.length).split(prefix).map(function (chunk, index) {
     if (index === 0) {
       return {
@@ -93413,7 +93431,7 @@ function getEvaluator(formula) {
 }
 function getFormulaEvaluator(value) {
   if (!isFormula(value)) {
-    throw new Error("Formula: " + value + " must match the format: \"" + FORMULA_SEPERATORS[0] + "formula" + FORMULA_SEPERATORS[1] + "\".");
+    throw new Error("Formula: " + value + " must match the format: \"" + FORMULA_SEPARATORS[0] + "formula" + FORMULA_SEPARATORS[1] + "\".");
   }
   var values = getInnerFormulas(value);
   if (values.length === 1 && !values[0].textSuffix.length) {
@@ -93511,6 +93529,39 @@ function calculateMap(value) {
   };
 }
 
+function calculateObject(value) {
+  var _value$access;
+  var subject = calculateResolution(value.subject);
+  var access = ((_value$access = value.access) != null ? _value$access : []).map(function (key) {
+    return calculateResolution(key);
+  });
+  return {
+    valueOf: function valueOf(parameters) {
+      var node = subject === null || subject === void 0 ? void 0 : subject.valueOf(parameters);
+      var keys = access.map(function (key) {
+        return key === null || key === void 0 ? void 0 : key.valueOf(parameters);
+      });
+      for (var _iterator = _createForOfIteratorHelperLoose(keys), _step; !(_step = _iterator()).done;) {
+        var key = _step.value;
+        if (Array.isArray(node)) {
+          if (typeof key === "number") {
+            var _node;
+            node = (_node = node) === null || _node === void 0 ? void 0 : _node[key];
+          } else {
+            return undefined;
+          }
+        } else if (typeof key === "string" && typeof node === "object") {
+          var _node2;
+          node = (_node2 = node) === null || _node2 === void 0 ? void 0 : _node2[key];
+        } else {
+          return undefined;
+        }
+      }
+      return node;
+    }
+  };
+}
+
 function calculateResolution(value) {
   if (!value) {
     return {
@@ -93532,6 +93583,9 @@ function calculateResolution(value) {
     return calculateArray(value);
   }
   if (typeof value === "object") {
+    if (value.subject) {
+      return calculateObject(value);
+    }
     return calculateMap(value);
   }
   var evaluator = getFormulaEvaluator(value);
@@ -93709,18 +93763,24 @@ var convertExternalCallProperty = function convertExternalCallProperty(action, r
       return Promise.resolve();
     }
     var callExternal = action.callExternal;
-    var nameResolution = calculateString(callExternal.name);
+    var subjectResolution = calculateResolution(callExternal.subject);
+    var methodResolution = calculateString(callExternal.method);
     var args = !callExternal.arguments ? [] : Array.isArray(callExternal.arguments) ? callExternal.arguments : [callExternal.arguments];
-    var resolutions = args.map(function (m) {
+    var argsValues = args.map(function (m) {
       return calculateResolution(m);
     });
     results.push(function (parameters) {
-      var name = nameResolution.valueOf(parameters);
-      var fun = external[name];
-      if (typeof fun === "function") {
-        fun.apply(void 0, resolutions.map(function (r) {
-          return r === null || r === void 0 ? void 0 : r.valueOf(parameters);
-        }));
+      var _subjectResolution$va;
+      var subject = (_subjectResolution$va = subjectResolution === null || subjectResolution === void 0 ? void 0 : subjectResolution.valueOf(parameters)) != null ? _subjectResolution$va : external;
+      if (subject && typeof subject === "object" && !Array.isArray(subject)) {
+        var s = subject;
+        var method = methodResolution === null || methodResolution === void 0 ? void 0 : methodResolution.valueOf(parameters);
+        var m = s[method];
+        if (typeof m === "function") {
+          m.apply(s, argsValues.map(function (r) {
+            return r === null || r === void 0 ? void 0 : r.valueOf(parameters);
+          }));
+        }
       }
     });
     return Promise.resolve();
@@ -94627,6 +94687,7 @@ function useImageAction(_ref) {
 }
 
 var _excluded$5 = ["updateAttributeBuffer"];
+var MATRIX_SIZE = 16;
 function useGlAction(_ref) {
   var gl = _ref.gl,
     getAttributeLocation = _ref.getAttributeLocation,
@@ -94847,11 +94908,19 @@ function useGlAction(_ref) {
           var _getUniformLocation;
           return gl === null || gl === void 0 ? void 0 : gl.uniform1i((_getUniformLocation = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation : null, value.valueOf(parameters));
         });
-      } else if ((uniform === null || uniform === void 0 ? void 0 : uniform["float"]) !== undefined) {
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform["float"]) !== undefined) {
         var _value = calculateNumber(uniform["float"]);
         results.push(function (parameters) {
           var _getUniformLocation2;
           return gl === null || gl === void 0 ? void 0 : gl.uniform1f((_getUniformLocation2 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation2 : null, _value.valueOf(parameters));
+        });
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform.buffer) !== undefined) {
+        var _value2 = calculateTypedArray(uniform.buffer);
+        results.push(function (parameters) {
+          var _getUniformLocation3;
+          return gl === null || gl === void 0 ? void 0 : gl.uniformMatrix4fv((_getUniformLocation3 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation3 : null, false, _value2.valueOf(parameters));
         });
       }
       return Promise.resolve();
@@ -94959,19 +95028,14 @@ function useGlAction(_ref) {
           for (var i in onLoadParameters) {
             delete onLoadParameters[i];
           }
-          if (onLoadParameters) {
-            var _context$objectPool;
-            context === null || context === void 0 ? void 0 : (_context$objectPool = context.objectPool) === null || _context$objectPool === void 0 ? void 0 : _context$objectPool.push(onLoadParameters);
+          if (onLoadParameters && context) {
+            dokGlActions.recycleParams(onLoadParameters, context);
             onLoadParameters = undefined;
           }
         } : undefined;
         results.push(function (parameters, context) {
           if (onLoad) {
-            var _context$objectPool$p, _context$objectPool2;
-            onLoadParameters = (_context$objectPool$p = context === null || context === void 0 ? void 0 : (_context$objectPool2 = context.objectPool) === null || _context$objectPool2 === void 0 ? void 0 : _context$objectPool2.pop()) != null ? _context$objectPool$p : {};
-            for (var i in parameters) {
-              onLoadParameters[i] = parameters[i];
-            }
+            onLoadParameters = dokGlActions.newParams(parameters, context);
           }
           loadImage(src.valueOf(parameters), imageId.valueOf(parameters), onLoad, context);
         });
@@ -94990,6 +95054,22 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [loadImage]);
+  var initializeMatrix = React.useCallback(function (parameters) {
+    var m = new Float32Array(MATRIX_SIZE);
+    glMatrix.mat4.identity(m);
+    parameters.matrix = m;
+  }, []);
+  var convertInitMatrix = React.useCallback(function (action, results) {
+    try {
+      if (!action.initMatrix) {
+        return Promise.resolve();
+      }
+      results.push(initializeMatrix);
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [initializeMatrix]);
   var convertSpriteMatrixTransform = React.useCallback(function (action, results) {
     try {
       var _translate$map, _rotation$map, _scale$map;
@@ -94999,8 +95079,7 @@ function useGlAction(_ref) {
       var _action$spriteMatrixT = action.spriteMatrixTransform,
         translate = _action$spriteMatrixT.translate,
         rotation = _action$spriteMatrixT.rotation,
-        scale = _action$spriteMatrixT.scale,
-        index = _action$spriteMatrixT.index;
+        scale = _action$spriteMatrixT.scale;
       var translateResolution = (_translate$map = translate === null || translate === void 0 ? void 0 : translate.map(function (r) {
         return calculateNumber(r, 0);
       })) != null ? _translate$map : [0, 0, 0];
@@ -95010,14 +95089,34 @@ function useGlAction(_ref) {
       var scaleResolution = (_scale$map = scale === null || scale === void 0 ? void 0 : scale.map(function (r) {
         return calculateNumber(r, 1);
       })) != null ? _scale$map : [1, 1, 1];
-      var indexResolution = calculateNumber(index);
-      var matrix = new Float32Array(16);
       var quaternion = glMatrix.quat.create();
       var translationVec3 = glMatrix.vec3.create();
       var scaleVec3 = glMatrix.vec3.create();
-      var bytesPerInstance = 16 * Float32Array.BYTES_PER_ELEMENT;
       results.push(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
         glMatrix.mat4.fromRotationTranslationScale(matrix, glMatrix.quat.fromEuler(quaternion, rotationResolution[0].valueOf(parameters), rotationResolution[1].valueOf(parameters), rotationResolution[2].valueOf(parameters)), glMatrix.vec3.set(translationVec3, translateResolution[0].valueOf(parameters), translateResolution[1].valueOf(parameters), translateResolution[2].valueOf(parameters)), glMatrix.vec3.set(scaleVec3, scaleResolution[0].valueOf(parameters), scaleResolution[1].valueOf(parameters), scaleResolution[2].valueOf(parameters)));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [initializeMatrix]);
+  var convertMatrixBufferSubData = React.useCallback(function (action, results) {
+    try {
+      if (!action.bufferSubDataMatrix) {
+        return Promise.resolve();
+      }
+      var index = action.bufferSubDataMatrix.index;
+      var indexResolution = calculateNumber(index);
+      results.push(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
+        var bytesPerInstance = matrix.length * Float32Array.BYTES_PER_ELEMENT;
         var indexValue = indexResolution.valueOf(parameters);
         gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, indexValue * bytesPerInstance, matrix);
       });
@@ -95025,7 +95124,7 @@ function useGlAction(_ref) {
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [gl]);
+  }, [gl, initializeMatrix]);
   var convertAttributesBufferUpdate = React.useCallback(function (action, results, utils, external, actionConversionMap) {
     try {
       if (!action.updateAttributeBuffer) {
@@ -95054,14 +95153,99 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [getBufferInfo, gl, bindBuffer]);
+  var convertOrthographicProjection = React.useCallback(function (action, results) {
+    try {
+      if (!action.orthogonalProjectionMatrixTransform) {
+        return Promise.resolve();
+      }
+      var _action$orthogonalPro = action.orthogonalProjectionMatrixTransform,
+        left = _action$orthogonalPro.left,
+        right = _action$orthogonalPro.right,
+        top = _action$orthogonalPro.top,
+        bottom = _action$orthogonalPro.bottom,
+        zFar = _action$orthogonalPro.zFar,
+        zNear = _action$orthogonalPro.zNear;
+      var leftValue = calculateNumber(left);
+      var rightValue = calculateNumber(right);
+      var topValue = calculateNumber(top);
+      var bottomValue = calculateNumber(bottom);
+      var zFarValue = calculateNumber(zFar, 5000);
+      var zNearValue = calculateNumber(zNear, -100);
+      results.push(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
+        glMatrix.mat4.ortho(matrix, leftValue.valueOf(parameters), rightValue.valueOf(parameters), topValue.valueOf(parameters), bottomValue.valueOf(parameters), zFarValue.valueOf(parameters), zNearValue.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [initializeMatrix]);
+  var convertPerspectiveProjection = React.useCallback(function (action, results) {
+    try {
+      if (!action.perspectiveProjectionMatrixTransform) {
+        return Promise.resolve();
+      }
+      var _action$perspectivePr = action.perspectiveProjectionMatrixTransform,
+        viewAngle = _action$perspectivePr.viewAngle,
+        zNear = _action$perspectivePr.zNear,
+        zFar = _action$perspectivePr.zFar,
+        aspect = _action$perspectivePr.aspect;
+      var viewAngleValue = calculateNumber(viewAngle, 45);
+      var zFarValue = calculateNumber(zFar, 5000);
+      var zNearValue = calculateNumber(zNear, -100);
+      var aspectValue = calculateNumber(aspect, 1);
+      var DEG_TO_RADIANT = Math.PI / 90;
+      results.push(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
+        glMatrix.mat4.perspective(matrix, viewAngleValue.valueOf(parameters) * DEG_TO_RADIANT, aspectValue.valueOf(parameters), zNearValue.valueOf(parameters), zFarValue.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [initializeMatrix]);
+  var convertEnableDepth = React.useCallback(function (action, results) {
+    try {
+      if (!action.enableDepth) {
+        return Promise.resolve();
+      }
+      var _action$enableDepth = action.enableDepth,
+        enable = _action$enableDepth.enable,
+        depthFunc = _action$enableDepth.depthFunc;
+      var enableValue = calculateBoolean(enable, true);
+      var depthFuncValue = calculateString(depthFunc);
+      results.push(function (parameters) {
+        if (enableValue.valueOf(parameters)) {
+          gl === null || gl === void 0 ? void 0 : gl.enable(WebGL2RenderingContext.DEPTH_TEST);
+        } else {
+          gl === null || gl === void 0 ? void 0 : gl.disable(WebGL2RenderingContext.DEPTH_TEST);
+        }
+        var depthFunction = depthFuncValue.valueOf(parameters);
+        if (depthFunction.length) {
+          gl === null || gl === void 0 ? void 0 : gl.depthFunc(WebGL2RenderingContext[depthFunction]);
+        }
+        gl === null || gl === void 0 ? void 0 : gl.enable(WebGL2RenderingContext.BLEND);
+        gl === null || gl === void 0 ? void 0 : gl.blendFunc(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA);
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [gl]);
   var getScriptProcessor = React.useCallback(function (scripts) {
     return new ScriptProcessor(scripts, _extends({}, DEFAULT_EXTERNALS, {
       hasImageId: hasImageId,
-      Math: Math
+      gl: gl
     }), {
-      actionsConvertor: [convertAttributesBufferUpdate].concat(getDefaultConvertors().actionsConvertor, [convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertDrawArrays])
+      actionsConvertor: [convertAttributesBufferUpdate].concat(getDefaultConvertors().actionsConvertor, [convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays])
     });
-  }, [hasImageId, convertAttributesBufferUpdate, convertClear, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertUniform, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertDrawArrays]);
+  }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays]);
   return {
     getScriptProcessor: getScriptProcessor
   };
