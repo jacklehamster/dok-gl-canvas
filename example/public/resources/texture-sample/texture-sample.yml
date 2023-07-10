@@ -5,8 +5,8 @@ scripts:
   - name: refresh
     actions:
     - uniform:
-        location: time
-        float: ~{time}
+        location: frame
+        float: ~{frame}
     - clear: { color: true }
       drawArrays: { vertexCount: 6 }
   - name: loadImage
@@ -19,6 +19,7 @@ scripts:
         image:
           src: ~{src}
           imageId: ~{imageId}
+        callback:
           onLoad:
           - loadTexture:
               textureId: TEXTURE0
@@ -28,15 +29,11 @@ scripts:
       - log: "~Image loaded: {imageId}"
   - actions:
     - actions:
-      - set:
-          variable: spriteWidth
-          value: 238
-      - set:
-          variable: spriteSheetWidth
-          value: 1886
-      - set:
-          variable: w
-          value: ~{spriteWidth / spriteSheetWidth}
+      - sets:
+          spriteWidth: 238
+          spriteSheetWidth: 1886
+      - sets:
+          w: ~{spriteWidth / spriteSheetWidth}
     - executeScript: initBuffer
       parameters:
         location: position
@@ -65,8 +62,11 @@ scripts:
       parameters:
         src: turtle.png
         imageId: turtle
+    - hooks: [hasImageId]
+      pause: ~{not hasImageId("turtle")}
     - executeScript: refresh
-      refresh: {}
+      refresh:
+        frameRate: 60
     tags: [main]
 programs:
   - id: sample-texture

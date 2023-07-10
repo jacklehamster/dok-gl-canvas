@@ -54,7 +54,8 @@ scripts:
           10, 10,
         ]
     - executeScript: refresh
-      refresh: {}
+      refresh:
+        frameRate: 60
     tags: [main]
 programs:
   - id: sample-grid-cell

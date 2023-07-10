@@ -65,7 +65,8 @@ scripts:
       parameters:
         attributeName: matrix
     - executeScript: refresh
-      refresh: {}
+      refresh:
+        frameRate: 60
     tags: [main]
 programs:
   - id: sample-motion

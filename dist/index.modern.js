@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { mat4, quat, vec3 } from 'gl-matrix';
-import { recycleParams as recycleParams$1, newParams as newParams$1 } from 'dok-gl-actions';
 
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -26826,7 +26825,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React.createElement(Control, {
       controller: controller
-    }, React.createElement(Node, _extends({}, props))), hud);
+    }, React.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -28016,167 +28015,6 @@ function useProgram(_ref) {
     activeProgram: activeProgram
   };
 }
-
-// A type of promise-like that resolves synchronously and supports only one observer
-const _Pact = /*#__PURE__*/(function() {
-	function _Pact() {}
-	_Pact.prototype.then = function(onFulfilled, onRejected) {
-		const result = new _Pact();
-		const state = this.s;
-		if (state) {
-			const callback = state & 1 ? onFulfilled : onRejected;
-			if (callback) {
-				try {
-					_settle(result, 1, callback(this.v));
-				} catch (e) {
-					_settle(result, 2, e);
-				}
-				return result;
-			} else {
-				return this;
-			}
-		}
-		this.o = function(_this) {
-			try {
-				const value = _this.v;
-				if (_this.s & 1) {
-					_settle(result, 1, onFulfilled ? onFulfilled(value) : value);
-				} else if (onRejected) {
-					_settle(result, 1, onRejected(value));
-				} else {
-					_settle(result, 2, value);
-				}
-			} catch (e) {
-				_settle(result, 2, e);
-			}
-		};
-		return result;
-	};
-	return _Pact;
-})();
-
-// Settles a pact synchronously
-function _settle(pact, state, value) {
-	if (!pact.s) {
-		if (value instanceof _Pact) {
-			if (value.s) {
-				if (state & 1) {
-					state = value.s;
-				}
-				value = value.v;
-			} else {
-				value.o = _settle.bind(null, pact, state);
-				return;
-			}
-		}
-		if (value && value.then) {
-			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));
-			return;
-		}
-		pact.s = state;
-		pact.v = value;
-		const observer = pact.o;
-		if (observer) {
-			observer(pact);
-		}
-	}
-}
-
-function _isSettledPact(thenable) {
-	return thenable instanceof _Pact && thenable.s & 1;
-}
-
-// Asynchronously iterate through an object that has a length property, passing the index as the first argument to the callback (even as the length property changes)
-function _forTo(array, body, check) {
-	var i = -1, pact, reject;
-	function _cycle(result) {
-		try {
-			while (++i < array.length && (!check || !check())) {
-				result = body(i);
-				if (result && result.then) {
-					if (_isSettledPact(result)) {
-						result = result.v;
-					} else {
-						result.then(_cycle, reject || (reject = _settle.bind(null, pact = new _Pact(), 2)));
-						return;
-					}
-				}
-			}
-			if (pact) {
-				_settle(pact, 1, result);
-			} else {
-				pact = result;
-			}
-		} catch (e) {
-			_settle(pact || (pact = new _Pact()), 2, e);
-		}
-	}
-	_cycle();
-	return pact;
-}
-
-const _iteratorSymbol = /*#__PURE__*/ typeof Symbol !== "undefined" ? (Symbol.iterator || (Symbol.iterator = Symbol("Symbol.iterator"))) : "@@iterator";
-
-// Asynchronously iterate through an object's values
-// Uses for...of if the runtime supports it, otherwise iterates until length on a copy
-function _forOf(target, body, check) {
-	if (typeof target[_iteratorSymbol] === "function") {
-		var iterator = target[_iteratorSymbol](), step, pact, reject;
-		function _cycle(result) {
-			try {
-				while (!(step = iterator.next()).done && (!check || !check())) {
-					result = body(step.value);
-					if (result && result.then) {
-						if (_isSettledPact(result)) {
-							result = result.v;
-						} else {
-							result.then(_cycle, reject || (reject = _settle.bind(null, pact = new _Pact(), 2)));
-							return;
-						}
-					}
-				}
-				if (pact) {
-					_settle(pact, 1, result);
-				} else {
-					pact = result;
-				}
-			} catch (e) {
-				_settle(pact || (pact = new _Pact()), 2, e);
-			}
-		}
-		_cycle();
-		if (iterator.return) {
-			var _fixup = function(value) {
-				try {
-					if (!step.done) {
-						iterator.return();
-					}
-				} catch(e) {
-				}
-				return value;
-			};
-			if (pact && pact.then) {
-				return pact.then(_fixup, function(e) {
-					throw _fixup(e);
-				});
-			}
-			_fixup();
-		}
-		return pact;
-	}
-	// No support for Symbol.iterator
-	if (!("length" in target)) {
-		throw new TypeError("Object is not iterable");
-	}
-	// Handle live collections properly
-	var values = [];
-	for (var i = 0; i < target.length; i++) {
-		values.push(target[i]);
-	}
-	return _forTo(values, function(i) { return body(values[i]); }, check);
-}
-
-const _asyncIteratorSymbol = /*#__PURE__*/ typeof Symbol !== "undefined" ? (Symbol.asyncIterator || (Symbol.asyncIterator = Symbol("Symbol.asyncIterator"))) : "@@asyncIterator";
 
 var _extends_1 = createCommonjsModule(function (module) {
 function _extends() {
@@ -92915,6 +92753,71 @@ _extends$1(classes, {
 });
 Chain.createProxy(math);
 
+// Unique ID creation requires a high quality random # generator. In the browser we therefore
+// require the crypto API and do not support built-in fallback to lower quality random number
+// generators (like Math.random()).
+let getRandomValues;
+const rnds8 = new Uint8Array(16);
+function rng() {
+  // lazy load so that environments that need to polyfill have a chance to do so
+  if (!getRandomValues) {
+    // getRandomValues needs to be invoked in a context where "this" is a Crypto implementation.
+    getRandomValues = typeof crypto !== 'undefined' && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
+
+    if (!getRandomValues) {
+      throw new Error('crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported');
+    }
+  }
+
+  return getRandomValues(rnds8);
+}
+
+/**
+ * Convert array of 16 byte values to UUID string format of the form:
+ * XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+ */
+
+const byteToHex = [];
+
+for (let i = 0; i < 256; ++i) {
+  byteToHex.push((i + 0x100).toString(16).slice(1));
+}
+
+function unsafeStringify(arr, offset = 0) {
+  // Note: Be careful editing this code!  It's been tuned for performance
+  // and works in ways you may not expect. See https://github.com/uuidjs/uuid/pull/434
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + '-' + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + '-' + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + '-' + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + '-' + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+const randomUUID = typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+var native = {
+  randomUUID
+};
+
+function v4(options, buf, offset) {
+  if (native.randomUUID && !buf && !options) {
+    return native.randomUUID();
+  }
+
+  options = options || {};
+  const rnds = options.random || (options.rng || rng)(); // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
+
+  rnds[6] = rnds[6] & 0x0f | 0x40;
+  rnds[8] = rnds[8] & 0x3f | 0x80; // Copy bytes to buffer, if provided
+
+  if (buf) {
+    offset = offset || 0;
+
+    for (let i = 0; i < 16; ++i) {
+      buf[offset + i] = rnds[i];
+    }
+
+    return buf;
+  }
+
+  return unsafeStringify(rnds);
+}
+
 function _extends$3() {
   _extends$3 = Object.assign ? Object.assign.bind() : function (target) {
     for (var i = 1; i < arguments.length; i++) {
@@ -92998,32 +92901,92 @@ var ObjectPool = /*#__PURE__*/function () {
   return ObjectPool;
 }();
 
-function createContext(_temp) {
-  var _ref = _temp === void 0 ? {} : _temp,
-    _ref$parameters = _ref.parameters,
-    parameters = _ref$parameters === void 0 ? [] : _ref$parameters,
-    _ref$cleanupActions = _ref.cleanupActions,
-    cleanupActions = _ref$cleanupActions === void 0 ? [] : _ref$cleanupActions,
-    _ref$objectPool = _ref.objectPool,
-    objectPool = _ref$objectPool === void 0 ? new ObjectPool(function () {
+var Context = /*#__PURE__*/function () {
+  function Context(_temp) {
+    var _ref = _temp === void 0 ? {} : _temp,
+      _ref$parameters = _ref.parameters,
+      parameters = _ref$parameters === void 0 ? [] : _ref$parameters,
+      _ref$cleanupActions = _ref.cleanupActions,
+      cleanupActions = _ref$cleanupActions === void 0 ? [] : _ref$cleanupActions,
+      _ref$objectPool = _ref.objectPool,
+      objectPool = _ref$objectPool === void 0 ? new ObjectPool(function () {
+        return {};
+      }, function (value) {
+        for (var k in value) {
+          delete value[k];
+        }
+      }) : _ref$objectPool,
+      _ref$postActionListen = _ref.postActionListener,
+      postActionListener = _ref$postActionListen === void 0 ? new Set() : _ref$postActionListen,
+      _ref$external = _ref.external,
+      external = _ref$external === void 0 ? {} : _ref$external;
+    this.parameters = parameters;
+    this.cleanupActions = cleanupActions;
+    this.objectPool = objectPool;
+    this.postActionListener = postActionListener;
+    this.external = _extends$3({}, DEFAULT_EXTERNALS, external);
+    this.locked = false;
+  }
+  var _proto = Context.prototype;
+  _proto.addCleanup = function addCleanup(cleanup) {
+    this.cleanupActions.push(cleanup);
+  };
+  _proto.addPostAction = function addPostAction(postAction) {
+    if (!this.postActionListener.has(postAction)) {
+      this.postActionListener.add(postAction);
+    }
+  };
+  _proto.deletePostAction = function deletePostAction(postAction) {
+    this.postActionListener["delete"](postAction);
+  };
+  _proto.executePostActions = function executePostActions(parameters) {
+    var _this = this;
+    this.postActionListener.forEach(function (listener) {
+      for (var i in parameters) {
+        listener.parameters[i] = parameters[i];
+      }
+      listener.steps.forEach(function (step) {
+        return step(listener.parameters, _this);
+      });
+    });
+  };
+  _proto.cleanup = function cleanup() {
+    this.cleanupActions.forEach(function (action) {
+      return action();
+    });
+    this.cleanupActions.length = 0;
+  };
+  _proto.clear = function clear() {
+    this.cleanup();
+    this.postActionListener.clear();
+  };
+  return Context;
+}();
+function createContext(_temp2) {
+  var _ref2 = _temp2 === void 0 ? {} : _temp2,
+    _ref2$parameters = _ref2.parameters,
+    parameters = _ref2$parameters === void 0 ? [] : _ref2$parameters,
+    _ref2$cleanupActions = _ref2.cleanupActions,
+    cleanupActions = _ref2$cleanupActions === void 0 ? [] : _ref2$cleanupActions,
+    _ref2$objectPool = _ref2.objectPool,
+    objectPool = _ref2$objectPool === void 0 ? new ObjectPool(function () {
       return {};
     }, function (value) {
       for (var k in value) {
         delete value[k];
       }
-    }) : _ref$objectPool,
-    _ref$postActionListen = _ref.postActionListener,
-    postActionListener = _ref$postActionListen === void 0 ? new Set() : _ref$postActionListen,
-    _ref$external = _ref.external,
-    external = _ref$external === void 0 ? {} : _ref$external;
-  return {
+    }) : _ref2$objectPool,
+    _ref2$postActionListe = _ref2.postActionListener,
+    postActionListener = _ref2$postActionListe === void 0 ? new Set() : _ref2$postActionListe,
+    _ref2$external = _ref2.external,
+    external = _ref2$external === void 0 ? {} : _ref2$external;
+  return new Context({
     parameters: parameters,
     cleanupActions: cleanupActions,
     objectPool: objectPool,
     postActionListener: postActionListener,
-    external: _extends$3({}, DEFAULT_EXTERNALS, external),
-    locked: false
-  };
+    external: external
+  });
 }
 
 var ConvertBehavior;
@@ -93034,7 +92997,7 @@ var ConvertBehavior;
 })(ConvertBehavior || (ConvertBehavior = {}));
 
 // A type of promise-like that resolves synchronously and supports only one observer
-const _Pact$1 = /*#__PURE__*/(function() {
+const _Pact = /*#__PURE__*/(function() {
 	function _Pact() {}
 	_Pact.prototype.then = function(onFulfilled, onRejected) {
 		const result = new _Pact();
@@ -93043,9 +93006,9 @@ const _Pact$1 = /*#__PURE__*/(function() {
 			const callback = state & 1 ? onFulfilled : onRejected;
 			if (callback) {
 				try {
-					_settle$1(result, 1, callback(this.v));
+					_settle(result, 1, callback(this.v));
 				} catch (e) {
-					_settle$1(result, 2, e);
+					_settle(result, 2, e);
 				}
 				return result;
 			} else {
@@ -93056,14 +93019,14 @@ const _Pact$1 = /*#__PURE__*/(function() {
 			try {
 				const value = _this.v;
 				if (_this.s & 1) {
-					_settle$1(result, 1, onFulfilled ? onFulfilled(value) : value);
+					_settle(result, 1, onFulfilled ? onFulfilled(value) : value);
 				} else if (onRejected) {
-					_settle$1(result, 1, onRejected(value));
+					_settle(result, 1, onRejected(value));
 				} else {
-					_settle$1(result, 2, value);
+					_settle(result, 2, value);
 				}
 			} catch (e) {
-				_settle$1(result, 2, e);
+				_settle(result, 2, e);
 			}
 		};
 		return result;
@@ -93072,21 +93035,21 @@ const _Pact$1 = /*#__PURE__*/(function() {
 })();
 
 // Settles a pact synchronously
-function _settle$1(pact, state, value) {
+function _settle(pact, state, value) {
 	if (!pact.s) {
-		if (value instanceof _Pact$1) {
+		if (value instanceof _Pact) {
 			if (value.s) {
 				if (state & 1) {
 					state = value.s;
 				}
 				value = value.v;
 			} else {
-				value.o = _settle$1.bind(null, pact, state);
+				value.o = _settle.bind(null, pact, state);
 				return;
 			}
 		}
 		if (value && value.then) {
-			value.then(_settle$1.bind(null, pact, state), _settle$1.bind(null, pact, 2));
+			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));
 			return;
 		}
 		pact.s = state;
@@ -93098,66 +93061,76 @@ function _settle$1(pact, state, value) {
 	}
 }
 
-function _isSettledPact$1(thenable) {
-	return thenable instanceof _Pact$1 && thenable.s & 1;
+function _isSettledPact(thenable) {
+	return thenable instanceof _Pact && thenable.s & 1;
 }
 
 // Asynchronously iterate through an object that has a length property, passing the index as the first argument to the callback (even as the length property changes)
-function _forTo$1(array, body, check) {
+function _forTo(array, body, check) {
 	var i = -1, pact, reject;
 	function _cycle(result) {
 		try {
 			while (++i < array.length && (!check || !check())) {
 				result = body(i);
 				if (result && result.then) {
-					if (_isSettledPact$1(result)) {
+					if (_isSettledPact(result)) {
 						result = result.v;
 					} else {
-						result.then(_cycle, reject || (reject = _settle$1.bind(null, pact = new _Pact$1(), 2)));
+						result.then(_cycle, reject || (reject = _settle.bind(null, pact = new _Pact(), 2)));
 						return;
 					}
 				}
 			}
 			if (pact) {
-				_settle$1(pact, 1, result);
+				_settle(pact, 1, result);
 			} else {
 				pact = result;
 			}
 		} catch (e) {
-			_settle$1(pact || (pact = new _Pact$1()), 2, e);
+			_settle(pact || (pact = new _Pact()), 2, e);
 		}
 	}
 	_cycle();
 	return pact;
 }
 
-const _iteratorSymbol$1 = /*#__PURE__*/ typeof Symbol !== "undefined" ? (Symbol.iterator || (Symbol.iterator = Symbol("Symbol.iterator"))) : "@@iterator";
+// Asynchronously iterate through an object's properties (including properties inherited from the prototype)
+// Uses a snapshot of the object's properties
+function _forIn(target, body, check) {
+	var keys = [];
+	for (var key in target) {
+		keys.push(key);
+	}
+	return _forTo(keys, function(i) { return body(keys[i]); }, check);
+}
+
+const _iteratorSymbol = /*#__PURE__*/ typeof Symbol !== "undefined" ? (Symbol.iterator || (Symbol.iterator = Symbol("Symbol.iterator"))) : "@@iterator";
 
 // Asynchronously iterate through an object's values
 // Uses for...of if the runtime supports it, otherwise iterates until length on a copy
-function _forOf$1(target, body, check) {
-	if (typeof target[_iteratorSymbol$1] === "function") {
-		var iterator = target[_iteratorSymbol$1](), step, pact, reject;
+function _forOf(target, body, check) {
+	if (typeof target[_iteratorSymbol] === "function") {
+		var iterator = target[_iteratorSymbol](), step, pact, reject;
 		function _cycle(result) {
 			try {
 				while (!(step = iterator.next()).done && (!check || !check())) {
 					result = body(step.value);
 					if (result && result.then) {
-						if (_isSettledPact$1(result)) {
+						if (_isSettledPact(result)) {
 							result = result.v;
 						} else {
-							result.then(_cycle, reject || (reject = _settle$1.bind(null, pact = new _Pact$1(), 2)));
+							result.then(_cycle, reject || (reject = _settle.bind(null, pact = new _Pact(), 2)));
 							return;
 						}
 					}
 				}
 				if (pact) {
-					_settle$1(pact, 1, result);
+					_settle(pact, 1, result);
 				} else {
 					pact = result;
 				}
 			} catch (e) {
-				_settle$1(pact || (pact = new _Pact$1()), 2, e);
+				_settle(pact || (pact = new _Pact()), 2, e);
 			}
 		}
 		_cycle();
@@ -93189,10 +93162,10 @@ function _forOf$1(target, body, check) {
 	for (var i = 0; i < target.length; i++) {
 		values.push(target[i]);
 	}
-	return _forTo$1(values, function(i) { return body(values[i]); }, check);
+	return _forTo(values, function(i) { return body(values[i]); }, check);
 }
 
-const _asyncIteratorSymbol$1 = /*#__PURE__*/ typeof Symbol !== "undefined" ? (Symbol.asyncIterator || (Symbol.asyncIterator = Symbol("Symbol.asyncIterator"))) : "@@asyncIterator";
+const _asyncIteratorSymbol = /*#__PURE__*/ typeof Symbol !== "undefined" ? (Symbol.asyncIterator || (Symbol.asyncIterator = Symbol("Symbol.asyncIterator"))) : "@@asyncIterator";
 
 function execute(steps, parameters, context) {
   if (parameters === void 0) {
@@ -93216,14 +93189,7 @@ function execute(steps, parameters, context) {
     var step = _step.value;
     step(parameters, context);
   }
-  context.postActionListener.forEach(function (listener) {
-    for (var i in parameters) {
-      listener.parameters[i] = parameters[i];
-    }
-    listener.steps.forEach(function (step) {
-      return step(listener.parameters, context);
-    });
-  });
+  context.executePostActions(parameters);
   if (changedParameters) {
     params.pop();
   }
@@ -93271,12 +93237,12 @@ var convertScripts = function convertScripts(scripts, external, convertorSet, pr
       });
       return steps;
     };
-    var _temp2 = _forOf$1(scripts, function (script) {
+    var _temp2 = _forOf(scripts, function (script) {
       var _scriptMap$get;
       var _interrupt = false;
       var scriptSteps = (_scriptMap$get = scriptMap.get(script)) != null ? _scriptMap$get : [];
       var actions = script.actions;
-      var _temp = _forTo$1(actions, function (i) {
+      var _temp = _forTo(actions, function (i) {
         var getRemainingActions = function getRemainingActions() {
           return actions.slice(i + 1);
         };
@@ -93305,7 +93271,7 @@ var convertScripts = function convertScripts(scripts, external, convertorSet, pr
 var convertAction = function convertAction(action, stepResults, utils, external, convertorSet) {
   try {
     var _exit = false;
-    return Promise.resolve(_forOf$1(convertorSet.actionsConvertor, function (convertor) {
+    return Promise.resolve(_forOf(convertorSet.actionsConvertor, function (convertor) {
       return Promise.resolve(convertor(action, stepResults, utils, external, convertorSet)).then(function (convertBehavior) {
         if (convertBehavior === ConvertBehavior.SKIP_REMAINING_CONVERTORS) {
           _exit = true;
@@ -93713,22 +93679,136 @@ function calculateTypedArray(value, ArrayConstructor) {
   };
 }
 
+var _excluded = ["refresh"];
+var convertRefreshProperty = function convertRefreshProperty(action, stepResults, utils, external, convertorSet) {
+  try {
+    if (!action.refresh) {
+      return Promise.resolve();
+    }
+    var refresh = action.refresh,
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded);
+    var subStepResults = [];
+    var processIdValue = calculateString(refresh.processId, "");
+    var stop = calculateBoolean(refresh.stop);
+    var cleanupAfterRefresh = calculateBoolean(refresh.cleanupAfterRefresh);
+    var frameRate = calculateNumber(refresh.frameRate, DEFAULT_REFRESH_FRAME_RATE);
+    return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
+      stepResults.push(function (parameters, context) {
+        if (stop.valueOf(parameters)) {
+          utils.stopRefresh(processIdValue.valueOf(parameters));
+        } else {
+          var _utils$refreshSteps = utils.refreshSteps(subStepResults, {
+              cleanupAfterRefresh: cleanupAfterRefresh.valueOf(parameters),
+              frameRate: frameRate.valueOf(parameters),
+              parameters: parameters
+            }, processIdValue.valueOf(parameters)),
+            cleanup = _utils$refreshSteps.cleanup,
+            processId = _utils$refreshSteps.processId;
+          parameters.processId = processId;
+          context.addCleanup(cleanup);
+        }
+      });
+      return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
+    });
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+var DEFAULT_REFRESH_FRAME_RATE = 1;
+
 var convertActionsProperty = function convertActionsProperty(action, results, utils, external, convertorSet) {
   try {
     var _action$actions;
     if (!((_action$actions = action.actions) !== null && _action$actions !== void 0 && _action$actions.length)) {
       return Promise.resolve();
     }
-    var _temp = _forOf$1(action.actions, function (a) {
-      return Promise.resolve(convertAction(a, results, utils, external, convertorSet)).then(function () {});
-    });
-    return Promise.resolve(_temp && _temp.then ? _temp.then(function () {}) : void 0);
+    return Promise.resolve(convertActions(action.actions, results, utils, external, convertorSet)).then(function () {});
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+var convertActions = function convertActions(actions, results, utils, external, convertorSet) {
+  try {
+    return Promise.resolve(_forOf(actions, function (a) {
+      var _temp = function () {
+        if (Array.isArray(a)) {
+          return Promise.resolve(convertActions(a, results, utils, external, convertorSet)).then(function () {});
+        } else {
+          return Promise.resolve(convertAction(a, results, utils, external, convertorSet)).then(function () {});
+        }
+      }();
+      if (_temp && _temp.then) return _temp.then(function () {});
+    }));
   } catch (e) {
     return Promise.reject(e);
   }
 };
 
-var _excluded = ["condition"];
+var _excluded$1 = ["callback"];
+var convertExecuteCallbackProperty = function convertExecuteCallbackProperty(action, results, utils) {
+  try {
+    if (!action.executeCallback) {
+      return Promise.resolve();
+    }
+    var executeCallback = action.executeCallback;
+    var callbackToExecute = calculateString(executeCallback);
+    results.push(function (parameters, context) {
+      var _utils$executeCallbac, _utils$executeCallbac2;
+      var callbackName = callbackToExecute.valueOf(parameters);
+      (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : (_utils$executeCallbac2 = _utils$executeCallbac[callbackName]) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.call(_utils$executeCallbac, context);
+    });
+    return Promise.resolve();
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+var convertCallbackProperty = function convertCallbackProperty(action, results, utils, external, convertorSet) {
+  try {
+    var _temp2 = function _temp2() {
+      var subStepResults = [];
+      return Promise.resolve(convertAction(subAction, subStepResults, _extends$3({}, utils, {
+        executeCallback: executeCallback
+      }), external, convertorSet)).then(function () {
+        results.push(function (parameters, context) {
+          for (var key in callback) {
+            callbackParameters[key] = newParams(parameters, context);
+          }
+          execute(subStepResults, parameters, context);
+        });
+        return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
+      });
+    };
+    if (!action.callback) {
+      return Promise.resolve();
+    }
+    var callback = action.callback,
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$1);
+    var callbackParameters = {};
+    var executeCallback = _extends$3({}, utils.executeCallback);
+    var _temp = _forIn(callback, function (key) {
+      var callbackSteps = [];
+      return Promise.resolve(convertActions(callback[key], callbackSteps, utils, external, convertorSet)).then(function () {
+        var onCallback = callbackSteps.length ? function (context) {
+          execute(callbackSteps, callbackParameters[key], context);
+          for (var i in callbackParameters[key]) {
+            var _callbackParameters$k;
+            (_callbackParameters$k = callbackParameters[key]) === null || _callbackParameters$k === void 0 ? true : delete _callbackParameters$k[i];
+          }
+          if (callbackParameters && context) {
+            recycleParams(callbackParameters, context);
+            callbackParameters[key] = undefined;
+          }
+        } : function () {};
+        executeCallback[key] = onCallback;
+      });
+    });
+    return Promise.resolve(_temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp));
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+
+var _excluded$2 = ["condition"];
 var convertConditionProperty = function convertConditionProperty(action, results, utils, external, convertorSet) {
   try {
     if (action.condition === undefined) {
@@ -93738,7 +93818,7 @@ var convertConditionProperty = function convertConditionProperty(action, results
       return Promise.resolve(ConvertBehavior.SKIP_REMAINING_CONVERTORS);
     }
     var condition = action.condition,
-      subAction = _objectWithoutPropertiesLoose$1(action, _excluded);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$2);
     var conditionResolution = calculateBoolean(condition);
     var subStepResults = [];
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
@@ -93786,7 +93866,7 @@ var convertExternalCallProperty = function convertExternalCallProperty(action, r
   }
 };
 
-var _excluded$1 = ["delay"],
+var _excluded$3 = ["delay"],
   _excluded2 = ["pause"],
   _excluded3 = ["lock", "unlock"];
 var convertLockProperty = function convertLockProperty(action, results, utils, external, convertorSet) {
@@ -93822,7 +93902,7 @@ var convertLockProperty = function convertLockProperty(action, results, utils, e
                     postExecution.parameters[i] = parameters[i];
                   }
                   if (!context.locked) {
-                    context.postActionListener["delete"](postExecution);
+                    context.deletePostAction(postExecution);
                     execute(postStepResults, parameters, context);
                   }
                 };
@@ -93830,12 +93910,12 @@ var convertLockProperty = function convertLockProperty(action, results, utils, e
                   steps: [step],
                   parameters: parameters
                 };
-                context.postActionListener.add(postExecution);
+                context.addPostAction(postExecution);
               }
             });
             return ConvertBehavior.SKIP_REMAINING_ACTIONS;
           }
-          var _temp5 = _forOf$1(remainingActions, function (action) {
+          var _temp5 = _forOf(remainingActions, function (action) {
             return Promise.resolve(convertAction(action, postStepResults, utils, external, convertorSet)).then(function () {});
           });
           return _temp5 && _temp5.then ? _temp5.then(_temp6) : _temp6(_temp5);
@@ -93863,10 +93943,10 @@ var convertPauseProperty = function convertPauseProperty(action, results, utils,
             postExecution.parameters[i] = parameters[i];
           }
           if (!pauseResolution.valueOf(postExecution.parameters)) {
-            context.postActionListener["delete"](postExecution);
+            context.deletePostAction(postExecution);
             execute(postStepResults, postExecution.parameters, context);
-          } else if (!context.postActionListener.has(postExecution)) {
-            context.postActionListener.add(postExecution);
+          } else {
+            context.addPostAction(postExecution);
           }
         };
         var postExecution = {
@@ -93876,7 +93956,7 @@ var convertPauseProperty = function convertPauseProperty(action, results, utils,
         results.push(step);
         return ConvertBehavior.SKIP_REMAINING_ACTIONS;
       }
-      var _temp3 = _forOf$1(remainingActions, function (action) {
+      var _temp3 = _forOf(remainingActions, function (action) {
         return Promise.resolve(convertAction(action, postStepResults, utils, external, convertorSet)).then(function () {});
       });
       return _temp3 && _temp3.then ? _temp3.then(_temp4) : _temp4(_temp3);
@@ -93891,7 +93971,7 @@ var convertDelayProperty = function convertDelayProperty(action, results, utils,
       return Promise.resolve();
     }
     var delay = action.delay,
-      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$1);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$3);
     var delayAmount = calculateNumber(delay);
     var postStepResults = [];
     var remainingActions = utils.getRemainingActions();
@@ -93902,13 +93982,13 @@ var convertDelayProperty = function convertDelayProperty(action, results, utils,
         };
         results.push(function (parameters, context) {
           var timeout = external.setTimeout(performPostSteps, delayAmount.valueOf(parameters), context, parameters);
-          context.cleanupActions.push(function () {
+          context.addCleanup(function () {
             return clearTimeout(timeout);
           });
         });
         return ConvertBehavior.SKIP_REMAINING_ACTIONS;
       }
-      var _temp = _forOf$1(remainingActions, function (action) {
+      var _temp = _forOf(remainingActions, function (action) {
         return Promise.resolve(convertAction(action, postStepResults, utils, external, convertorSet)).then(function () {});
       });
       return _temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp);
@@ -94082,7 +94162,7 @@ var convertLogProperty = function convertLogProperty(action, results, _, externa
   }
 };
 
-var _excluded$2 = ["loop"],
+var _excluded$4 = ["loop"],
   _excluded3$1 = ["loopEach"];
 var convertLoopEachProperty = function convertLoopEachProperty(action, stepResults, utils, external, convertorSet) {
   try {
@@ -94119,7 +94199,7 @@ var convertLoopProperty = function convertLoopProperty(action, stepResults, util
       return Promise.resolve(ConvertBehavior.SKIP_REMAINING_CONVERTORS);
     }
     var loop = action.loop,
-      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$2);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$4);
     var loops = Array.isArray(loop) ? loop : [loop];
     if (!loops.length) {
       return Promise.resolve(ConvertBehavior.SKIP_REMAINING_CONVERTORS);
@@ -94156,14 +94236,14 @@ function keepLooping(parameters, context, loops, steps, depth) {
   }
 }
 
-var _excluded$3 = ["parameters"];
+var _excluded$5 = ["parameters"];
 var convertParametersProperty = function convertParametersProperty(action, results, utils, external, convertorSet) {
   try {
     if (!action.parameters) {
       return Promise.resolve();
     }
     var parameters = action.parameters,
-      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$3);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$5);
     var paramEntries = Object.entries(parameters != null ? parameters : {}).map(function (_ref) {
       var key = _ref[0],
         resolution = _ref[1];
@@ -94181,39 +94261,6 @@ var convertParametersProperty = function convertParametersProperty(action, resul
         }
         execute(subStepResults, paramValues, context);
         recycleParams(paramValues, context);
-      });
-      return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
-    });
-  } catch (e) {
-    return Promise.reject(e);
-  }
-};
-
-var _excluded$4 = ["refresh"];
-var convertRefreshProperty = function convertRefreshProperty(action, stepResults, utils, external, convertorSet) {
-  try {
-    if (!action.refresh) {
-      return Promise.resolve();
-    }
-    var refresh = action.refresh,
-      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$4);
-    var subStepResults = [];
-    var processId = calculateString(refresh.processId, "");
-    var stop = calculateBoolean(refresh.stop);
-    var cleanupAfterRefresh = calculateBoolean(refresh.cleanupAfterRefresh);
-    var frameRate = calculateNumber(refresh.frameRate, 60);
-    return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      stepResults.push(function (parameters, context) {
-        if (stop.valueOf(parameters)) {
-          utils.stopRefresh(processId.valueOf(parameters));
-        } else {
-          var cleanup = utils.refreshSteps(subStepResults, {
-            cleanupAfterRefresh: cleanupAfterRefresh.valueOf(parameters),
-            frameRate: frameRate.valueOf(parameters),
-            parameters: parameters
-          }, processId.valueOf(parameters));
-          context.cleanupActions.push(cleanup);
-        }
       });
       return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
     });
@@ -94244,7 +94291,7 @@ var convertScriptProperty = function convertScriptProperty(action, results, _ref
 
 function getDefaultConvertors() {
   return {
-    actionsConvertor: [convertHooksProperty, convertParametersProperty, convertDefaultValuesProperty, convertRefreshProperty, convertLoopEachProperty, convertLoopProperty, convertConditionProperty, convertDelayProperty, convertPauseProperty, convertLockProperty, convertSetProperty, convertSetsProperty, convertLogProperty, convertExternalCallProperty, convertScriptProperty, convertActionsProperty]
+    actionsConvertor: [convertHooksProperty, convertParametersProperty, convertDefaultValuesProperty, convertRefreshProperty, convertLoopEachProperty, convertLoopProperty, convertConditionProperty, convertCallbackProperty, convertDelayProperty, convertPauseProperty, convertLockProperty, convertSetProperty, convertSetsProperty, convertExecuteCallbackProperty, convertExternalCallProperty, convertLogProperty, convertScriptProperty, convertActionsProperty]
   };
 }
 
@@ -94262,13 +94309,18 @@ var ScriptProcessor = /*#__PURE__*/function () {
     this.external = _extends$3({}, DEFAULT_EXTERNALS, external);
   }
   var _proto = ScriptProcessor.prototype;
+  _proto.updateScripts = function updateScripts(scripts) {
+    this.clear();
+    this.scripts = scripts;
+    this.scriptMap = undefined;
+  };
   _proto.clear = function clear() {
     var _this = this;
     Object.values(this.refreshCleanups).forEach(function (cleanup) {
-      cleanup();
+      return cleanup();
     });
     Object.keys(this.refreshCleanups).forEach(function (key) {
-      delete _this.refreshCleanups[key];
+      return delete _this.refreshCleanups[key];
     });
   };
   _proto.fetchScripts = function fetchScripts() {
@@ -94293,13 +94345,8 @@ var ScriptProcessor = /*#__PURE__*/function () {
     }
   };
   _proto.createRefreshCleanup = function createRefreshCleanup(behavior, context) {
-    var cleanupActions = context.cleanupActions;
-    return behavior.cleanupAfterRefresh && cleanupActions ? function () {
-      for (var _iterator = _createForOfIteratorHelperLoose(cleanupActions), _step; !(_step = _iterator()).done;) {
-        var cleanup = _step.value;
-        cleanup();
-      }
-      cleanupActions.length = 0;
+    return behavior.cleanupAfterRefresh ? function () {
+      return context.cleanup();
     } : function () {};
   };
   _proto.getSteps = function getSteps(filter) {
@@ -94321,6 +94368,9 @@ var ScriptProcessor = /*#__PURE__*/function () {
     }
   };
   _proto.runByName = function runByName(name, parameters) {
+    if (parameters === void 0) {
+      parameters = {};
+    }
     try {
       var _this4 = this;
       var context = createContext();
@@ -94329,10 +94379,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
       })).then(function (_this4$getSteps) {
         execute(_this4$getSteps, parameters, context);
         return function () {
-          var _context$cleanupActio;
-          return (_context$cleanupActio = context.cleanupActions) === null || _context$cleanupActio === void 0 ? void 0 : _context$cleanupActio.forEach(function (action) {
-            return action();
-          });
+          return context.clear();
         };
       });
     } catch (e) {
@@ -94340,6 +94387,9 @@ var ScriptProcessor = /*#__PURE__*/function () {
     }
   };
   _proto.runByTags = function runByTags(tags, parameters) {
+    if (parameters === void 0) {
+      parameters = {};
+    }
     try {
       var _this5 = this;
       var context = createContext();
@@ -94348,10 +94398,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
       })).then(function (_this5$getSteps) {
         execute(_this5$getSteps, parameters, context);
         return function () {
-          var _context$cleanupActio2;
-          return (_context$cleanupActio2 = context.cleanupActions) === null || _context$cleanupActio2 === void 0 ? void 0 : _context$cleanupActio2.forEach(function (action) {
-            return action();
-          });
+          return context.clear();
         };
       });
     } catch (e) {
@@ -94378,7 +94425,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
     delete this.refreshCleanups[processId];
   };
   _proto.refreshSteps = function refreshSteps(steps, behavior, processId) {
-    var _behavior$frameRate;
+    var _behavior$frameRate, _this$refreshCleanups3, _this$refreshCleanups4;
     if (behavior === void 0) {
       behavior = {};
     }
@@ -94388,7 +94435,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
       frame: 0
     });
     var refreshCleanup = this.createRefreshCleanup(behavior, context);
-    var frameRate = (_behavior$frameRate = behavior.frameRate) != null ? _behavior$frameRate : 60;
+    var frameRate = (_behavior$frameRate = behavior.frameRate) != null ? _behavior$frameRate : DEFAULT_REFRESH_FRAME_RATE;
     var frameMs = 1000 / frameRate;
     var lastFrameTime = Number.MIN_SAFE_INTEGER;
     var frame = 0;
@@ -94408,10 +94455,13 @@ var ScriptProcessor = /*#__PURE__*/function () {
       refreshCleanup();
       cancelAnimationFrame(animationFrameId);
     };
-    if (processId !== null && processId !== void 0 && processId.length) {
-      this.refreshCleanups[processId] = cleanup;
-    }
-    return cleanup;
+    var actualProcessId = processId != null ? processId : v4();
+    (_this$refreshCleanups3 = (_this$refreshCleanups4 = this.refreshCleanups)[actualProcessId]) === null || _this$refreshCleanups3 === void 0 ? void 0 : _this$refreshCleanups3.call(_this$refreshCleanups4);
+    this.refreshCleanups[actualProcessId] = cleanup;
+    return {
+      processId: actualProcessId,
+      cleanup: cleanup
+    };
   };
   _proto.refreshByName = function refreshByName(name, behavior) {
     if (behavior === void 0) {
@@ -94604,7 +94654,7 @@ function useImageAction(_ref) {
     gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }, [gl, textImage2d]);
-  var loadImage = useCallback(function (src, imageId, onLoad, onLoadParam) {
+  var loadImage = useCallback(function (src, imageId, onLoad) {
     var image = new Image();
     image.src = src;
     var imageLoaded = function imageLoaded() {
@@ -94612,7 +94662,7 @@ function useImageAction(_ref) {
         src: image,
         activated: false
       };
-      onLoad === null || onLoad === void 0 ? void 0 : onLoad(onLoadParam);
+      onLoad === null || onLoad === void 0 ? void 0 : onLoad();
     };
     image.addEventListener("load", imageLoaded, {
       once: true
@@ -94624,7 +94674,7 @@ function useImageAction(_ref) {
       return image.removeEventListener("load", imageLoaded);
     };
   }, [images]);
-  var loadVideo = useCallback(function (src, imageId, volume) {
+  var loadVideo = useCallback(function (src, imageId, volume, onLoad) {
     var video = document.createElement("video");
     video.src = src;
     video.loop = true;
@@ -94637,6 +94687,7 @@ function useImageAction(_ref) {
         src: video,
         activated: false
       };
+      onLoad === null || onLoad === void 0 ? void 0 : onLoad();
     };
     video.addEventListener("playing", videoPlaying, {
       once: true
@@ -94684,7 +94735,7 @@ function useImageAction(_ref) {
   };
 }
 
-var _excluded$5 = ["updateAttributeBuffer"];
+var _excluded$6 = ["updateAttributeBuffer"];
 var MATRIX_SIZE = 16;
 function useGlAction(_ref) {
   var gl = _ref.gl,
@@ -94792,9 +94843,8 @@ function useGlAction(_ref) {
         return Promise.resolve();
       }
       results.push(function (_, context) {
-        var _context$cleanupActio;
         var cleanup = bindVertexArray();
-        (_context$cleanupActio = context.cleanupActions) === null || _context$cleanupActio === void 0 ? void 0 : _context$cleanupActio.push(cleanup);
+        context.addCleanup(cleanup);
       });
       return Promise.resolve();
     } catch (e) {
@@ -94881,10 +94931,9 @@ function useGlAction(_ref) {
           gl === null || gl === void 0 ? void 0 : gl.vertexAttribDivisor(finalLocation, divisorValue);
         }
         if (enableValue !== undefined) {
-          var _context$cleanupActio2;
           gl === null || gl === void 0 ? void 0 : gl.enableVertexAttribArray(finalLocation);
-          (_context$cleanupActio2 = context.cleanupActions) === null || _context$cleanupActio2 === void 0 ? void 0 : _context$cleanupActio2.push(function () {
-            gl === null || gl === void 0 ? void 0 : gl.disableVertexAttribArray(finalLocation);
+          context.addCleanup(function () {
+            return gl === null || gl === void 0 ? void 0 : gl.disableVertexAttribArray(finalLocation);
           });
         }
       });
@@ -94998,56 +95047,43 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [executeLoadTextureAction]);
-  var convertVideo = useCallback(function (_ref12, results) {
+  var convertVideo = useCallback(function (_ref12, results, utils) {
     var video = _ref12.video;
     try {
+      var _utils$executeCallbac;
       if (!video) {
         return Promise.resolve();
       }
       var src = calculateString(video.src);
       var imageId = calculateString(video.imageId);
       var volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
-      results.push(function (parameters) {
-        return loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters));
+      var onLoad = (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : _utils$executeCallbac.onLoad;
+      results.push(function (parameters, context) {
+        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), function () {
+          return onLoad === null || onLoad === void 0 ? void 0 : onLoad(context);
+        });
       });
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
   }, [loadVideo]);
-  var convertImage = useCallback(function (_ref13, results, utils, external, actionConversionMap) {
+  var convertImage = useCallback(function (_ref13, results, utils) {
     var image = _ref13.image;
     try {
-      var _image$onLoad;
-      var _temp2 = function _temp2() {
-        var onLoadParameters;
-        var onLoad = onLoadSteps.length ? function (context) {
-          execute(onLoadSteps, onLoadParameters, context);
-          for (var i in onLoadParameters) {
-            delete onLoadParameters[i];
-          }
-          if (onLoadParameters && context) {
-            recycleParams$1(onLoadParameters, context);
-            onLoadParameters = undefined;
-          }
-        } : undefined;
-        results.push(function (parameters, context) {
-          if (onLoad) {
-            onLoadParameters = newParams$1(parameters, context);
-          }
-          loadImage(src.valueOf(parameters), imageId.valueOf(parameters), onLoad, context);
-        });
-      };
+      var _utils$executeCallbac2;
       if (!image) {
         return Promise.resolve();
       }
       var src = calculateString(image.src);
       var imageId = calculateString(image.imageId);
-      var onLoadSteps = [];
-      var _temp = _forOf((_image$onLoad = image.onLoad) != null ? _image$onLoad : [], function (action) {
-        return Promise.resolve(convertAction(action, onLoadSteps, utils, external, actionConversionMap)).then(function () {});
+      var onLoad = (_utils$executeCallbac2 = utils.executeCallback) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.onLoad;
+      results.push(function (parameters, context) {
+        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), function () {
+          onLoad === null || onLoad === void 0 ? void 0 : onLoad(context);
+        });
       });
-      return Promise.resolve(_temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp));
+      return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
@@ -95129,7 +95165,7 @@ function useGlAction(_ref) {
         return Promise.resolve();
       }
       var updateAttributeBuffer = action.updateAttributeBuffer,
-        subAction = _objectWithoutPropertiesLoose(action, _excluded$5);
+        subAction = _objectWithoutPropertiesLoose(action, _excluded$6);
       var location = calculateString(updateAttributeBuffer);
       var subStepResults = [];
       return Promise.resolve(convertAction(subAction, subStepResults, utils, external, actionConversionMap)).then(function () {

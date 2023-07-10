@@ -66,8 +66,16 @@ scripts:
         src: sample.mp4
         imageId: video
         volume: 0
+      callback:
+        onLoad:
+        - loadTexture:
+            textureId: TEXTURE0
+            imageId: video
+    - hooks: [hasImageId]
+      pause: ~{not hasImageId("video")}
     - executeScript: refresh
-      refresh: {}
+      refresh:
+        frameRate: 60
     tags: [main]
 programs:
   - id: sample-video-texture

@@ -31,7 +31,8 @@ scripts:
           0.0, 0.0, 1.0,
         ]
     - executeScript: refresh
-      refresh: {}
+      refresh:
+        frameRate: 60
     tags: [main]
 programs:
   - id: sample-multicolor

@@ -44,11 +44,10 @@ export default function useImageAction({ gl }: Props) {
         gl?.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     }, [gl, textImage2d]);
 
-    const loadImage = useCallback(<T>(
+    const loadImage = useCallback((
             src: Url,
             imageId: ImageId,
-            onLoad?: (param?: T) => void,
-            onLoadParam?: T) => {
+            onLoad?: () => void) => {
         const image = new Image();
         image.src = src;
         const imageLoaded = () => {
@@ -56,7 +55,7 @@ export default function useImageAction({ gl }: Props) {
                 src: image,
                 activated: false,
             };
-            onLoad?.(onLoadParam);
+            onLoad?.();
         };
         image.addEventListener("load", imageLoaded, { once: true });
         image.addEventListener("error", (e: ErrorEvent) => {
@@ -65,7 +64,7 @@ export default function useImageAction({ gl }: Props) {
         return () => image.removeEventListener("load", imageLoaded);
     }, [images]);
 
-    const loadVideo = useCallback((src: Url, imageId: ImageId, volume?: number): () => void => {
+    const loadVideo = useCallback((src: Url, imageId: ImageId, volume?: number, onLoad?: () => void): () => void => {
         const video = document.createElement("video");
         video.src = src;
         video.loop = true;
@@ -78,6 +77,7 @@ export default function useImageAction({ gl }: Props) {
                 src: video,
                 activated: false,
             };
+            onLoad?.();
         };
         video.addEventListener("playing", videoPlaying, { once: true });
         video.addEventListener("error", (e: ErrorEvent) => {

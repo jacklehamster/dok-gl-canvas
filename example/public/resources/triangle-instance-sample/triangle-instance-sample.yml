@@ -60,7 +60,8 @@ scripts:
       parameters:
         vertexCount: ~{vertexCount}
         instanceCount: ~{instanceCount}
-      refresh: {}
+      refresh:
+        frameRate: 60
     tags: [main]
 programs:
   - id: sample-triangle-instance

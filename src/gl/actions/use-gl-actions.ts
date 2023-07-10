@@ -1,4 +1,4 @@
-import { BooleanResolution, Context, Convertor, DEFAULT_EXTERNALS, getDefaultConvertors, ExecutionParameters, ExecutionStep, Formula, Script, ScriptProcessor, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute, ConvertBehavior } from "dok-actions";
+import { BooleanResolution, Convertor, DEFAULT_EXTERNALS, getDefaultConvertors, ExecutionParameters, ExecutionStep, Formula, Script, ScriptProcessor, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute, ConvertBehavior } from "dok-actions";
 import { useCallback, useEffect, useRef } from "react";
 import useBufferAttributes, { BufferInfo } from "../../pipeline/actions/use-buffer-attributes";
 import { clearRecord } from "../../utils/object-utils";
@@ -8,7 +8,6 @@ import { GlAction, LocationName, LocationResolution } from "dok-gl-actions";
 import { GlDepthFunction, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
 import { ProgramId } from "dok-gl-actions/dist/program/program";
 import { mat4, quat, vec3 } from "gl-matrix";
-import { newParams, recycleParams } from "dok-gl-actions"
 
 const MATRIX_SIZE = 16;
 
@@ -113,7 +112,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       }
       results.push((_, context) => {
         const cleanup = bindVertexArray();
-        context.cleanupActions?.push(cleanup);
+        context.addCleanup(cleanup);
       });
     }, [bindVertexArray]);
 
@@ -181,9 +180,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
           }
           if (enableValue !== undefined) {
             gl?.enableVertexAttribArray(finalLocation);
-            context.cleanupActions?.push(() => {
-              gl?.disableVertexAttribArray(finalLocation);
-          });
+            context.addCleanup(() => gl?.disableVertexAttribArray(finalLocation));
         }
       });
     }, [resolveLocation, getGlType, getByteSize, getBufferInfo, gl]);
@@ -264,44 +261,31 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       results.push((parameters) => executeLoadTextureAction(imageId.valueOf(parameters), textureId));
     }, [executeLoadTextureAction]);
 
-    const convertVideo = useCallback<Convertor<GlAction>>(async ({ video }, results) => {
+    const convertVideo = useCallback<Convertor<GlAction>>(async ({ video }, results, utils) => {
       if (!video) {
         return;
       }
       const src = calculateString<Url>(video.src);
       const imageId = calculateString<ImageId>(video.imageId);
       const volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
-      results.push((parameters) => loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters)));
+      const onLoad = utils.executeCallback?.onLoad;
+      results.push((parameters, context) => {
+        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters), () => onLoad?.(context));
+      });
     }, [loadVideo]);
 
-    const convertImage = useCallback<Convertor<GlAction>>(async ({ image }, results, utils, external, actionConversionMap) => {
+    const convertImage = useCallback<Convertor<GlAction>>(async ({ image }, results, utils) => {
       if (!image) {
         return;
       }
       const src = calculateString<Url>(image.src);
       const imageId = calculateString<ImageId>(image.imageId);
 
-      const onLoadSteps: ExecutionStep[] = [];
-      for (let action of image.onLoad ?? []) {
-        await convertAction(action, onLoadSteps, utils, external, actionConversionMap);
-      }
-      let onLoadParameters:ExecutionParameters | undefined;
-      const onLoad = onLoadSteps.length ? (context?: Context) => { 
-        execute(onLoadSteps, onLoadParameters, context);
-        for (let i in onLoadParameters) {
-          delete onLoadParameters[i];
-        }
-        if (onLoadParameters && context) {
-          recycleParams(onLoadParameters, context);
-          onLoadParameters = undefined;  
-        }
-      } : undefined;
-
+      const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
-        if (onLoad) {
-          onLoadParameters = newParams(parameters, context);
-        }
-        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), onLoad, context);
+        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), () => {
+          onLoad?.(context);
+        });
       });
     }, [loadImage]);
 

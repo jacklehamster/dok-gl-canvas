@@ -62,7 +62,8 @@ scripts:
       parameters:
         attributeName: matrix
     - executeScript: refresh
-      refresh: {}
+      refresh:
+        frameRate: 60
       parameters:
         vertexCount: ~{vertexCount}
         instanceCount: ~{instanceCount}
