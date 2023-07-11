@@ -4,7 +4,7 @@ interface Props {
     gl?: WebGL2RenderingContext;
     getAttributeLocation(name: LocationName, programId?: ProgramId): number;
 }
-export type TypedArray = Float32Array | Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array;
+export declare type TypedArray = Float32Array | Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array;
 export interface BufferInfo {
     buffer: WebGLBuffer;
     location: number;
@@ -15,7 +15,7 @@ export interface BufferInfo {
 export default function useBufferAttributes({ gl, getAttributeLocation }: Props): {
     bindVertexArray: () => () => void | undefined;
     createBuffer: (location: LocationName) => BufferInfo;
-    getBufferAttribute: (location: LocationName, autoCreate?: boolean) => BufferInfo;
+    getBufferAttribute: (location: LocationName, autoCreate?: boolean | undefined) => BufferInfo;
     bufferData: (location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => void;
 };
 export {};
