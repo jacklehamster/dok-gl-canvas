@@ -13,6 +13,7 @@ export function useProgram({ gl, programs }: Props) {
 
     const [programResults, setProgramResults] = useState<Record<ProgramId, ProgramResult>>({});
     const [activeProgram, setActiveProgram] = useState<WebGLProgram>();
+    const [loadedPrograms, setLoadedPrograms] = useState<ProgramConfig[]>();
 
     const updatePrograms = useCallback((programs?: ProgramConfig[]) => {
         setProgramResults(results => {
@@ -48,11 +49,12 @@ export function useProgram({ gl, programs }: Props) {
             if (result?.program) {
                 setActiveProgram(result.program);
                 gl.useProgram(result.program);
+                setLoadedPrograms(programs);
                 return true;
             }
         }
         return false;
-    }, [gl, programResults]);
+    }, [gl, programResults, programs]);
 
     const getUniformLocation = useCallback((name: string, programId?: ProgramId): WebGLUniformLocation | undefined => {
         if (gl) {
@@ -79,10 +81,13 @@ export function useProgram({ gl, programs }: Props) {
         activateProgram(programId);
     }, [gl, activateProgram, programs]);
 
+    const programLoading = loadedPrograms !== programs;
+
     return {
         getAttributeLocation,
         getUniformLocation,
         activateProgram,
-        activeProgram,
+        programLoading,
+        activeProgram: programLoading ? undefined : activeProgram,
     }
 }

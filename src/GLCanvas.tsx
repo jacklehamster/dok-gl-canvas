@@ -37,9 +37,12 @@ export default function GLCanvas(props?: Props): JSX.Element {
 
     const { getScriptProcessor } = useGlAction({ gl, getAttributeLocation, getUniformLocation, activateProgram });
 
-    const processor = useMemo(() => getScriptProcessor(scripts), [scripts, getScriptProcessor]);
-
+    const processor = useMemo(() => getScriptProcessor(scripts), [
+        scripts, getScriptProcessor,
+    ]);
+    
     const ready = useMemo(() => !!(gl && activeProgram && width && height && glConfig), [gl, activeProgram, width, height, glConfig]);
+
     useEffect((): void | (() => void) => {
         if (ready) {
             const cleanup = processor?.runByTags(["main"]);

@@ -2,26 +2,37 @@ import React, { useEffect, useState } from 'react'
 
 import { GLCanvas } from 'dok-gl-canvas'
 import { Assembler } from 'obj-assembler';
+import { GlAction, Script } from 'dok-gl-actions';
+import { ProgramConfig } from 'dok-gl-actions/dist/program/program';
 
 interface Props {
   assembler: Assembler;
   path: string;
 }
 
+
+interface CanvasConfig {
+  path: string;
+  programs: ProgramConfig[];
+  scripts: Script<GlAction>[];
+}
+
 function SampleRenderer({ assembler, path }: Props) {
-  const [programs, setPrograms] = useState([]);
-  const [scripts, setScripts] = useState([]);
+  const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>();
   useEffect(() => {
     if (path) {
       assembler.load(path).then(result => {
         const { scripts, programs } = result;
-        setPrograms(programs);
-        setScripts(scripts);
+        setCanvasConfig({
+          path,
+          programs,
+          scripts,
+        });
       });  
     }
   }, [assembler, path]); 
-  return <>{!scripts.length || !programs.length ? undefined :
-    <GLCanvas key={path} scripts={scripts} programs={programs} /> 
+  return <>{!canvasConfig ? undefined :
+    <GLCanvas key={canvasConfig.path} scripts={canvasConfig.scripts} programs={canvasConfig.programs} /> 
   }</>;
 }
 

@@ -1,8 +1,8 @@
 import { OldScript } from "../gl/actionscripts/Script";
 import { ProgramConfig, ProgramId } from "../gl/program/program";
 import { GlAction } from "../pipeline/actions/GlAction";
-export type GetUniformLocation = (name: string, id?: ProgramId) => WebGLUniformLocation | undefined;
-export type GetAttributeLocation = (name: string, id?: ProgramId) => number;
+export declare type GetUniformLocation = (name: string, id?: ProgramId) => WebGLUniformLocation | undefined;
+export declare type GetAttributeLocation = (name: string, id?: ProgramId) => number;
 export interface GlConfig {
     gl: WebGL2RenderingContext;
     getUniformLocation: GetUniformLocation;

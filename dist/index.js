@@ -26828,7 +26828,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React__default.createElement(Control, {
       controller: controller
-    }, React__default.createElement(Node, _extends({}, props))), hud);
+    }, React__default.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -27939,6 +27939,9 @@ function useProgram(_ref) {
   var _useState2 = React.useState(),
     activeProgram = _useState2[0],
     setActiveProgram = _useState2[1];
+  var _useState3 = React.useState(),
+    loadedPrograms = _useState3[0],
+    setLoadedPrograms = _useState3[1];
   var updatePrograms = React.useCallback(function (programs) {
     setProgramResults(function (results) {
       var newResults = _extends({}, results);
@@ -27979,11 +27982,12 @@ function useProgram(_ref) {
       if (result !== null && result !== void 0 && result.program) {
         setActiveProgram(result.program);
         gl.useProgram(result.program);
+        setLoadedPrograms(programs);
         return true;
       }
     }
     return false;
-  }, [gl, programResults]);
+  }, [gl, programResults, programs]);
   var getUniformLocation = React.useCallback(function (name, programId) {
     if (gl) {
       var _programResults$progr, _programResults;
@@ -28011,11 +28015,13 @@ function useProgram(_ref) {
     var programId = programs === null || programs === void 0 ? void 0 : (_programs$ = programs[0]) === null || _programs$ === void 0 ? void 0 : _programs$.id;
     activateProgram(programId);
   }, [gl, activateProgram, programs]);
+  var programLoading = loadedPrograms !== programs;
   return {
     getAttributeLocation: getAttributeLocation,
     getUniformLocation: getUniformLocation,
     activateProgram: activateProgram,
-    activeProgram: activeProgram
+    programLoading: programLoading,
+    activeProgram: programLoading ? undefined : activeProgram
   };
 }
 
