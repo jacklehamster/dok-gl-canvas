@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json#/definitions/GlScript
+
+name: bufferData
+actions:
+- defaultValues:
+    buffer: null
+    target: ARRAY_BUFFER
+    glType: FLOAT
+  bindBuffer:
+    target: ~{target}
+    location: ~{location}
+  bufferData:
+    glType: ~{glType}
+    target: ~{target}
+    location: ~{location}
+    buffer: ~{buffer}
+    length: ~{length}

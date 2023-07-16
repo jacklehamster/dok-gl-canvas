@@ -15,7 +15,8 @@ scripts:
           vertexCount: 6
   - name: animate
     actions:
-    - updateAttributeBuffer: position
+    - updateAttributeBuffer:
+        location: position
       actions:
       - set:
           variable: attributeBuffer

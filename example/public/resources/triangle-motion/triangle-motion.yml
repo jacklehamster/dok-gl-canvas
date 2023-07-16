@@ -11,7 +11,8 @@ scripts:
         instanceCount: ~{instanceCount}
   - name: refresh
     actions:
-    - updateAttributeBuffer: matrix
+    - updateAttributeBuffer:
+        location: matrix
       actions:
       - loop: ~{attributeBufferLength}
         set:

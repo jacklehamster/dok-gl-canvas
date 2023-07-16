@@ -94562,7 +94562,7 @@ function useBufferAttributes(_ref) {
     }
     var bufferBuffer = gl === null || gl === void 0 ? void 0 : gl.createBuffer();
     if (!bufferBuffer) {
-      throw new Error("Unable to create buffer " + location);
+      throw new Error("Unable to create buffer \"" + location + "\"");
     }
     var record = {
       buffer: bufferBuffer,
@@ -94577,16 +94577,12 @@ function useBufferAttributes(_ref) {
       if (autoCreate) {
         return createBuffer(location);
       }
-      throw new Error("Attribute " + location + " not created. Make sure \"createBuffer\" is called.");
+      throw new Error("Attribute \"" + location + "\" not created. Make sure \"createBuffer\" is called.");
     }
     return attribute;
   }, [bufferRecord, createBuffer]);
   var bufferData = React.useCallback(function (target, location, bufferArray, bufferSize, glUsage) {
-    var _bufferRecord$current, _ref2;
-    var bufferLocation = (_bufferRecord$current = bufferRecord.current[location].location) != null ? _bufferRecord$current : getAttributeLocation(location);
-    if (bufferLocation < 0) {
-      throw new Error("Invalid attribute location: \"" + location + "\" = " + bufferLocation);
-    }
+    var _ref2;
     var bufferInfo = getBufferAttribute(location);
     var targetValue = (_ref2 = target != null ? target : bufferInfo.target) != null ? _ref2 : WebGL2RenderingContext.ARRAY_BUFFER;
     if (bufferArray) {
@@ -94598,7 +94594,7 @@ function useBufferAttributes(_ref) {
     bufferInfo.bufferArray = bufferArray != null ? bufferArray : new Float32Array(bufferInfo.bufferSize / Float32Array.BYTES_PER_ELEMENT).fill(0);
     bufferInfo.usage = glUsage;
     bufferInfo.target = targetValue;
-  }, [gl, getAttributeLocation, getBufferAttribute, bufferRecord]);
+  }, [gl, getBufferAttribute]);
   var bufferSubData = React.useCallback(function (target, bufferArray, dstByteOffset, srcOffset, length) {
     if (srcOffset) {
       gl === null || gl === void 0 ? void 0 : gl.bufferSubData(target, dstByteOffset, bufferArray, srcOffset, length);
@@ -94884,8 +94880,9 @@ function useGlAction(_ref) {
       var location = calculateString(bind.location);
       results.push(function (parameters) {
         var _ref8, _target$valueOf3, _getBufferInfo;
-        var targetValue = (_ref8 = (_target$valueOf3 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf3 : (_getBufferInfo = getBufferInfo(location.valueOf(parameters))) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) != null ? _ref8 : WebGL2RenderingContext.ARRAY_BUFFER;
-        bindBuffer(targetValue, getBufferInfo(location.valueOf(parameters)));
+        var locationValue = location.valueOf(parameters);
+        var targetValue = (_ref8 = (_target$valueOf3 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf3 : (_getBufferInfo = getBufferInfo(locationValue)) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) != null ? _ref8 : WebGL2RenderingContext.ARRAY_BUFFER;
+        bindBuffer(targetValue, getBufferInfo(locationValue));
       });
       return Promise.resolve();
     } catch (e) {
@@ -94942,7 +94939,11 @@ function useGlAction(_ref) {
       var enable = attributes.enable !== undefined ? calculateBoolean(attributes.enable) : undefined;
       var divisor = attributes.divisor !== undefined ? calculateNumber(attributes.divisor) : undefined;
       results.push(function (parameters, context) {
-        var bufferInfo = getBufferInfo(loc.valueOf(parameters));
+        var locationValue = loc.valueOf(parameters);
+        var bufferInfo = getBufferInfo(locationValue);
+        if (bufferInfo.location < 0) {
+          throw new Error("Invalid location to call vertexAttribPointer on: \"" + locationValue + "\"");
+        }
         var sizeValue = size.valueOf(parameters);
         var offsetValue = offset.valueOf(parameters);
         var normalizedValue = normalized.valueOf(parameters);

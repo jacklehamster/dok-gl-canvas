@@ -4,7 +4,8 @@ scripts:
   - reference: ../lib/init-buffer.yaml
   - name: refresh
     actions:
-    - updateAttributeBuffer: position
+    - updateAttributeBuffer:
+        location: position
       set:
         variable: attributeBuffer
         access: [0]

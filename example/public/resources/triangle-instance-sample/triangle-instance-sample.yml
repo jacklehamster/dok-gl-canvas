@@ -10,7 +10,8 @@ scripts:
         instanceCount: ~{instanceCount}
   - name: refresh
     actions:
-    - updateAttributeBuffer: shift
+    - updateAttributeBuffer:
+        location: shift
       actions:
       - set:
           variable: attributeBuffer

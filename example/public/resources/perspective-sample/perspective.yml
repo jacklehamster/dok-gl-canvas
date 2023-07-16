@@ -11,7 +11,8 @@ scripts:
         instanceCount: ~{instanceCount}
   - name: refresh
     actions:
-    - bindBuffer: matrix
+    - bindBuffer:
+        location: matrix
     - parameters:
         size: 1
         time: ~{time}

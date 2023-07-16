@@ -45,7 +45,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       }
       const bufferBuffer = gl?.createBuffer();
       if (!bufferBuffer) {
-        throw new Error(`Unable to create buffer ${location}`);
+        throw new Error(`Unable to create buffer "${location}"`);
       }
       const record = {
         buffer: bufferBuffer,
@@ -61,16 +61,12 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
         if (autoCreate) {
           return createBuffer(location);
         }
-        throw new Error(`Attribute ${location} not created. Make sure "createBuffer" is called.`);
+        throw new Error(`Attribute "${location}" not created. Make sure "createBuffer" is called.`);
       }
       return attribute;
     }, [bufferRecord, createBuffer])
 
     const bufferData = useCallback((target: GLenum | undefined, location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => {
-      const bufferLocation = bufferRecord.current[location].location ?? getAttributeLocation(location);
-      if (bufferLocation < 0) {
-        throw new Error(`Invalid attribute location: "${location}" = ${bufferLocation}`);
-      }
       const bufferInfo = getBufferAttribute(location);
       const targetValue = target ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
       if (bufferArray) {
@@ -83,7 +79,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       bufferInfo.usage = glUsage;
       bufferInfo.target = targetValue;
 
-    }, [gl, getAttributeLocation, getBufferAttribute, bufferRecord]);
+    }, [gl, getBufferAttribute]);
 
     const bufferSubData = useCallback((target: GLenum, bufferArray: TypedArray, dstByteOffset: number, srcOffset?: number, length?: number) => {
       if (srcOffset) {

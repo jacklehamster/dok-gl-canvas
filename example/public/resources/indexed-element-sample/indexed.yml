@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
 
 scripts:
+  - reference: ../lib/buffer-data.yaml
   - reference: ../lib/init-buffer.yaml
   - reference: ../lib/matrix-identity.yaml
   - name: redraw
@@ -10,7 +11,8 @@ scripts:
         vertexCount: ~{vertexCount}
   - name: refresh
     actions:
-    - bindBuffer: matrix
+    - bindBuffer:
+        location: matrix
     - parameters:
         size: 2
         time: ~{time}
@@ -38,16 +40,17 @@ scripts:
           -0.2, -0.5, 0.0,
           0.2, -0.5, 0.0,
           -0.2, 0.5, 0.0,
+          0.2, -0.5, 0.0,
+          0.2, 0.5, 0.0,
         ]
-    - executeScript: initBuffer
+    - executeScript: bufferData
       parameters:
         target: ELEMENT_ARRAY_BUFFER
-        glType: UNSIGNED_INT
+        glType: UNSIGNED_SHORT
         location: index
-        size: 6
         buffer: [
           0, 1, 2,
-          2, 1, 3,
+          0, 2, 3,
         ]
     - executeScript: initBuffer
       parameters:

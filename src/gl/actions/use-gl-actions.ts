@@ -126,8 +126,9 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const location = calculateString(bind.location);
 
       results.push(parameters => {
-        const targetValue = target?.valueOf(parameters) ?? getBufferInfo(location.valueOf(parameters))?.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
-        bindBuffer(targetValue, getBufferInfo(location.valueOf(parameters)));
+        const locationValue = location.valueOf(parameters);
+        const targetValue = target?.valueOf(parameters) ?? getBufferInfo(locationValue)?.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
+        bindBuffer(targetValue, getBufferInfo(locationValue));
       });
     }, [bindBuffer, getBufferInfo, getBufferTarget]);
     
@@ -170,7 +171,11 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const divisor = attributes.divisor !== undefined ? calculateNumber(attributes.divisor) : undefined;
 
       results.push((parameters, context) => {
-          const bufferInfo = getBufferInfo(loc.valueOf(parameters));
+          const locationValue = loc.valueOf(parameters);
+          const bufferInfo = getBufferInfo(locationValue);
+          if (bufferInfo.location < 0) {
+            throw new Error(`Invalid location to call vertexAttribPointer on: "${locationValue}"`);
+          }
           const sizeValue = size.valueOf(parameters);
           const offsetValue = offset.valueOf(parameters);
           const normalizedValue = normalized.valueOf(parameters);
@@ -179,8 +184,9 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
           const enableValue = enable?.valueOf(parameters);
 
           const sizeMul = sizeValue * byteSize.valueOf(parameters);
-          const finalOffset = offsetValue + locationOffset.valueOf(parameters) * sizeMul;
-          const finalLocation = bufferInfo.location + locationOffset.valueOf(parameters);
+          const locationOffsetValue = locationOffset.valueOf(parameters);
+          const finalOffset = offsetValue + locationOffsetValue * sizeMul;
+          const finalLocation = bufferInfo.location + locationOffsetValue;
           gl?.vertexAttribPointer(finalLocation, sizeValue, glType.valueOf(parameters), normalizedValue, strideValue, finalOffset);
           if (divisorValue !== undefined) {
             gl?.vertexAttribDivisor(finalLocation, divisorValue);

@@ -6,7 +6,9 @@ actions:
     buffer: null
     target: ARRAY_BUFFER
     glType: FLOAT
-  bindBuffer: ~{location}
+  bindBuffer:
+    target: ~{target}
+    location: ~{location}
   bufferData:
     glType: ~{glType}
     target: ~{target}
