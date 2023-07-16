@@ -35,7 +35,7 @@ export const App = () => {
   const [sample, setSample] = useState<string>(Sample.TRIANGLE);
   return <>
     <select id="sample" style={{ position: "sticky", top: 0 }} value={sample} onChange={({ target }) => setSample(target.value)}>
-      {Object.keys(samples).map(type => <option key={type} value={type}>{type} sample</option>)}
+      {Object.keys(samples).map((type, index) => <option key={type} value={type}>{index+1} - {type} sample</option>)}
     </select>
     {samples[sample]}
   </>
