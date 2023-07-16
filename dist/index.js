@@ -2,6 +2,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var React = require('react');
 var React__default = _interopDefault(React);
+var dokGlActions = require('dok-gl-actions');
 var glMatrix = require('gl-matrix');
 
 function _extends() {
@@ -26828,7 +26829,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React__default.createElement(Control, {
       controller: controller
-    }, React__default.createElement(Node, _extends({}, props))), hud);
+    }, React__default.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -93636,21 +93637,50 @@ function calculateBoolean(value, defaultValue) {
     }
   };
 }
-
-function calculateTypedArray(value, ArrayConstructor) {
-  if (ArrayConstructor === void 0) {
-    ArrayConstructor = Float32Array;
+function getTypedArray(type) {
+  switch (type) {
+    case "BYTE":
+      return Int8Array;
+    case "FLOAT":
+      return Float32Array;
+    case "SHORT":
+      return Int16Array;
+    case "UNSIGNED_BYTE":
+      return Uint8Array;
+    case "UNSIGNED_SHORT":
+      return Uint16Array;
+    case "INT":
+      return Int32Array;
+    case "UNSIGNED_INT":
+      return Uint32Array;
+  }
+  return Float32Array;
+}
+function getTypeArrayContructor(glType) {
+  return {
+    valueOf: function valueOf() {
+      return getTypedArray(glType);
+    }
+  };
+}
+function calculateTypedArray(value, typedArrayContructor) {
+  if (typedArrayContructor === void 0) {
+    typedArrayContructor = getTypeArrayContructor("FLOAT");
   }
   if (value instanceof Float32Array || value instanceof Int8Array || value instanceof Uint8Array || value instanceof Int16Array || value instanceof Uint16Array || value instanceof Int32Array || value instanceof Uint32Array) {
     return value;
   }
+  var ArrayConstructor = undefined;
   if (Array.isArray(value)) {
-    var array = new ArrayConstructor(value.length);
     var compiledArray = value.map(function (value) {
       return calculateNumber(value, 0);
     });
     return {
       valueOf: function valueOf(parameters) {
+        if (!ArrayConstructor) {
+          ArrayConstructor = typedArrayContructor.valueOf(parameters);
+        }
+        var array = new ArrayConstructor(value.length);
         for (var i = 0; i < compiledArray.length; i++) {
           array[i] = compiledArray[i].valueOf(parameters);
         }
@@ -93669,6 +93699,9 @@ function calculateTypedArray(value, ArrayConstructor) {
       }
       if (value instanceof Float32Array || value instanceof Int8Array || value instanceof Uint8Array || value instanceof Int16Array || value instanceof Uint16Array || value instanceof Int32Array || value instanceof Uint32Array) {
         return value;
+      }
+      if (!ArrayConstructor) {
+        ArrayConstructor = typedArrayContructor.valueOf(parameters);
       }
       if (Array.isArray(value)) {
         if (!bufferArray) {
@@ -94548,73 +94581,42 @@ function useBufferAttributes(_ref) {
     }
     return attribute;
   }, [bufferRecord, createBuffer]);
-  var bufferData = React.useCallback(function (location, bufferArray, bufferSize, glUsage) {
-    var _bufferRecord$current;
-    if (!gl) {
-      return;
-    }
+  var bufferData = React.useCallback(function (target, location, bufferArray, bufferSize, glUsage) {
+    var _bufferRecord$current, _ref2;
     var bufferLocation = (_bufferRecord$current = bufferRecord.current[location].location) != null ? _bufferRecord$current : getAttributeLocation(location);
     if (bufferLocation < 0) {
-      throw new Error("Invalid attribute location " + location);
-    }
-    if (bufferArray) {
-      gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
-    } else {
-      gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
+      throw new Error("Invalid attribute location: \"" + location + "\" = " + bufferLocation);
     }
     var bufferInfo = getBufferAttribute(location);
+    var targetValue = (_ref2 = target != null ? target : bufferInfo.target) != null ? _ref2 : WebGL2RenderingContext.ARRAY_BUFFER;
+    if (bufferArray) {
+      gl === null || gl === void 0 ? void 0 : gl.bufferData(targetValue, bufferArray, glUsage);
+    } else {
+      gl === null || gl === void 0 ? void 0 : gl.bufferData(targetValue, bufferSize, glUsage);
+    }
     bufferInfo.bufferSize = bufferSize;
     bufferInfo.bufferArray = bufferArray != null ? bufferArray : new Float32Array(bufferInfo.bufferSize / Float32Array.BYTES_PER_ELEMENT).fill(0);
     bufferInfo.usage = glUsage;
+    bufferInfo.target = targetValue;
   }, [gl, getAttributeLocation, getBufferAttribute, bufferRecord]);
+  var bufferSubData = React.useCallback(function (target, bufferArray, dstByteOffset, srcOffset, length) {
+    if (srcOffset) {
+      gl === null || gl === void 0 ? void 0 : gl.bufferSubData(target, dstByteOffset, bufferArray, srcOffset, length);
+    } else {
+      gl === null || gl === void 0 ? void 0 : gl.bufferSubData(target, dstByteOffset, bufferArray);
+    }
+  }, [gl]);
   return {
     bindVertexArray: bindVertexArray,
     createBuffer: createBuffer,
     getBufferAttribute: getBufferAttribute,
-    bufferData: bufferData
+    bufferData: bufferData,
+    bufferSubData: bufferSubData
   };
 }
 
 function useTypes() {
-  var getGlType = React.useCallback(function (type) {
-    switch (type) {
-      case "BYTE":
-        return WebGL2RenderingContext.BYTE;
-      case "FLOAT":
-        return WebGL2RenderingContext.FLOAT;
-      case "SHORT":
-        return WebGL2RenderingContext.SHORT;
-      case "UNSIGNED_BYTE":
-        return WebGL2RenderingContext.UNSIGNED_BYTE;
-      case "UNSIGNED_SHORT":
-        return WebGL2RenderingContext.UNSIGNED_SHORT;
-      case "INT":
-        return WebGL2RenderingContext.INT;
-      case "UNSIGNED_INT":
-        return WebGL2RenderingContext.UNSIGNED_INT;
-    }
-    return WebGL2RenderingContext.FLOAT;
-  }, []);
-  var getTypedArray = React.useCallback(function (type) {
-    switch (type) {
-      case "BYTE":
-        return Int8Array;
-      case "FLOAT":
-        return Float32Array;
-      case "SHORT":
-        return Int16Array;
-      case "UNSIGNED_BYTE":
-        return Uint8Array;
-      case "UNSIGNED_SHORT":
-        return Uint16Array;
-      case "INT":
-        return Int32Array;
-      case "UNSIGNED_INT":
-        return Uint32Array;
-    }
-    return Float32Array;
-  }, []);
-  var getGlUsage = React.useCallback(function (usage) {
+  var convertUsage = React.useCallback(function (usage) {
     switch (usage) {
       case "DYNAMIC_DRAW":
         return WebGL2RenderingContext.DYNAMIC_DRAW;
@@ -94626,14 +94628,25 @@ function useTypes() {
         return WebGL2RenderingContext.STATIC_DRAW;
     }
   }, []);
-  var getByteSize = React.useCallback(function (type) {
-    return getTypedArray(type).BYTES_PER_ELEMENT;
-  }, [getTypedArray]);
+  var getGlUsage = React.useCallback(function (usage) {
+    return dokGlActions.convertValueOf(usage, convertUsage);
+  }, [convertUsage]);
+  var convertBufferTarget = React.useCallback(function (target) {
+    switch (target) {
+      case "ARRAY_BUFFER":
+        return WebGL2RenderingContext.ARRAY_BUFFER;
+      case "ELEMENT_ARRAY_BUFFER":
+        return WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER;
+      default:
+        return WebGL2RenderingContext.ARRAY_BUFFER;
+    }
+  }, []);
+  var getBufferTarget = React.useCallback(function (target) {
+    return dokGlActions.convertValueOf(target, convertBufferTarget);
+  }, [convertBufferTarget]);
   return {
-    getGlType: getGlType,
-    getTypedArray: getTypedArray,
     getGlUsage: getGlUsage,
-    getByteSize: getByteSize
+    getBufferTarget: getBufferTarget
   };
 }
 
@@ -94767,12 +94780,11 @@ function useGlAction(_ref) {
     }),
     bindVertexArray = _useBufferAttributes.bindVertexArray,
     getBufferAttribute = _useBufferAttributes.getBufferAttribute,
-    bufferData = _useBufferAttributes.bufferData;
+    bufferData = _useBufferAttributes.bufferData,
+    bufferSubData = _useBufferAttributes.bufferSubData;
   var _useTypes = useTypes(),
-    getTypedArray = _useTypes.getTypedArray,
     getGlUsage = _useTypes.getGlUsage,
-    getGlType = _useTypes.getGlType,
-    getByteSize = _useTypes.getByteSize;
+    getBufferTarget = _useTypes.getBufferTarget;
   var _useImageAction = useImageAction({
       gl: gl
     }),
@@ -94784,10 +94796,10 @@ function useGlAction(_ref) {
     return getBufferAttribute(location, true);
   }, [getBufferAttribute]);
   var lastBoundBuffer = React.useRef();
-  var bindBuffer = React.useCallback(function (bufferInfo) {
+  var bindBuffer = React.useCallback(function (target, bufferInfo) {
     if (lastBoundBuffer.current !== bufferInfo) {
       lastBoundBuffer.current = bufferInfo;
-      gl === null || gl === void 0 ? void 0 : gl.bindBuffer(gl.ARRAY_BUFFER, bufferInfo.buffer);
+      gl === null || gl === void 0 ? void 0 : gl.bindBuffer(target, bufferInfo.buffer);
     }
   }, [gl, lastBoundBuffer]);
   var convertBufferData = React.useCallback(function (_ref2, results) {
@@ -94797,55 +94809,58 @@ function useGlAction(_ref) {
         return Promise.resolve();
       }
       var location = calculateString(buffer.location);
-      var TypeArrayConstructor = getTypedArray(buffer.glType);
-      var data = buffer.buffer ? calculateTypedArray(buffer.buffer, TypeArrayConstructor) : undefined;
+      var target = buffer.target ? getBufferTarget(calculateString(buffer.target)) : undefined;
+      var data = buffer.buffer ? calculateTypedArray(buffer.buffer, dokGlActions.calculateTypeArrayConstructor(buffer.glType)) : undefined;
       var length = calculateNumber(buffer.length);
-      var usage = calculateString(buffer.usage, "STATIC_DRAW");
+      var glUsage = getGlUsage(calculateString(buffer.usage, "STATIC_DRAW"));
       results.push(function (parameters) {
+        var _ref3, _target$valueOf;
         var locationValue = location.valueOf(parameters);
         var bufferInfo = getBufferInfo(locationValue);
-        bindBuffer(bufferInfo);
+        var targetValue = (_ref3 = (_target$valueOf = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf : bufferInfo.target) != null ? _ref3 : WebGL2RenderingContext.ARRAY_BUFFER;
+        bindBuffer(targetValue, bufferInfo);
         var dataToBuffer = data === null || data === void 0 ? void 0 : data.valueOf(parameters);
         var bufferSize = dataToBuffer ? dataToBuffer.length : length === null || length === void 0 ? void 0 : length.valueOf(parameters);
-        var glUsage = getGlUsage(usage === null || usage === void 0 ? void 0 : usage.valueOf(parameters));
         if (bufferSize) {
-          bufferData(locationValue, dataToBuffer, bufferSize, glUsage);
+          bufferData(targetValue, locationValue, dataToBuffer, bufferSize, glUsage.valueOf(parameters));
         }
       });
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [gl, getTypedArray, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
-  var convertBufferSubData = React.useCallback(function (_ref3, results) {
-    var bufferSubData = _ref3.bufferSubData;
+  }, [gl, getBufferTarget, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
+  var convertBufferSubData = React.useCallback(function (_ref4, results) {
+    var buffer = _ref4.bufferSubData;
     try {
-      if (!(bufferSubData !== null && bufferSubData !== void 0 && bufferSubData.data)) {
+      if (!(buffer !== null && buffer !== void 0 && buffer.data)) {
         return Promise.resolve();
       }
-      var TypeArrayConstructor = getTypedArray(bufferSubData.glType);
-      var data = calculateTypedArray(bufferSubData.data, TypeArrayConstructor);
-      var dstByteOffset = calculateNumber(bufferSubData.dstByteOffset);
-      var srcOffset = calculateNumber(bufferSubData.srcOffset);
+      var target = buffer.target ? getBufferTarget(calculateString(buffer.target)) : undefined;
+      var data = calculateTypedArray(buffer.data, dokGlActions.calculateTypeArrayConstructor(buffer.glType));
+      var dstByteOffset = calculateNumber(buffer.dstByteOffset);
+      var srcOffset = calculateNumber(buffer.srcOffset);
       var length = calculateNumber(bufferSubData.length);
-      var location = bufferSubData.location !== undefined ? calculateString(bufferSubData.location) : undefined;
+      var location = buffer.location !== undefined ? calculateString(buffer.location) : undefined;
       results.push(function (parameters) {
-        if (location !== undefined) {
-          var bufferInfo = getBufferInfo(location.valueOf(parameters));
-          bindBuffer(bufferInfo);
+        var _ref5, _target$valueOf2;
+        var bufferInfo = location ? getBufferInfo(location.valueOf(parameters)) : undefined;
+        var targetValue = (_ref5 = (_target$valueOf2 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf2 : bufferInfo === null || bufferInfo === void 0 ? void 0 : bufferInfo.target) != null ? _ref5 : WebGL2RenderingContext.ARRAY_BUFFER;
+        if (bufferInfo !== undefined) {
+          bindBuffer(targetValue, bufferInfo);
         }
         var bufferArray = data.valueOf(parameters);
         if (bufferArray) {
-          gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset.valueOf(parameters), bufferArray, srcOffset.valueOf(parameters), length.valueOf(parameters) || bufferArray.length);
+          bufferSubData(targetValue, bufferArray, dstByteOffset.valueOf(parameters), srcOffset.valueOf(parameters), length.valueOf(parameters) || bufferArray.length);
         }
       });
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [getBufferInfo, getTypedArray, gl, bindBuffer]);
-  var convertVertexArray = React.useCallback(function (_ref4, results) {
-    var bind = _ref4.bindVertexArray;
+  }, [bufferSubData, getBufferInfo, bindBuffer, getBufferTarget]);
+  var convertVertexArray = React.useCallback(function (_ref6, results) {
+    var bind = _ref6.bindVertexArray;
     try {
       if (!bind) {
         return Promise.resolve();
@@ -94859,23 +94874,26 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [bindVertexArray]);
-  var convertBindBuffer = React.useCallback(function (_ref5, results) {
-    var bind = _ref5.bindBuffer;
+  var convertBindBuffer = React.useCallback(function (_ref7, results) {
+    var bind = _ref7.bindBuffer;
     try {
       if (!bind) {
         return Promise.resolve();
       }
-      var bindLocation = calculateString(bind);
+      var target = bind.target ? getBufferTarget(calculateString(bind.target)) : undefined;
+      var location = calculateString(bind.location);
       results.push(function (parameters) {
-        return bindBuffer(getBufferInfo(bindLocation.valueOf(parameters)));
+        var _ref8, _target$valueOf3, _getBufferInfo;
+        var targetValue = (_ref8 = (_target$valueOf3 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf3 : (_getBufferInfo = getBufferInfo(location.valueOf(parameters))) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) != null ? _ref8 : WebGL2RenderingContext.ARRAY_BUFFER;
+        bindBuffer(targetValue, getBufferInfo(location.valueOf(parameters)));
       });
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [bindBuffer, getBufferInfo]);
-  var convertDrawArrays = React.useCallback(function (_ref6, results) {
-    var drawArrays = _ref6.drawArrays;
+  }, [bindBuffer, getBufferInfo, getBufferTarget]);
+  var convertDrawArrays = React.useCallback(function (_ref9, results) {
+    var drawArrays = _ref9.drawArrays;
     try {
       if (!drawArrays) {
         return Promise.resolve();
@@ -94906,8 +94924,8 @@ function useGlAction(_ref) {
     }
     return [calculateString(location), 0];
   }, []);
-  var convertVertexAttribPointer = React.useCallback(function (_ref7, results) {
-    var attributes = _ref7.vertexAttribPointer;
+  var convertVertexAttribPointer = React.useCallback(function (_ref10, results) {
+    var attributes = _ref10.vertexAttribPointer;
     try {
       if (!attributes) {
         return Promise.resolve();
@@ -94916,8 +94934,8 @@ function useGlAction(_ref) {
         loc = _resolveLocation[0],
         locationOffset = _resolveLocation[1];
       var size = calculateNumber(attributes.size);
-      var glType = getGlType(attributes.glType);
-      var byteSize = getByteSize(attributes.glType);
+      var glType = dokGlActions.getGlType(attributes.glType);
+      var byteSize = dokGlActions.getByteSize(attributes.glType);
       var normalized = calculateBoolean(attributes.normalized);
       var stride = calculateNumber(attributes.stride);
       var offset = calculateNumber(attributes.offset);
@@ -94931,10 +94949,10 @@ function useGlAction(_ref) {
         var strideValue = stride.valueOf(parameters);
         var divisorValue = divisor === null || divisor === void 0 ? void 0 : divisor.valueOf(parameters);
         var enableValue = enable === null || enable === void 0 ? void 0 : enable.valueOf(parameters);
-        var sizeMul = sizeValue * byteSize;
+        var sizeMul = sizeValue * byteSize.valueOf(parameters);
         var finalOffset = offsetValue + locationOffset.valueOf(parameters) * sizeMul;
         var finalLocation = bufferInfo.location + locationOffset.valueOf(parameters);
-        gl === null || gl === void 0 ? void 0 : gl.vertexAttribPointer(finalLocation, sizeValue, glType, normalizedValue, strideValue, finalOffset);
+        gl === null || gl === void 0 ? void 0 : gl.vertexAttribPointer(finalLocation, sizeValue, glType.valueOf(parameters), normalizedValue, strideValue, finalOffset);
         if (divisorValue !== undefined) {
           gl === null || gl === void 0 ? void 0 : gl.vertexAttribDivisor(finalLocation, divisorValue);
         }
@@ -94949,9 +94967,9 @@ function useGlAction(_ref) {
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [resolveLocation, getGlType, getByteSize, getBufferInfo, gl]);
-  var convertUniform = React.useCallback(function (_ref8, results) {
-    var uniform = _ref8.uniform;
+  }, [resolveLocation, getBufferInfo, gl]);
+  var convertUniform = React.useCallback(function (_ref11, results) {
+    var uniform = _ref11.uniform;
     try {
       if (!uniform) {
         return Promise.resolve();
@@ -94983,8 +95001,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [getUniformLocation, gl]);
-  var convertClear = React.useCallback(function (_ref9, results) {
-    var clear = _ref9.clear;
+  var convertClear = React.useCallback(function (_ref12, results) {
+    var clear = _ref12.clear;
     try {
       if (!clear) {
         return Promise.resolve();
@@ -95024,8 +95042,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [gl]);
-  var convertActivateProgram = React.useCallback(function (_ref10, results) {
-    var activateProgramProp = _ref10.activateProgram;
+  var convertActivateProgram = React.useCallback(function (_ref13, results) {
+    var activateProgramProp = _ref13.activateProgram;
     try {
       if (!activateProgramProp) {
         return Promise.resolve();
@@ -95039,8 +95057,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [activateProgram]);
-  var convertLoadTexture = React.useCallback(function (_ref11, results) {
-    var loadTexture = _ref11.loadTexture;
+  var convertLoadTexture = React.useCallback(function (_ref14, results) {
+    var loadTexture = _ref14.loadTexture;
     try {
       if (!loadTexture) {
         return Promise.resolve();
@@ -95055,8 +95073,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [executeLoadTextureAction]);
-  var convertVideo = React.useCallback(function (_ref12, results, utils) {
-    var video = _ref12.video;
+  var convertVideo = React.useCallback(function (_ref15, results, utils) {
+    var video = _ref15.video;
     try {
       var _utils$executeCallbac;
       if (!video) {
@@ -95076,8 +95094,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [loadVideo]);
-  var convertImage = React.useCallback(function (_ref13, results, utils) {
-    var image = _ref13.image;
+  var convertImage = React.useCallback(function (_ref16, results, utils) {
+    var image = _ref16.image;
     try {
       var _utils$executeCallbac2;
       if (!image) {
@@ -95160,13 +95178,13 @@ function useGlAction(_ref) {
         var matrix = parameters.matrix;
         var bytesPerInstance = matrix.length * Float32Array.BYTES_PER_ELEMENT;
         var indexValue = indexResolution.valueOf(parameters);
-        gl === null || gl === void 0 ? void 0 : gl.bufferSubData(gl.ARRAY_BUFFER, indexValue * bytesPerInstance, matrix);
+        bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, matrix, indexValue * bytesPerInstance);
       });
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [gl, initializeMatrix]);
+  }, [initializeMatrix, bufferSubData]);
   var convertAttributesBufferUpdate = React.useCallback(function (action, results, utils, external, actionConversionMap) {
     try {
       if (!action.updateAttributeBuffer) {
@@ -95174,27 +95192,29 @@ function useGlAction(_ref) {
       }
       var updateAttributeBuffer = action.updateAttributeBuffer,
         subAction = _objectWithoutPropertiesLoose(action, _excluded$6);
-      var location = calculateString(updateAttributeBuffer);
+      var target = updateAttributeBuffer.target ? getBufferTarget(calculateString(updateAttributeBuffer.target)) : undefined;
+      var location = calculateString(updateAttributeBuffer.location);
       var subStepResults = [];
       return Promise.resolve(convertAction(subAction, subStepResults, utils, external, actionConversionMap)).then(function () {
         results.push(function (parameters, context) {
-          var _bufferInfo$usage;
+          var _ref17, _target$valueOf4, _bufferInfo$usage;
           var locationValue = location.valueOf(parameters);
           var bufferInfo = getBufferInfo(locationValue);
-          bindBuffer(bufferInfo);
+          var targetValue = (_ref17 = (_target$valueOf4 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf4 : bufferInfo.target) != null ? _ref17 : WebGL2RenderingContext.ARRAY_BUFFER;
+          bindBuffer(targetValue, bufferInfo);
           var array = bufferInfo.bufferArray;
-          gl === null || gl === void 0 ? void 0 : gl.getBufferSubData(gl.ARRAY_BUFFER, 0, array);
+          gl === null || gl === void 0 ? void 0 : gl.getBufferSubData(targetValue, 0, array);
           parameters.attributeBuffer = array;
           parameters.attributeBufferLength = array.length;
           execute(subStepResults, parameters, context);
-          gl === null || gl === void 0 ? void 0 : gl.bufferData(gl.ARRAY_BUFFER, array, (_bufferInfo$usage = bufferInfo.usage) != null ? _bufferInfo$usage : gl.DYNAMIC_DRAW);
+          gl === null || gl === void 0 ? void 0 : gl.bufferData(targetValue, array, (_bufferInfo$usage = bufferInfo.usage) != null ? _bufferInfo$usage : gl.DYNAMIC_DRAW);
         });
         return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
       });
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [getBufferInfo, gl, bindBuffer]);
+  }, [getBufferTarget, getBufferInfo, bindBuffer, gl]);
   var convertOrthographicProjection = React.useCallback(function (action, results) {
     try {
       if (!action.orthogonalProjectionMatrixTransform) {

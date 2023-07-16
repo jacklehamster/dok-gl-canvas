@@ -4,8 +4,12 @@ name: initBuffer
 actions:
 - defaultValues:
     buffer: null
+    target: ARRAY_BUFFER
+    glType: FLOAT
   bindBuffer: ~{location}
   bufferData:
+    glType: ~{glType}
+    target: ~{target}
     location: ~{location}
     buffer: ~{buffer}
     length: ~{length}

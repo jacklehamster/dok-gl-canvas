@@ -12,6 +12,7 @@ export type TypedArray = Float32Array | Int8Array | Uint8Array | Int16Array | Ui
 
 export interface BufferInfo {
   buffer: WebGLBuffer;
+  target?: GLenum;
   location: number;
   bufferArray?: TypedArray;
   bufferSize?: number;
@@ -65,31 +66,38 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       return attribute;
     }, [bufferRecord, createBuffer])
 
-    const bufferData = useCallback((location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => {
-      if (!gl) {
-        return;
-      }
-
+    const bufferData = useCallback((target: GLenum | undefined, location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => {
       const bufferLocation = bufferRecord.current[location].location ?? getAttributeLocation(location);
       if (bufferLocation < 0) {
-        throw new Error(`Invalid attribute location ${location}`);
-      }
-      if (bufferArray) {
-        gl.bufferData(gl.ARRAY_BUFFER, bufferArray, glUsage);
-      } else {
-        gl.bufferData(gl.ARRAY_BUFFER, bufferSize, glUsage);
+        throw new Error(`Invalid attribute location: "${location}" = ${bufferLocation}`);
       }
       const bufferInfo = getBufferAttribute(location);
+      const targetValue = target ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
+      if (bufferArray) {
+        gl?.bufferData(targetValue, bufferArray, glUsage);
+      } else {
+        gl?.bufferData(targetValue, bufferSize, glUsage);
+      }
       bufferInfo.bufferSize = bufferSize;
       bufferInfo.bufferArray = bufferArray ?? new Float32Array(bufferInfo.bufferSize! / Float32Array.BYTES_PER_ELEMENT).fill(0);
       bufferInfo.usage = glUsage;
+      bufferInfo.target = targetValue;
 
     }, [gl, getAttributeLocation, getBufferAttribute, bufferRecord]);
+
+    const bufferSubData = useCallback((target: GLenum, bufferArray: TypedArray, dstByteOffset: number, srcOffset?: number, length?: number) => {
+      if (srcOffset) {
+        gl?.bufferSubData(target, dstByteOffset, bufferArray, srcOffset, length);
+      } else {
+        gl?.bufferSubData(target, dstByteOffset, bufferArray);
+      }
+    }, [gl]);
 
     return {
       bindVertexArray,
       createBuffer,
       getBufferAttribute,
       bufferData,
+      bufferSubData,
     };
 }

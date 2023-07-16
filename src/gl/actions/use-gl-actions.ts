@@ -4,8 +4,9 @@ import useBufferAttributes, { BufferInfo } from "../../pipeline/actions/use-buff
 import { clearRecord } from "../../utils/object-utils";
 import { useTypes } from "./types";
 import useImageAction, { ImageId, Url } from "../../pipeline/actions/use-image-action";
-import { GlAction, LocationName, LocationResolution } from "dok-gl-actions";
-import { GlDepthFunction, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
+import { GlAction, LocationName, LocationResolution, getGlType, getByteSize } from "dok-gl-actions";
+import { GlBufferTarget, GlDepthFunction, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
+import { calculateTypeArrayConstructor } from "dok-gl-actions";
 import { ProgramId } from "dok-gl-actions/dist/program/program";
 import { mat4, quat, vec3 } from "gl-matrix";
 
@@ -35,8 +36,8 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       };
     }, [gl, bufferRecord]);
 
-    const { bindVertexArray, getBufferAttribute, bufferData } = useBufferAttributes({ gl, getAttributeLocation });
-    const { getTypedArray, getGlUsage, getGlType, getByteSize } = useTypes();
+    const { bindVertexArray, getBufferAttribute, bufferData, bufferSubData } = useBufferAttributes({ gl, getAttributeLocation });
+    const { getGlUsage, getBufferTarget } = useTypes();
     const { executeLoadTextureAction, loadVideo, loadImage, hasImageId } = useImageAction({ gl });
 
     /**
@@ -47,10 +48,10 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
     }, [getBufferAttribute]);
 
     const lastBoundBuffer = useRef<BufferInfo>();
-    const bindBuffer = useCallback((bufferInfo: BufferInfo) => {
+    const bindBuffer = useCallback((target: GLenum, bufferInfo: BufferInfo) => {
       if (lastBoundBuffer.current !== bufferInfo) {
         lastBoundBuffer.current = bufferInfo;
-        gl?.bindBuffer(gl.ARRAY_BUFFER, bufferInfo.buffer);
+        gl?.bindBuffer(target, bufferInfo.buffer);
       }
     }, [gl, lastBoundBuffer]);
 
@@ -62,49 +63,50 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
           return;
         }
         const location = calculateString(buffer.location);
-        const TypeArrayConstructor = getTypedArray(buffer.glType);
-        const data = buffer.buffer ? calculateTypedArray(buffer.buffer, TypeArrayConstructor) : undefined;
+        const target = buffer.target ? getBufferTarget(calculateString<GlBufferTarget>(buffer.target)) : undefined;
+        const data = buffer.buffer ? calculateTypedArray(buffer.buffer, calculateTypeArrayConstructor(buffer.glType)) : undefined;
         const length = calculateNumber(buffer.length);
-        const usage = calculateString<GlUsage>(buffer.usage, "STATIC_DRAW");
+        const glUsage = getGlUsage(calculateString<GlUsage>(buffer.usage, "STATIC_DRAW"));
 
         results.push((parameters) => {
           const locationValue = location.valueOf(parameters);
-          const bufferInfo = getBufferInfo(locationValue);          
-          bindBuffer(bufferInfo);
+          const bufferInfo = getBufferInfo(locationValue);
+          const targetValue = target?.valueOf(parameters) ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
+          bindBuffer(targetValue, bufferInfo);
 
           const dataToBuffer = data?.valueOf(parameters);
           const bufferSize = dataToBuffer ? dataToBuffer.length : length?.valueOf(parameters);
-          const glUsage = getGlUsage(usage?.valueOf(parameters));
 
           if (bufferSize) {
-            bufferData(locationValue, dataToBuffer, bufferSize, glUsage);
+            bufferData(targetValue, locationValue, dataToBuffer, bufferSize, glUsage.valueOf(parameters));
           }
         });
-    }, [gl, getTypedArray, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
+    }, [gl, getBufferTarget, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
 
-    const convertBufferSubData = useCallback<Convertor<GlAction>>(async ({bufferSubData}, results) => {
-      if (!bufferSubData?.data) {
+    const convertBufferSubData = useCallback<Convertor<GlAction>>(async ({bufferSubData: buffer}, results) => {
+      if (!buffer?.data) {
         return;
       }
 
-      const TypeArrayConstructor = getTypedArray(bufferSubData.glType);
-      const data = calculateTypedArray(bufferSubData.data, TypeArrayConstructor);
-      const dstByteOffset = calculateNumber(bufferSubData.dstByteOffset);
-      const srcOffset = calculateNumber(bufferSubData.srcOffset);
+      const target = buffer.target ? getBufferTarget(calculateString<GlBufferTarget>(buffer.target)) : undefined;
+      const data = calculateTypedArray(buffer.data, calculateTypeArrayConstructor(buffer.glType));
+      const dstByteOffset = calculateNumber(buffer.dstByteOffset);
+      const srcOffset = calculateNumber(buffer.srcOffset);
       const length = calculateNumber(bufferSubData.length);
-      const location = bufferSubData.location !== undefined ? calculateString(bufferSubData.location) : undefined;
+      const location = buffer.location !== undefined ? calculateString(buffer.location) : undefined;
 
       results.push((parameters) => {
-        if (location !== undefined) {
-          const bufferInfo = getBufferInfo(location.valueOf(parameters));         
-          bindBuffer(bufferInfo);
+        const bufferInfo = location ? getBufferInfo(location.valueOf(parameters)) : undefined;         
+        const targetValue = target?.valueOf(parameters) ?? bufferInfo?.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
+        if (bufferInfo !== undefined) {
+          bindBuffer(targetValue, bufferInfo);
         }
         const bufferArray = data.valueOf(parameters);
         if (bufferArray) {
-          gl?.bufferSubData(gl.ARRAY_BUFFER, dstByteOffset.valueOf(parameters), bufferArray, srcOffset.valueOf(parameters), length.valueOf(parameters) || bufferArray.length);
+          bufferSubData(targetValue, bufferArray, dstByteOffset.valueOf(parameters), srcOffset.valueOf(parameters), length.valueOf(parameters) || bufferArray.length);
         }
       });
-    }, [getBufferInfo, getTypedArray, gl, bindBuffer]);
+    }, [bufferSubData, getBufferInfo, bindBuffer, getBufferTarget]);
 
     const convertVertexArray = useCallback<Convertor<GlAction>>(async ({ bindVertexArray: bind }, results) => {
       if (!bind) {
@@ -120,10 +122,14 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       if (!bind) {
         return;
       }
-      const bindLocation = calculateString(bind);
+      const target = bind.target ? getBufferTarget(calculateString<GlBufferTarget>(bind.target)) : undefined;
+      const location = calculateString(bind.location);
 
-      results.push(parameters => bindBuffer(getBufferInfo(bindLocation.valueOf(parameters))));
-    }, [bindBuffer, getBufferInfo]);
+      results.push(parameters => {
+        const targetValue = target?.valueOf(parameters) ?? getBufferInfo(location.valueOf(parameters))?.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
+        bindBuffer(targetValue, getBufferInfo(location.valueOf(parameters)));
+      });
+    }, [bindBuffer, getBufferInfo, getBufferTarget]);
     
     const convertDrawArrays = useCallback<Convertor<GlAction>>(async ({drawArrays}, results) => {
       if (!drawArrays) {
@@ -154,7 +160,8 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       }
       const [loc, locationOffset] = resolveLocation(attributes.location);
       const size = calculateNumber(attributes.size);
-      const glType: GLenum = getGlType(attributes.glType);
+      
+      const glType: ValueOf<GLenum> = getGlType(attributes.glType);
       const byteSize = getByteSize(attributes.glType);
       const normalized = calculateBoolean(attributes.normalized);
       const stride = calculateNumber(attributes.stride);
@@ -171,10 +178,10 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
           const divisorValue = divisor?.valueOf(parameters);
           const enableValue = enable?.valueOf(parameters);
 
-          const sizeMul = sizeValue * byteSize;
+          const sizeMul = sizeValue * byteSize.valueOf(parameters);
           const finalOffset = offsetValue + locationOffset.valueOf(parameters) * sizeMul;
           const finalLocation = bufferInfo.location + locationOffset.valueOf(parameters);
-          gl?.vertexAttribPointer(finalLocation, sizeValue, glType, normalizedValue, strideValue, finalOffset);
+          gl?.vertexAttribPointer(finalLocation, sizeValue, glType.valueOf(parameters), normalizedValue, strideValue, finalOffset);
           if (divisorValue !== undefined) {
             gl?.vertexAttribDivisor(finalLocation, divisorValue);
           }
@@ -183,7 +190,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
             context.addCleanup(() => gl?.disableVertexAttribArray(finalLocation));
         }
       });
-    }, [resolveLocation, getGlType, getByteSize, getBufferInfo, gl]);
+    }, [resolveLocation, getBufferInfo, gl]);
 
     const convertUniform = useCallback<Convertor<GlAction>>(async ({ uniform }, results) => {
       if (!uniform) {
@@ -350,16 +357,17 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         const matrix = parameters.matrix as Float32Array;
         const bytesPerInstance = matrix.length * Float32Array.BYTES_PER_ELEMENT;
         const indexValue = indexResolution.valueOf(parameters);
-        gl?.bufferSubData(gl.ARRAY_BUFFER, indexValue * bytesPerInstance, matrix);
+        bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, matrix, indexValue * bytesPerInstance);
     });
-    }, [gl, initializeMatrix]);
+    }, [initializeMatrix, bufferSubData]);
 
     const convertAttributesBufferUpdate = useCallback<Convertor<GlAction>>(async (action, results, utils, external, actionConversionMap) => {
       if (!action.updateAttributeBuffer) {
         return;
       }
       const { updateAttributeBuffer, ...subAction } = action;
-      const location = calculateString(updateAttributeBuffer);
+      const target = updateAttributeBuffer.target ? getBufferTarget(calculateString<GlBufferTarget>(updateAttributeBuffer.target)) : undefined;
+      const location = calculateString(updateAttributeBuffer.location);
             
       const subStepResults: ExecutionStep[] = [];
       await convertAction(subAction, subStepResults, utils, external, actionConversionMap);
@@ -367,19 +375,19 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       results.push((parameters, context) => {
         const locationValue = location.valueOf(parameters);
         const bufferInfo = getBufferInfo(locationValue);
-        bindBuffer(bufferInfo);
+        const targetValue = target?.valueOf(parameters) ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
+        bindBuffer(targetValue, bufferInfo);
 
         const array = bufferInfo.bufferArray!;
-        gl?.getBufferSubData(gl.ARRAY_BUFFER, 0, array);
+        gl?.getBufferSubData(targetValue, 0, array);
         
         parameters.attributeBuffer = array;
         parameters.attributeBufferLength = array.length
         execute(subStepResults, parameters, context);
-
-        gl?.bufferData(gl.ARRAY_BUFFER, array, bufferInfo.usage ?? gl.DYNAMIC_DRAW);
+        gl?.bufferData(targetValue, array, bufferInfo.usage ?? gl.DYNAMIC_DRAW);
       });
       return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
-    }, [getBufferInfo, gl, bindBuffer]);
+    }, [getBufferTarget, getBufferInfo, bindBuffer, gl]);
 
     const convertOrthographicProjection = useCallback<Convertor<GlAction>>(async (action, results) => {
       if (!action.orthogonalProjectionMatrixTransform) {

@@ -5368,20 +5368,20 @@ doctrine@^3.0.0:
   dependencies:
     esutils "^2.0.2"
 
-dok-actions@^1.1.51:
-  version "1.1.51"
-  resolved "https://registry.npmjs.org/dok-actions/-/dok-actions-1.1.51.tgz"
-  integrity sha512-2FlvLMnvFOcNLCtdQuWwGba8A3qK8FMjSCHMOVrTg7mb1ma1etc9uCM9fQ7nPzWXvVGEap5UESyylRdvxJOo2A==
+dok-actions@^1.1.57:
+  version "1.1.57"
+  resolved "https://registry.npmjs.org/dok-actions/-/dok-actions-1.1.57.tgz"
+  integrity sha512-9E6Y5AhyCbMotoLZyd/ww/fyhSdHIj2NZecMWPldRX/Aly+0URnyLvnIhQ2zaxyHh86wOE4uYMNT/Wcq9jA5Rg==
   dependencies:
     mathjs "^11.8.0"
     uuid "^9.0.0"
 
-dok-gl-actions@^1.0.34:
-  version "1.0.34"
-  resolved "https://registry.npmjs.org/dok-gl-actions/-/dok-gl-actions-1.0.34.tgz"
-  integrity sha512-XacYzWCKwB0W0+5536xU52SwkUcw1bzLkOARDVHlK3FmgUtP/WoCeHjjYoMqdgz0Z8mD1C2mMN2VOIBNNlXOfA==
+dok-gl-actions@^1.0.44:
+  version "1.0.44"
+  resolved "https://registry.npmjs.org/dok-gl-actions/-/dok-gl-actions-1.0.44.tgz"
+  integrity sha512-ekuWGPm9V4tYP+CFF2j4+dgg1DwSYtFtqn7J0F1Za/PLpmwh5uMgGMaRSV0SwYhSGsfWHsOCvyfuo+ebQ4m0nA==
   dependencies:
-    dok-actions "^1.1.51"
+    dok-actions "^1.1.57"
 
 dom-accessibility-api@^0.3.0:
   version "0.3.0"

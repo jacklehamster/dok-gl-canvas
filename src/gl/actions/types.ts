@@ -1,50 +1,10 @@
-import { GlType, GlUsage } from "dok-gl-actions/dist/types";
+import { convertValueOf } from "dok-gl-actions";
+import { GlBufferTarget, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
 import { useCallback } from "react";
 
 export function useTypes() {
-
-    const getGlType = useCallback((type: GlType | string | undefined): GLenum => {
-        switch(type) {
-          case "BYTE":
-            return WebGL2RenderingContext.BYTE;
-          case "FLOAT":
-            return WebGL2RenderingContext.FLOAT;
-          case "SHORT":
-            return WebGL2RenderingContext.SHORT;
-          case "UNSIGNED_BYTE":
-            return WebGL2RenderingContext.UNSIGNED_BYTE;
-          case "UNSIGNED_SHORT":
-            return WebGL2RenderingContext.UNSIGNED_SHORT;
-          case "INT":
-            return WebGL2RenderingContext.INT;
-          case "UNSIGNED_INT":
-            return WebGL2RenderingContext.UNSIGNED_INT;
-        }
-        return WebGL2RenderingContext.FLOAT;
-    }, []);
-  
-    const getTypedArray = useCallback((type: GlType | string | undefined) => {
-      switch(type) {
-        case "BYTE":
-          return Int8Array;
-        case "FLOAT":
-          return Float32Array;
-        case "SHORT":
-          return Int16Array;
-        case "UNSIGNED_BYTE":
-          return Uint8Array;
-        case "UNSIGNED_SHORT":
-          return Uint16Array;
-        case "INT":
-          return Int32Array;
-        case "UNSIGNED_INT":
-          return Uint32Array;
-      }
-      return Float32Array;
-    }, []);
-  
-    const getGlUsage = useCallback((usage: GlUsage | string | undefined): GLenum => {
-      switch(usage) {
+    const convertUsage = useCallback((usage: GlUsage | string | undefined): GLenum => {
+        switch(usage) {
           case "DYNAMIC_DRAW":
             return WebGL2RenderingContext.DYNAMIC_DRAW;
           case "STREAM_DRAW":
@@ -53,17 +13,31 @@ export function useTypes() {
             return WebGL2RenderingContext.STATIC_DRAW;
           default:
             return WebGL2RenderingContext.STATIC_DRAW;
+        }
+    }, []);
+
+
+    const getGlUsage = useCallback((usage: ValueOf<GlUsage|string | undefined>): ValueOf<GLenum> => {
+      return convertValueOf(usage, convertUsage);
+    }, [convertUsage]);
+
+    const convertBufferTarget = useCallback((target: GlBufferTarget | string | undefined): GLenum => {
+      switch(target) {
+        case "ARRAY_BUFFER":
+          return WebGL2RenderingContext.ARRAY_BUFFER;
+        case "ELEMENT_ARRAY_BUFFER":
+          return WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER;
+        default:
+            return WebGL2RenderingContext.ARRAY_BUFFER;
       }
     }, []);
 
-    const getByteSize = useCallback((type?: GlType) => {
-      return getTypedArray(type).BYTES_PER_ELEMENT;
-    }, [getTypedArray])
+    const getBufferTarget = useCallback((target: ValueOf<GlBufferTarget | string | undefined>): ValueOf<GLenum> => {
+      return convertValueOf(target, convertBufferTarget);
+    }, [convertBufferTarget]);
 
     return {
-        getGlType,
-        getTypedArray,
         getGlUsage,
-        getByteSize,
+        getBufferTarget,
     }
 }
