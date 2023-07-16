@@ -13,6 +13,7 @@ enum Sample {
   ROTATION = "rotation",
   PERSPECTIVE = "perspective",
   INDEXED = "indexed",
+  INDEXED_INSTANCED = "indexed-instances",
 }
 
 const assembler = new Assembler();
@@ -27,6 +28,7 @@ const samples: Record<string, React.JSX.Element> = {
   [Sample.ROTATION]: <SampleRenderer assembler={assembler} path="resources/rotation-sample/rotation.yml" />,
   [Sample.PERSPECTIVE]: <SampleRenderer assembler={assembler} path="resources/perspective-sample/perspective.yml" />,
   [Sample.INDEXED]: <SampleRenderer assembler={assembler} path="resources/indexed-element-sample/indexed.yml" />,
+  [Sample.INDEXED_INSTANCED]: <SampleRenderer assembler={assembler} path="resources/indexed-instances-sample/indexed.yml" />,
 };
 
 export const App = () => {

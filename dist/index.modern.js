@@ -26826,7 +26826,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React.createElement(Control, {
       controller: controller
-    }, React.createElement(Node, Object.assign({}, props))), hud);
+    }, React.createElement(Node, _extends({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -95218,7 +95218,7 @@ function useGlAction(_ref) {
           initializeMatrix(parameters);
         }
         var matrix = parameters.matrix;
-        var bytesPerInstance = matrix.length * Float32Array.BYTES_PER_ELEMENT;
+        var bytesPerInstance = MATRIX_SIZE * Float32Array.BYTES_PER_ELEMENT;
         var indexValue = indexResolution.valueOf(parameters);
         bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, matrix, indexValue * bytesPerInstance);
       });

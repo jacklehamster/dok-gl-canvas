@@ -379,7 +379,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
           initializeMatrix(parameters);
         }
         const matrix = parameters.matrix as Float32Array;
-        const bytesPerInstance = matrix.length * Float32Array.BYTES_PER_ELEMENT;
+        const bytesPerInstance = MATRIX_SIZE * Float32Array.BYTES_PER_ELEMENT;
         const indexValue = indexResolution.valueOf(parameters);
         bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, matrix, indexValue * bytesPerInstance);
     });
