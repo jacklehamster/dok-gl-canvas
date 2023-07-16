@@ -5376,10 +5376,10 @@ dok-actions@^1.1.57:
     mathjs "^11.8.0"
     uuid "^9.0.0"
 
-dok-gl-actions@^1.0.44:
-  version "1.0.44"
-  resolved "https://registry.npmjs.org/dok-gl-actions/-/dok-gl-actions-1.0.44.tgz"
-  integrity sha512-ekuWGPm9V4tYP+CFF2j4+dgg1DwSYtFtqn7J0F1Za/PLpmwh5uMgGMaRSV0SwYhSGsfWHsOCvyfuo+ebQ4m0nA==
+dok-gl-actions@^1.0.46:
+  version "1.0.46"
+  resolved "https://registry.npmjs.org/dok-gl-actions/-/dok-gl-actions-1.0.46.tgz"
+  integrity sha512-IIw+kAEzgKa1h7YwzDr4VPbUSbQEOyorguic7WkNZi62NrPY6dZeYFlX+X18fkJBFS8Qm700kUGf/lJ+hDUjdQ==
   dependencies:
     dok-actions "^1.1.57"
 

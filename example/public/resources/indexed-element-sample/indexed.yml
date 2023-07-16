@@ -7,8 +7,9 @@ scripts:
   - name: redraw
     actions:
     - clear: { color: true, depth: true }
-      drawArrays:
-        vertexCount: ~{vertexCount}
+      drawElements:
+        count: ~{vertexCount}
+        glType: UNSIGNED_SHORT
   - name: refresh
     actions:
     - bindBuffer:
@@ -18,7 +19,7 @@ scripts:
         time: ~{time}
         rotateSpeed: ~{1/10}
       spriteMatrixTransform:
-        translate: [-0.5, 0, -2]
+        translate: [0, 0, -10]
         scale: ["~{size}", "~{size}", "~{size}"]
         rotation: [0, "~{mod(time * rotateSpeed, 360)}", 0]
       bufferSubDataMatrix:
@@ -28,7 +29,10 @@ scripts:
         vertexCount: ~{vertexCount}
   - actions:
     - sets:
-        vertexCount: 6
+        walls: 4
+        vertexPerWall: 6
+    - sets:
+        vertexCount: ~{vertexPerWall * walls}
         BYTES_PER_FLOAT: 4
     - executeScript: initBuffer
       parameters:
@@ -36,12 +40,15 @@ scripts:
         location: position
         size: 3
         buffer: [
-          -0.2, 0.5, 0.0,
-          -0.2, -0.5, 0.0,
-          0.2, -0.5, 0.0,
-          -0.2, 0.5, 0.0,
-          0.2, -0.5, 0.0,
-          0.2, 0.5, 0.0,
+          -1, 1, -1,
+          -1, -1, -1,
+          1, -1, -1,
+          1, 1, -1,
+
+          -1, 1, 1,
+          -1, -1, 1,
+          1, -1, 1,
+          1, 1, 1,
         ]
     - executeScript: bufferData
       parameters:
@@ -49,8 +56,17 @@ scripts:
         glType: UNSIGNED_SHORT
         location: index
         buffer: [
-          0, 1, 2,
-          0, 2, 3,
+          0, 1, 2,  # Face
+          3, 0, 2,  # Face
+
+          4, 5, 6,  # Back
+          7, 4, 6,  # Back
+
+          0, 1, 4,  # Left
+          5, 1, 4,  # Left
+
+          2, 3, 6,  # Right
+          7, 3, 6,  # Right
         ]
     - executeScript: initBuffer
       parameters:
@@ -61,8 +77,11 @@ scripts:
           0.0, 1.0, 0.0,
           0.0, 0.0, 1.0,
           1.0, 0.0, 0.0,
-          0.0, 0.0, 1.0,
+
+          1.0, 0.0, 0.0,
           0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+          1.0, 0.0, 0.0,
         ]
     - executeScript: initBuffer
       parameters:

@@ -9,6 +9,7 @@ import { GlBufferTarget, GlDepthFunction, GlUsage, ValueOf } from "dok-gl-action
 import { calculateTypeArrayConstructor } from "dok-gl-actions";
 import { ProgramId } from "dok-gl-actions/dist/program/program";
 import { mat4, quat, vec3 } from "gl-matrix";
+import { useDraw } from "../draw/use-draw";
 
 const MATRIX_SIZE = 16;
 
@@ -37,6 +38,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
     }, [gl, bufferRecord]);
 
     const { bindVertexArray, getBufferAttribute, bufferData, bufferSubData } = useBufferAttributes({ gl, getAttributeLocation });
+    const { drawArrays, drawElements } = useDraw({ gl });
     const { getGlUsage, getBufferTarget } = useTypes();
     const { executeLoadTextureAction, loadVideo, loadImage, hasImageId } = useImageAction({ gl });
 
@@ -66,19 +68,20 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         const target = buffer.target ? getBufferTarget(calculateString<GlBufferTarget>(buffer.target)) : undefined;
         const data = buffer.buffer ? calculateTypedArray(buffer.buffer, calculateTypeArrayConstructor(buffer.glType)) : undefined;
         const length = calculateNumber(buffer.length);
-        const glUsage = getGlUsage(calculateString<GlUsage>(buffer.usage, "STATIC_DRAW"));
+        const glUsage = buffer.usage ? getGlUsage(calculateString<GlUsage>(buffer.usage)) : undefined;
 
         results.push((parameters) => {
           const locationValue = location.valueOf(parameters);
           const bufferInfo = getBufferInfo(locationValue);
           const targetValue = target?.valueOf(parameters) ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
+          const usageValue = glUsage?.valueOf(parameters) ?? bufferInfo.usage ?? WebGL2RenderingContext.STATIC_DRAW;
           bindBuffer(targetValue, bufferInfo);
 
           const dataToBuffer = data?.valueOf(parameters);
           const bufferSize = dataToBuffer ? dataToBuffer.length : length?.valueOf(parameters);
 
           if (bufferSize) {
-            bufferData(targetValue, locationValue, dataToBuffer, bufferSize, glUsage.valueOf(parameters));
+            bufferData(targetValue, locationValue, dataToBuffer, bufferSize, usageValue);
           }
         });
     }, [gl, getBufferTarget, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
@@ -132,21 +135,36 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       });
     }, [bindBuffer, getBufferInfo, getBufferTarget]);
     
-    const convertDrawArrays = useCallback<Convertor<GlAction>>(async ({drawArrays}, results) => {
-      if (!drawArrays) {
+    const convertDrawArrays = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.drawArrays) {
         return;
       }
-      const { vertexFirst, vertexCount, instanceCount } = drawArrays;
-      const first = calculateNumber(vertexFirst);
-      const count = calculateNumber(vertexCount);
+      const { vertexFirst, vertexCount, instanceCount } = action.drawArrays;
+      const first = calculateNumber(vertexFirst, 0);
+      const count = calculateNumber(vertexCount, 0);
       const instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
+      results.push((parameters) => {
+        drawArrays(WebGL2RenderingContext.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters), instances?.valueOf(parameters));
+      });
+    }, [drawArrays]);
 
-      if (instances !== undefined) {
-        results.push((parameters) => gl?.drawArraysInstanced(gl.TRIANGLES, first?.valueOf(parameters), count.valueOf(parameters), instances.valueOf(parameters)));
-      } else {
-        results.push((parameters) => gl?.drawArrays(gl.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters)));
+    const convertDrawElements = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.drawElements) {
+        return;
       }
-    }, [gl]);
+      const { count, glType, offset, instanceCount } = action.drawElements;
+      const instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
+      const countValueOf = calculateNumber(count, 0);
+      const glTypeValueOf = getGlType(glType);
+      const offsetValueOf = calculateNumber(offset);
+      results.push((parameters) => {
+        drawElements(WebGL2RenderingContext.TRIANGLES,
+          countValueOf.valueOf(parameters),
+          glTypeValueOf.valueOf(parameters),
+          offsetValueOf.valueOf(parameters),
+          instances?.valueOf(parameters));
+      });
+    }, [drawElements]);
 
     const resolveLocation = useCallback((location: LocationResolution): [ ValueOf<string>, ValueOf<0|1|2|3|number> ] => {
         if (Array.isArray(location)) {
@@ -496,8 +514,9 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         convertPerspectiveProjection,
         convertUniform,
         convertDrawArrays,
+        convertDrawElements,
       ]});
-    }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays]);
+    }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]);
 
     return {
       getScriptProcessor,

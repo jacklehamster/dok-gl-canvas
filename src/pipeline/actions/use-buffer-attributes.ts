@@ -66,18 +66,17 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
       return attribute;
     }, [bufferRecord, createBuffer])
 
-    const bufferData = useCallback((target: GLenum | undefined, location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => {
+    const bufferData = useCallback((target: GLenum, location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => {
       const bufferInfo = getBufferAttribute(location);
-      const targetValue = target ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
       if (bufferArray) {
-        gl?.bufferData(targetValue, bufferArray, glUsage);
+        gl?.bufferData(target, bufferArray, glUsage);
       } else {
-        gl?.bufferData(targetValue, bufferSize, glUsage);
+        gl?.bufferData(target, bufferSize, glUsage);
       }
       bufferInfo.bufferSize = bufferSize;
       bufferInfo.bufferArray = bufferArray ?? new Float32Array(bufferInfo.bufferSize! / Float32Array.BYTES_PER_ELEMENT).fill(0);
       bufferInfo.usage = glUsage;
-      bufferInfo.target = targetValue;
+      bufferInfo.target = target;
 
     }, [gl, getBufferAttribute]);
 

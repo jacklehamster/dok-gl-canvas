@@ -17,7 +17,7 @@ export default function useBufferAttributes({ gl, getAttributeLocation }: Props)
     bindVertexArray: () => () => void | undefined;
     createBuffer: (location: LocationName) => BufferInfo;
     getBufferAttribute: (location: LocationName, autoCreate?: boolean | undefined) => BufferInfo;
-    bufferData: (target: GLenum | undefined, location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => void;
+    bufferData: (target: GLenum, location: LocationName, bufferArray: TypedArray | undefined, bufferSize: number, glUsage: GLenum) => void;
     bufferSubData: (target: GLenum, bufferArray: TypedArray, dstByteOffset: number, srcOffset?: number | undefined, length?: number | undefined) => void;
 };
 export {};

@@ -94580,18 +94580,16 @@ function useBufferAttributes(_ref) {
     return attribute;
   }, [bufferRecord, createBuffer]);
   var bufferData = useCallback(function (target, location, bufferArray, bufferSize, glUsage) {
-    var _ref2;
     var bufferInfo = getBufferAttribute(location);
-    var targetValue = (_ref2 = target != null ? target : bufferInfo.target) != null ? _ref2 : WebGL2RenderingContext.ARRAY_BUFFER;
     if (bufferArray) {
-      gl === null || gl === void 0 ? void 0 : gl.bufferData(targetValue, bufferArray, glUsage);
+      gl === null || gl === void 0 ? void 0 : gl.bufferData(target, bufferArray, glUsage);
     } else {
-      gl === null || gl === void 0 ? void 0 : gl.bufferData(targetValue, bufferSize, glUsage);
+      gl === null || gl === void 0 ? void 0 : gl.bufferData(target, bufferSize, glUsage);
     }
     bufferInfo.bufferSize = bufferSize;
     bufferInfo.bufferArray = bufferArray != null ? bufferArray : new Float32Array(bufferInfo.bufferSize / Float32Array.BYTES_PER_ELEMENT).fill(0);
     bufferInfo.usage = glUsage;
-    bufferInfo.target = targetValue;
+    bufferInfo.target = target;
   }, [gl, getBufferAttribute]);
   var bufferSubData = useCallback(function (target, bufferArray, dstByteOffset, srcOffset, length) {
     if (srcOffset) {
@@ -94750,6 +94748,28 @@ function useImageAction(_ref) {
   };
 }
 
+function useDraw(_ref) {
+  var gl = _ref.gl;
+  var drawArrays = useCallback(function (mode, first, count, instances) {
+    if (instances !== undefined) {
+      gl === null || gl === void 0 ? void 0 : gl.drawArraysInstanced(mode, first, count, instances);
+    } else {
+      gl === null || gl === void 0 ? void 0 : gl.drawArrays(mode, first, count);
+    }
+  }, [gl]);
+  var drawElements = useCallback(function (mode, count, type, offset, instances) {
+    if (instances !== undefined) {
+      gl === null || gl === void 0 ? void 0 : gl.drawElementsInstanced(mode, count, type, offset, instances);
+    } else {
+      gl === null || gl === void 0 ? void 0 : gl.drawElements(mode, count, type, offset);
+    }
+  }, [gl]);
+  return {
+    drawArrays: drawArrays,
+    drawElements: drawElements
+  };
+}
+
 var _excluded$6 = ["updateAttributeBuffer"];
 var MATRIX_SIZE = 16;
 function useGlAction(_ref) {
@@ -94776,6 +94796,11 @@ function useGlAction(_ref) {
     getBufferAttribute = _useBufferAttributes.getBufferAttribute,
     bufferData = _useBufferAttributes.bufferData,
     bufferSubData = _useBufferAttributes.bufferSubData;
+  var _useDraw = useDraw({
+      gl: gl
+    }),
+    drawArrays = _useDraw.drawArrays,
+    drawElements = _useDraw.drawElements;
   var _useTypes = useTypes(),
     getGlUsage = _useTypes.getGlUsage,
     getBufferTarget = _useTypes.getBufferTarget;
@@ -94806,17 +94831,18 @@ function useGlAction(_ref) {
       var target = buffer.target ? getBufferTarget(calculateString(buffer.target)) : undefined;
       var data = buffer.buffer ? calculateTypedArray(buffer.buffer, calculateTypeArrayConstructor(buffer.glType)) : undefined;
       var length = calculateNumber(buffer.length);
-      var glUsage = getGlUsage(calculateString(buffer.usage, "STATIC_DRAW"));
+      var glUsage = buffer.usage ? getGlUsage(calculateString(buffer.usage)) : undefined;
       results.push(function (parameters) {
-        var _ref3, _target$valueOf;
+        var _ref3, _target$valueOf, _ref4, _glUsage$valueOf;
         var locationValue = location.valueOf(parameters);
         var bufferInfo = getBufferInfo(locationValue);
         var targetValue = (_ref3 = (_target$valueOf = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf : bufferInfo.target) != null ? _ref3 : WebGL2RenderingContext.ARRAY_BUFFER;
+        var usageValue = (_ref4 = (_glUsage$valueOf = glUsage === null || glUsage === void 0 ? void 0 : glUsage.valueOf(parameters)) != null ? _glUsage$valueOf : bufferInfo.usage) != null ? _ref4 : WebGL2RenderingContext.STATIC_DRAW;
         bindBuffer(targetValue, bufferInfo);
         var dataToBuffer = data === null || data === void 0 ? void 0 : data.valueOf(parameters);
         var bufferSize = dataToBuffer ? dataToBuffer.length : length === null || length === void 0 ? void 0 : length.valueOf(parameters);
         if (bufferSize) {
-          bufferData(targetValue, locationValue, dataToBuffer, bufferSize, glUsage.valueOf(parameters));
+          bufferData(targetValue, locationValue, dataToBuffer, bufferSize, usageValue);
         }
       });
       return Promise.resolve();
@@ -94824,8 +94850,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [gl, getBufferTarget, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
-  var convertBufferSubData = useCallback(function (_ref4, results) {
-    var buffer = _ref4.bufferSubData;
+  var convertBufferSubData = useCallback(function (_ref5, results) {
+    var buffer = _ref5.bufferSubData;
     try {
       if (!(buffer !== null && buffer !== void 0 && buffer.data)) {
         return Promise.resolve();
@@ -94837,9 +94863,9 @@ function useGlAction(_ref) {
       var length = calculateNumber(bufferSubData.length);
       var location = buffer.location !== undefined ? calculateString(buffer.location) : undefined;
       results.push(function (parameters) {
-        var _ref5, _target$valueOf2;
+        var _ref6, _target$valueOf2;
         var bufferInfo = location ? getBufferInfo(location.valueOf(parameters)) : undefined;
-        var targetValue = (_ref5 = (_target$valueOf2 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf2 : bufferInfo === null || bufferInfo === void 0 ? void 0 : bufferInfo.target) != null ? _ref5 : WebGL2RenderingContext.ARRAY_BUFFER;
+        var targetValue = (_ref6 = (_target$valueOf2 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf2 : bufferInfo === null || bufferInfo === void 0 ? void 0 : bufferInfo.target) != null ? _ref6 : WebGL2RenderingContext.ARRAY_BUFFER;
         if (bufferInfo !== undefined) {
           bindBuffer(targetValue, bufferInfo);
         }
@@ -94853,8 +94879,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [bufferSubData, getBufferInfo, bindBuffer, getBufferTarget]);
-  var convertVertexArray = useCallback(function (_ref6, results) {
-    var bind = _ref6.bindVertexArray;
+  var convertVertexArray = useCallback(function (_ref7, results) {
+    var bind = _ref7.bindVertexArray;
     try {
       if (!bind) {
         return Promise.resolve();
@@ -94868,8 +94894,8 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [bindVertexArray]);
-  var convertBindBuffer = useCallback(function (_ref7, results) {
-    var bind = _ref7.bindBuffer;
+  var convertBindBuffer = useCallback(function (_ref8, results) {
+    var bind = _ref8.bindBuffer;
     try {
       if (!bind) {
         return Promise.resolve();
@@ -94877,9 +94903,9 @@ function useGlAction(_ref) {
       var target = bind.target ? getBufferTarget(calculateString(bind.target)) : undefined;
       var location = calculateString(bind.location);
       results.push(function (parameters) {
-        var _ref8, _target$valueOf3, _getBufferInfo;
+        var _ref9, _target$valueOf3, _getBufferInfo;
         var locationValue = location.valueOf(parameters);
-        var targetValue = (_ref8 = (_target$valueOf3 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf3 : (_getBufferInfo = getBufferInfo(locationValue)) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) != null ? _ref8 : WebGL2RenderingContext.ARRAY_BUFFER;
+        var targetValue = (_ref9 = (_target$valueOf3 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf3 : (_getBufferInfo = getBufferInfo(locationValue)) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) != null ? _ref9 : WebGL2RenderingContext.ARRAY_BUFFER;
         bindBuffer(targetValue, getBufferInfo(locationValue));
       });
       return Promise.resolve();
@@ -94887,32 +94913,48 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [bindBuffer, getBufferInfo, getBufferTarget]);
-  var convertDrawArrays = useCallback(function (_ref9, results) {
-    var drawArrays = _ref9.drawArrays;
+  var convertDrawArrays = useCallback(function (action, results) {
     try {
-      if (!drawArrays) {
+      if (!action.drawArrays) {
         return Promise.resolve();
       }
-      var vertexFirst = drawArrays.vertexFirst,
-        vertexCount = drawArrays.vertexCount,
-        instanceCount = drawArrays.instanceCount;
-      var first = calculateNumber(vertexFirst);
-      var count = calculateNumber(vertexCount);
+      var _action$drawArrays = action.drawArrays,
+        vertexFirst = _action$drawArrays.vertexFirst,
+        vertexCount = _action$drawArrays.vertexCount,
+        instanceCount = _action$drawArrays.instanceCount;
+      var first = calculateNumber(vertexFirst, 0);
+      var count = calculateNumber(vertexCount, 0);
       var instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
-      if (instances !== undefined) {
-        results.push(function (parameters) {
-          return gl === null || gl === void 0 ? void 0 : gl.drawArraysInstanced(gl.TRIANGLES, first === null || first === void 0 ? void 0 : first.valueOf(parameters), count.valueOf(parameters), instances.valueOf(parameters));
-        });
-      } else {
-        results.push(function (parameters) {
-          return gl === null || gl === void 0 ? void 0 : gl.drawArrays(gl.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters));
-        });
-      }
+      results.push(function (parameters) {
+        drawArrays(WebGL2RenderingContext.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
+      });
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [gl]);
+  }, [drawArrays]);
+  var convertDrawElements = useCallback(function (action, results) {
+    try {
+      if (!action.drawElements) {
+        return Promise.resolve();
+      }
+      var _action$drawElements = action.drawElements,
+        count = _action$drawElements.count,
+        glType = _action$drawElements.glType,
+        offset = _action$drawElements.offset,
+        instanceCount = _action$drawElements.instanceCount;
+      var instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
+      var countValueOf = calculateNumber(count, 0);
+      var glTypeValueOf = getGlType(glType);
+      var offsetValueOf = calculateNumber(offset);
+      results.push(function (parameters) {
+        drawElements(WebGL2RenderingContext.TRIANGLES, countValueOf.valueOf(parameters), glTypeValueOf.valueOf(parameters), offsetValueOf.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [drawElements]);
   var resolveLocation = useCallback(function (location) {
     if (Array.isArray(location)) {
       return [calculateString(location[0]), calculateNumber(location[1])];
@@ -94949,8 +94991,9 @@ function useGlAction(_ref) {
         var divisorValue = divisor === null || divisor === void 0 ? void 0 : divisor.valueOf(parameters);
         var enableValue = enable === null || enable === void 0 ? void 0 : enable.valueOf(parameters);
         var sizeMul = sizeValue * byteSize.valueOf(parameters);
-        var finalOffset = offsetValue + locationOffset.valueOf(parameters) * sizeMul;
-        var finalLocation = bufferInfo.location + locationOffset.valueOf(parameters);
+        var locationOffsetValue = locationOffset.valueOf(parameters);
+        var finalOffset = offsetValue + locationOffsetValue * sizeMul;
+        var finalLocation = bufferInfo.location + locationOffsetValue;
         gl === null || gl === void 0 ? void 0 : gl.vertexAttribPointer(finalLocation, sizeValue, glType.valueOf(parameters), normalizedValue, strideValue, finalOffset);
         if (divisorValue !== undefined) {
           gl === null || gl === void 0 ? void 0 : gl.vertexAttribDivisor(finalLocation, divisorValue);
@@ -95304,9 +95347,9 @@ function useGlAction(_ref) {
       hasImageId: hasImageId,
       gl: gl
     }), {
-      actionsConvertor: [convertAttributesBufferUpdate].concat(getDefaultConvertors().actionsConvertor, [convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays])
+      actionsConvertor: [convertAttributesBufferUpdate].concat(getDefaultConvertors().actionsConvertor, [convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements])
     });
-  }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays]);
+  }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]);
   return {
     getScriptProcessor: getScriptProcessor
   };
