@@ -26829,7 +26829,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React__default.createElement(Control, {
       controller: controller
-    }, React__default.createElement(Node, Object.assign({}, props))), hud);
+    }, React__default.createElement(Node, _extends({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -94689,14 +94689,15 @@ function useImageAction(_ref) {
       return image.removeEventListener("load", imageLoaded);
     };
   }, [images]);
-  var loadVideo = React.useCallback(function (src, imageId, volume, onLoad) {
+  var loadVideo = React.useCallback(function (src, imageId, volume, context, onLoad) {
     var video = document.createElement("video");
-    video.src = src;
     video.loop = true;
     if (volume !== undefined) {
       video.volume = volume;
     }
-    video.play();
+    var startVideo = function startVideo() {
+      return video.play();
+    };
     var videoPlaying = function videoPlaying() {
       images.current[imageId] = {
         src: video,
@@ -94704,16 +94705,37 @@ function useImageAction(_ref) {
       };
       onLoad === null || onLoad === void 0 ? void 0 : onLoad();
     };
+    video.addEventListener("loadedmetadata", startVideo);
     video.addEventListener("playing", videoPlaying, {
       once: true
     });
     video.addEventListener("error", function (e) {
-      console.error("video error", e.error);
+      return console.error("video error", e.error);
     });
-    return function () {
+    var cancelled = false;
+    if (src === "webcam") {
+      navigator.mediaDevices.getUserMedia({
+        video: true
+      }).then(function (stream) {
+        if (cancelled) {
+          return;
+        }
+        video.srcObject = stream;
+        context.addCleanup(function () {
+          stream.getTracks().forEach(function (track) {
+            return track.stop();
+          });
+        });
+      });
+    } else {
+      video.src = src;
+    }
+    context.addCleanup(function () {
+      cancelled = true;
       video.pause();
       video.removeEventListener("playing", videoPlaying);
-    };
+      video.removeEventListener("loadmetadata", startVideo);
+    });
   }, [images]);
   var getTexture = React.useCallback(function (textureId) {
     if (!textureBuffers.current[textureId]) {
@@ -95129,7 +95151,7 @@ function useGlAction(_ref) {
       var volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
       var onLoad = (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : _utils$executeCallbac.onLoad;
       results.push(function (parameters, context) {
-        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), function () {
+        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), context, function () {
           return onLoad === null || onLoad === void 0 ? void 0 : onLoad(context);
         });
       });
@@ -95150,7 +95172,7 @@ function useGlAction(_ref) {
       var onLoad = (_utils$executeCallbac2 = utils.executeCallback) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.onLoad;
       results.push(function (parameters, context) {
         loadImage(src.valueOf(parameters), imageId.valueOf(parameters), function () {
-          onLoad === null || onLoad === void 0 ? void 0 : onLoad(context);
+          return onLoad === null || onLoad === void 0 ? void 0 : onLoad(context);
         });
       });
       return Promise.resolve();

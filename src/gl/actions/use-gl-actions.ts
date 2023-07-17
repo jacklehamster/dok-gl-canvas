@@ -296,12 +296,12 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       if (!video) {
         return;
       }
-      const src = calculateString<Url>(video.src);
+      const src = calculateString<Url | "webcam">(video.src);
       const imageId = calculateString<ImageId>(video.imageId);
       const volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
       const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
-        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters), () => onLoad?.(context));
+        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters), context, () => onLoad?.(context));
       });
     }, [loadVideo]);
 
@@ -314,9 +314,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
 
       const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
-        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), () => {
-          onLoad?.(context);
-        });
+        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), () => onLoad?.(context));
       });
     }, [loadImage]);
 

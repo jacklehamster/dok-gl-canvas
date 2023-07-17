@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { clearRecord } from "../../utils/object-utils";
+import { Context } from "dok-gl-actions";
 
 export type TextureId = "TEXTURE0"|"TEXTURE1"|"TEXTURE2"|"TEXTURE3"|"TEXTURE4"|"TEXTURE5"|"TEXTURE6"|"TEXTURE7"|"TEXTURE8"|"TEXTURE9"
 |"TEXTURE10"|"TEXTURE11"|"TEXTURE12"|"TEXTURE13"|"TEXTURE14"|"TEXTURE15"|"TEXTURE16"|"TEXTURE17"|"TEXTURE18"|"TEXTURE19"
@@ -64,14 +65,19 @@ export default function useImageAction({ gl }: Props) {
         return () => image.removeEventListener("load", imageLoaded);
     }, [images]);
 
-    const loadVideo = useCallback((src: Url, imageId: ImageId, volume?: number, onLoad?: () => void): () => void => {
+    const loadVideo = useCallback(
+        (src: Url | "webcam",
+        imageId: ImageId,
+        volume: number | undefined,
+        context: Context,
+        onLoad?: () => void,
+    ): void => {
         const video = document.createElement("video");
-        video.src = src;
         video.loop = true;
         if (volume !== undefined) {
             video.volume = volume;
         }
-        video.play();
+        const startVideo = () => video.play();
         const videoPlaying = () => {
             images.current[imageId] = {
                 src: video,
@@ -79,15 +85,32 @@ export default function useImageAction({ gl }: Props) {
             };
             onLoad?.();
         };
+
+        video.addEventListener("loadedmetadata", startVideo);
         video.addEventListener("playing", videoPlaying, { once: true });
-        video.addEventListener("error", (e: ErrorEvent) => {
-            console.error("video error", e.error);
-        });
-    
-        return () => {
+        video.addEventListener("error", (e: ErrorEvent) => console.error("video error", e.error));
+
+        let cancelled = false;
+        if (src === "webcam") {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                if (cancelled) {
+                    return;
+                }
+                video.srcObject = stream;
+                context.addCleanup(() => {
+                    stream.getTracks().forEach(track => track.stop());
+                });
+            });
+        } else {
+            video.src = src;
+        }
+
+        context.addCleanup(() => {
+            cancelled = true;
             video.pause();
             video.removeEventListener("playing", videoPlaying);
-        };
+            video.removeEventListener("loadmetadata", startVideo);
+        });
     }, [images]);
 
     const getTexture = useCallback((textureId: TextureId) => {
