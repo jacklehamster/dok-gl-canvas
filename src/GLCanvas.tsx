@@ -1,4 +1,4 @@
-import React, { CSSProperties, RefObject, useEffect, useMemo } from "react";
+import React, { CSSProperties, RefObject, useCallback, useEffect, useMemo } from "react";
 import { useGL } from "./gl/use-gl";
 import { useCanvasSize } from "./dimension/use-canvas-size";
 import { useProgram } from "./gl/program/use-program";
@@ -6,7 +6,7 @@ import { GlConfig, GlController } from "./control/gl-controller";
 import { Script } from "dok-actions";
 import { useGlAction } from "./gl/actions/use-gl-actions";
 import { ProgramConfig } from "dok-gl-actions/dist/program/program";
-import { GlAction } from "dok-gl-actions";
+import { GlAction, ExecutionParameters } from "dok-gl-actions";
 
 export interface Props {
     pixelRatio?: number;
@@ -40,6 +40,10 @@ export default function GLCanvas(props?: Props): JSX.Element {
     const processor = useMemo(() => getScriptProcessor(scripts), [
         scripts, getScriptProcessor,
     ]);
+
+    const executeScript = useCallback(async (name: string, parameters?: ExecutionParameters) => {
+        return await processor.runByName(name, parameters);
+    }, [processor]);
     
     const ready = useMemo(() => !!(gl && activeProgram && width && height && glConfig), [gl, activeProgram, width, height, glConfig]);
 
@@ -52,11 +56,11 @@ export default function GLCanvas(props?: Props): JSX.Element {
 
     useEffect(() => {
         if (controller) {
-            controller.setActiveProgram = activateProgram;
+            controller.executeScript = executeScript;
         }
     }, [
         controller,
-        activateProgram,
+        executeScript,
     ]);
 
     return <canvas ref={canvasRef}

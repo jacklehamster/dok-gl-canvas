@@ -301,7 +301,9 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
       const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
-        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters), context, () => onLoad?.(context));
+        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters), context, (video) => {
+          onLoad?.(context, { width: video.width, height: video.height });
+        });
       });
     }, [loadVideo]);
 
@@ -314,7 +316,9 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
 
       const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
-        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), () => onLoad?.(context));
+        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), (image) => {
+          onLoad?.(context, { width: image.naturalWidth, height: image.naturalHeight });
+        });
       });
     }, [loadImage]);
 

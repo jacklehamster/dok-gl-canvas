@@ -15,6 +15,7 @@ enum Sample {
   PERSPECTIVE = "perspective",
   INDEXED = "indexed",
   INDEXED_INSTANCED = "indexed-instances",
+  TEXTURE_INSTANCED = "textured-indexed-instances",
 }
 
 const assembler = new Assembler();
@@ -31,6 +32,7 @@ const samples: Record<string, React.JSX.Element> = {
   [Sample.PERSPECTIVE]: <SampleRenderer assembler={assembler} path="resources/perspective-sample/perspective.yml" />,
   [Sample.INDEXED]: <SampleRenderer assembler={assembler} path="resources/indexed-element-sample/indexed.yml" />,
   [Sample.INDEXED_INSTANCED]: <SampleRenderer assembler={assembler} path="resources/indexed-instances-sample/indexed.yml" />,
+  [Sample.TEXTURE_INSTANCED]: <SampleRenderer assembler={assembler} path="resources/textured-indexed-instances/texture-indexed.yml" />,
 };
 
 export const App = () => {

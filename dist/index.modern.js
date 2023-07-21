@@ -26826,7 +26826,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React.createElement(Control, {
       controller: controller
-    }, React.createElement(Node, _extends({}, props))), hud);
+    }, React.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -93794,7 +93794,7 @@ var convertExecuteCallbackProperty = function convertExecuteCallbackProperty(act
     results.push(function (parameters, context) {
       var _utils$executeCallbac, _utils$executeCallbac2;
       var callbackName = callbackToExecute.valueOf(parameters);
-      (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : (_utils$executeCallbac2 = _utils$executeCallbac[callbackName]) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.call(_utils$executeCallbac, context);
+      (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : (_utils$executeCallbac2 = _utils$executeCallbac[callbackName]) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.call(_utils$executeCallbac, context, parameters);
     });
     return Promise.resolve();
   } catch (e) {
@@ -93827,7 +93827,15 @@ var convertCallbackProperty = function convertCallbackProperty(action, results, 
     var _temp = _forIn(callback, function (key) {
       var callbackSteps = [];
       return Promise.resolve(convertActions(callback[key], callbackSteps, utils, external, convertorSet)).then(function () {
-        var onCallback = callbackSteps.length ? function (context) {
+        var onCallback = callbackSteps.length ? function (context, additionalParameters) {
+          if (additionalParameters) {
+            var p = callbackParameters[key];
+            if (p) {
+              for (var k in additionalParameters) {
+                p[k] = additionalParameters[k];
+              }
+            }
+          }
           execute(callbackSteps, callbackParameters[key], context);
           for (var i in callbackParameters[key]) {
             var _callbackParameters$k;
@@ -94416,7 +94424,10 @@ var ScriptProcessor = /*#__PURE__*/function () {
       return Promise.resolve(_this4.getSteps({
         name: name
       })).then(function (_this4$getSteps) {
-        execute(_this4$getSteps, parameters, context);
+        execute(_this4$getSteps, _extends$3({}, parameters, {
+          time: undefined,
+          index: undefined
+        }), context);
         return function () {
           return context.clear();
         };
@@ -94435,7 +94446,10 @@ var ScriptProcessor = /*#__PURE__*/function () {
       return Promise.resolve(_this5.getSteps({
         tags: tags
       })).then(function (_this5$getSteps) {
-        execute(_this5$getSteps, parameters, context);
+        execute(_this5$getSteps, _extends$3({}, parameters, {
+          time: undefined,
+          index: undefined
+        }), context);
         return function () {
           return context.clear();
         };
@@ -94675,7 +94689,7 @@ function useImageAction(_ref) {
         src: image,
         activated: false
       };
-      onLoad === null || onLoad === void 0 ? void 0 : onLoad();
+      onLoad === null || onLoad === void 0 ? void 0 : onLoad(image);
     };
     image.addEventListener("load", imageLoaded, {
       once: true
@@ -94701,7 +94715,7 @@ function useImageAction(_ref) {
         src: video,
         activated: false
       };
-      onLoad === null || onLoad === void 0 ? void 0 : onLoad();
+      onLoad === null || onLoad === void 0 ? void 0 : onLoad(video);
     };
     video.addEventListener("loadedmetadata", startVideo);
     video.addEventListener("playing", videoPlaying, {
@@ -95149,8 +95163,11 @@ function useGlAction(_ref) {
       var volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
       var onLoad = (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : _utils$executeCallbac.onLoad;
       results.push(function (parameters, context) {
-        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), context, function () {
-          return onLoad === null || onLoad === void 0 ? void 0 : onLoad(context);
+        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), context, function (video) {
+          onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
+            width: video.width,
+            height: video.height
+          });
         });
       });
       return Promise.resolve();
@@ -95169,8 +95186,11 @@ function useGlAction(_ref) {
       var imageId = calculateString(image.imageId);
       var onLoad = (_utils$executeCallbac2 = utils.executeCallback) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.onLoad;
       results.push(function (parameters, context) {
-        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), function () {
-          return onLoad === null || onLoad === void 0 ? void 0 : onLoad(context);
+        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), function (image) {
+          onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
+            width: image.naturalWidth,
+            height: image.naturalHeight
+          });
         });
       });
       return Promise.resolve();
@@ -95424,6 +95444,13 @@ function GLCanvas(props) {
   var processor = useMemo(function () {
     return getScriptProcessor(scripts);
   }, [scripts, getScriptProcessor]);
+  var executeScript = useCallback(function (name, parameters) {
+    try {
+      return Promise.resolve(processor.runByName(name, parameters));
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [processor]);
   var ready = useMemo(function () {
     return !!(gl && activeProgram && width && height && glConfig);
   }, [gl, activeProgram, width, height, glConfig]);
@@ -95439,9 +95466,9 @@ function GLCanvas(props) {
   }, [activeProgram, ready, processor]);
   useEffect(function () {
     if (controller) {
-      controller.setActiveProgram = activateProgram;
+      controller.executeScript = executeScript;
     }
-  }, [controller, activateProgram]);
+  }, [controller, executeScript]);
   return React.createElement("canvas", {
     ref: canvasRef,
     width: width,

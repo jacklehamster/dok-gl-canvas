@@ -25,6 +25,7 @@ scripts:
               textureId: TEXTURE0
               imageId: ~{imageId}
           - executeScript: redraw
+          - log: "~Image dimension: {width} x {height}"
       - pause: ~{hasImageId(imageId)}
       - log: "~Image loaded: {imageId}"
   - actions:
@@ -66,7 +67,7 @@ scripts:
       pause: ~{not hasImageId("turtle")}
     - executeScript: refresh
       refresh:
-        frameRate: 60
+        frameRate: 30
     tags: [main]
 programs:
   - id: sample-texture

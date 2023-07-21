@@ -24,7 +24,7 @@ scripts:
       spriteMatrixTransform:
         translate: [0, "~{index - 5}", "~{-15}"]
         scale: ["~{size - index * 0.1}", "~{size}", "~{size - index * 0.1}"]
-        rotation: [0, "~{mod(time * rotateSpeed, 360)}", 0]
+        rotation: [0, "~{mod(time * rotateSpeed * (index + 1) / 2, 360)}", 0]
       bufferSubDataMatrix:
         index: ~{index}
     - executeScript: redraw

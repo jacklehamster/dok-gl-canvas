@@ -48,7 +48,7 @@ export default function useImageAction({ gl }: Props) {
     const loadImage = useCallback((
             src: Url,
             imageId: ImageId,
-            onLoad?: () => void) => {
+            onLoad?: (image: HTMLImageElement) => void) => {
         const image = new Image();
         image.src = src;
         const imageLoaded = () => {
@@ -56,7 +56,7 @@ export default function useImageAction({ gl }: Props) {
                 src: image,
                 activated: false,
             };
-            onLoad?.();
+            onLoad?.(image);
         };
         image.addEventListener("load", imageLoaded, { once: true });
         image.addEventListener("error", (e: ErrorEvent) => {
@@ -70,7 +70,7 @@ export default function useImageAction({ gl }: Props) {
         imageId: ImageId,
         volume: number | undefined,
         context: Context,
-        onLoad?: () => void,
+        onLoad?: (video: HTMLVideoElement) => void,
     ): void => {
         const video = document.createElement("video");
         video.loop = true;
@@ -83,7 +83,7 @@ export default function useImageAction({ gl }: Props) {
                 src: video,
                 activated: false,
             };
-            onLoad?.();
+            onLoad?.(video);
         };
 
         video.addEventListener("loadedmetadata", startVideo);
