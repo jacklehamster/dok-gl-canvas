@@ -26826,7 +26826,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React.createElement(Control, {
       controller: controller
-    }, React.createElement(Node, Object.assign({}, props))), hud);
+    }, React.createElement(Node, _extends({}, props))), hud);
   };
   return ReactHook;
 }();
