@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { clearRecord } from "../../utils/object-utils";
 import { Context } from "dok-gl-actions";
 
@@ -19,6 +19,8 @@ interface Props {
     gl?: WebGL2RenderingContext;
 }
 
+const MAX_TEXTURE_SIZE = 4096;
+
 export default function useImageAction({ gl }: Props) {
     const images = useRef<Record<ImageId, ImageInfo>>({});
     const textureBuffers = useRef<Record<TextureId | string, WebGLTexture>>({});
@@ -32,18 +34,63 @@ export default function useImageAction({ gl }: Props) {
         };
     }, [textureBuffers, images, gl]);
 
-    const textImage2d = useCallback((source: TexImageSource, texture: WebGLTexture) => {
-        gl?.bindTexture(gl.TEXTURE_2D, texture);
-        gl?.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    }, [gl]);
+    const tempCanvas = useRef(document.createElement("canvas"));
+    const tempContext = useMemo(() => {
+        const context = tempCanvas.current.getContext("2d");
+        if (context) {
+            context.imageSmoothingEnabled = true;
+        }
+        return context;
+    }, [tempCanvas]);
+    useEffect(() => {
+        if (window.location.search.indexOf("debug-canvas") >= 0 && tempCanvas.current) {
+            document.body.appendChild(tempCanvas.current);
+        }
+    }, [tempCanvas]);
 
-    const loadTexture = useCallback((source: TexImageSource, textureId: TextureId, texture: WebGLTexture): void => {
+    const applyTexImage2d = useCallback((
+            source: TexImageSource,
+            [srcX, srcY, srcWidth, srcHeight],
+            [dstX, dstY, dstWidth, dstHeight]) => {
+        if (!srcWidth && !srcHeight && !dstWidth && !dstHeight) {
+            gl?.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+            gl?.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl?.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        } else {
+            if (!tempContext) {
+                return;
+            }
+            const canvas = tempContext?.canvas;
+            if (source instanceof ImageData) {
+                canvas.width = dstWidth || source.width;
+                canvas.height = dstHeight || source.height;
+                tempContext.putImageData(source, 0, 0);
+                if (srcX || srcY) {
+                    console.warn("Offset not available when sending imageData");
+                }
+            } else {
+                const sourceWidth = srcWidth || (source as {width:number}).width;
+                const sourceHeight = srcHeight || (source as {height:number}).height;
+                canvas.width = dstWidth || sourceWidth;
+                canvas.height = dstHeight || sourceHeight;
+                tempContext.drawImage(source, srcX, srcY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+            }
+    
+            gl?.texSubImage2D(gl.TEXTURE_2D, 0, dstX, dstY, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+        }
+    }, [gl, tempContext]);
+
+    const loadTexture = useCallback((
+            source: TexImageSource,
+            textureId: TextureId,
+            texture: WebGLTexture,
+            sourceRect: [number, number, number, number],
+            destRect: [number, number, number, number]): void => {
         gl?.activeTexture(gl[textureId]);
-        textImage2d(source, texture);
-        gl?.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl?.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl?.bindTexture(gl.TEXTURE_2D, texture);
+        applyTexImage2d(source, sourceRect, destRect);
         gl?.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    }, [gl, textImage2d]);
+    }, [gl, applyTexImage2d]);
 
     const loadImage = useCallback((
             src: Url,
@@ -119,25 +166,49 @@ export default function useImageAction({ gl }: Props) {
             if (!texture) {
                 return;
             }
+            gl?.bindTexture(gl.TEXTURE_2D, texture);
+            gl?.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
             textureBuffers.current[textureId] = texture;
         }
         return textureBuffers.current[textureId];
     }, [textureBuffers, gl]);
 
-    const executeLoadTextureAction = useCallback((imageId: ImageId, textureId: TextureId): void => {
+    const initTexture = useCallback((
+        texture?: TextureId,
+        width?: GLsizei,
+        height?: GLsizei,
+    ) => {
+        if (texture) {
+            getTexture(texture);
+            gl?.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width ?? MAX_TEXTURE_SIZE, height ?? MAX_TEXTURE_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);    
+        } else {
+            console.warn("Invalid texture to init");
+        }
+    }, [getTexture, gl]);
+
+    const executeLoadTextureAction = useCallback((
+            imageId: ImageId,
+            textureId: TextureId | undefined, 
+            sourceRect: [number, number, number, number],
+            destRect: [number, number, number, number]): void => {
+        if (!textureId) {
+            console.warn("Invalid texture Id");
+            return;
+        }
         const imageInfo = images.current[imageId];
         if (imageInfo) {
             const texture = getTexture(textureId);
             if (texture) {
                 if (imageInfo.activated) {
-                    textImage2d(imageInfo.src, texture);
+                    gl?.bindTexture(gl.TEXTURE_2D, texture);
+                    applyTexImage2d(imageInfo.src, sourceRect, destRect);
                 } else {
-                    loadTexture(imageInfo.src, textureId, texture);
+                    loadTexture(imageInfo.src, textureId, texture, sourceRect, destRect);
                     imageInfo.activated = true;
                 }    
             }
         }
-    }, [loadTexture, textImage2d, images, getTexture]);
+    }, [getTexture, gl, applyTexImage2d, loadTexture]);
 
     const hasImageId = useCallback((imageId: ImageId): boolean => {
         return !!images.current[imageId];
@@ -147,6 +218,7 @@ export default function useImageAction({ gl }: Props) {
         loadImage,
         loadVideo,
         executeLoadTextureAction,
+        initTexture,
         hasImageId,
     }
 }

@@ -1,6 +1,7 @@
-import { convertValueOf } from "dok-gl-actions";
+import { TextureIndex, convertValueOf } from "dok-gl-actions";
 import { GlBufferTarget, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
 import { useCallback } from "react";
+import { TextureId } from "../../pipeline/actions/use-image-action";
 
 export function useTypes() {
     const convertUsage = useCallback((usage: GlUsage | string | undefined): GLenum => {
@@ -32,6 +33,10 @@ export function useTypes() {
       }
     }, []);
 
+    const convertTextureId = useCallback((index: TextureIndex | number): TextureId | undefined => {
+      return index >= 0 && index <= 31 ? `TEXTURE${index}` as TextureId : undefined;
+    }, []);
+
     const getBufferTarget = useCallback((target: ValueOf<GlBufferTarget | string | undefined>): ValueOf<GLenum> => {
       return convertValueOf(target, convertBufferTarget);
     }, [convertBufferTarget]);
@@ -39,5 +44,6 @@ export function useTypes() {
     return {
         getGlUsage,
         getBufferTarget,
+        convertTextureId,
     }
 }

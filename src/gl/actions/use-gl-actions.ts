@@ -4,8 +4,8 @@ import useBufferAttributes, { BufferInfo } from "../../pipeline/actions/use-buff
 import { clearRecord } from "../../utils/object-utils";
 import { useTypes } from "./types";
 import useImageAction, { ImageId, Url } from "../../pipeline/actions/use-image-action";
-import { GlAction, LocationName, LocationResolution, getGlType, getByteSize } from "dok-gl-actions";
-import { GlBufferTarget, GlDepthFunction, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
+import { GlAction, LocationName, LocationResolution, getGlType, getByteSize, TextureIndex } from "dok-gl-actions";
+import { GlBufferTarget, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
 import { calculateTypeArrayConstructor } from "dok-gl-actions";
 import { ProgramId } from "dok-gl-actions/dist/program/program";
 import { mat4, quat, vec3 } from "gl-matrix";
@@ -39,8 +39,8 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
 
     const { bindVertexArray, getBufferAttribute, bufferData, bufferSubData } = useBufferAttributes({ gl, getAttributeLocation });
     const { drawArrays, drawElements } = useDraw({ gl });
-    const { getGlUsage, getBufferTarget } = useTypes();
-    const { executeLoadTextureAction, loadVideo, loadImage, hasImageId } = useImageAction({ gl });
+    const { getGlUsage, getBufferTarget, convertTextureId } = useTypes();
+    const { executeLoadTextureAction, initTexture, loadVideo, loadImage, hasImageId } = useImageAction({ gl });
 
     /**
      * Local callbacks
@@ -283,14 +283,42 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       results.push((parameters) => activateProgram(id.valueOf(parameters)));
     }, [activateProgram]);
 
+    const convertInitTexture = useCallback<Convertor<GlAction>>(async (action, results) => {
+      if (!action.initTexture) {
+        return;
+      }
+      const { textureId, width, height } = action.initTexture;
+      const textureIndex = calculateNumber<TextureIndex>(textureId);
+      const widthValue = action.initTexture.width ? calculateNumber<GLsizei>(width) : undefined;
+      const heightValue = action.initTexture.height ?  calculateNumber<GLsizei>(height) : undefined;
+
+      results.push((parameters) => {
+        initTexture(convertTextureId(textureIndex.valueOf(parameters)), widthValue?.valueOf(parameters), heightValue?.valueOf(parameters));
+      });
+    }, [initTexture, convertTextureId]);
+
     const convertLoadTexture = useCallback<Convertor<GlAction>>(async ({ loadTexture }, results) => {
       if (!loadTexture) {
         return;
       }
       const imageId = calculateString<ImageId>(loadTexture.imageId);
-      const textureId = loadTexture.textureId;
-      results.push((parameters) => executeLoadTextureAction(imageId.valueOf(parameters), textureId));
-    }, [executeLoadTextureAction]);
+      const textureIndex = calculateNumber<TextureIndex>(loadTexture.textureId);
+      const sourceRectValueOf = loadTexture.sourceRect?.map((value) => calculateNumber(value));
+      const destRectValueOf = loadTexture.destRect?.map((value) => calculateNumber(value));
+      const sourceRect: [number, number, number, number] = [0,0,0,0];
+      const destRect: [number, number, number, number] = [0,0,0,0];
+
+      results.push((parameters) => {
+        if (sourceRectValueOf || destRectValueOf) {
+          for (let i = 0; i < 4; i++) {
+            sourceRect[i] = sourceRectValueOf?.[i].valueOf(parameters) ?? 0;
+            destRect[i] = destRectValueOf?.[i].valueOf(parameters) ?? 0;
+          }  
+        }
+
+        executeLoadTextureAction(imageId.valueOf(parameters), convertTextureId(textureIndex.valueOf(parameters)), sourceRect, destRect);
+      });
+    }, [executeLoadTextureAction, convertTextureId]);
 
     const convertVideo = useCallback<Convertor<GlAction>>(async ({ video }, results, utils) => {
       if (!video) {
@@ -467,29 +495,6 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       });
     }, [initializeMatrix]);
 
-    const convertEnableDepth = useCallback<Convertor<GlAction>>(async (action, results) => {
-      if (!action.enableDepth) {
-        return;
-      }
-      const { enable, depthFunc } = action.enableDepth;
-      const enableValue = calculateBoolean(enable, true);
-      const depthFuncValue = calculateString<GlDepthFunction>(depthFunc);
-      results.push((parameters) => {
-        if (enableValue.valueOf(parameters)) {
-          gl?.enable(WebGL2RenderingContext.DEPTH_TEST);  
-        } else {
-          gl?.disable(WebGL2RenderingContext.DEPTH_TEST);
-        }
-        const depthFunction = depthFuncValue.valueOf(parameters);
-        if (depthFunction.length) {
-          gl?.depthFunc(WebGL2RenderingContext[depthFunction as GlDepthFunction]);
-        }
-
-        gl?.enable(WebGL2RenderingContext.BLEND);
-        gl?.blendFunc(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA);
-      });
-    }, [gl]);
-
     const getScriptProcessor = useCallback(<T>(scripts: Script<T>[]) => {
       return new ScriptProcessor(scripts, {
         ...DEFAULT_EXTERNALS,
@@ -498,7 +503,6 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       }, { actionsConvertor: [
         convertAttributesBufferUpdate,
         ...getDefaultConvertors().actionsConvertor,
-        convertEnableDepth,
         convertClear,
         convertInitMatrix,
         convertBindBuffer,
@@ -507,6 +511,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         convertVertexArray,
         convertVertexAttribPointer,
         convertActivateProgram,
+        convertInitTexture,
         convertLoadTexture,
         convertVideo,
         convertImage,
@@ -518,7 +523,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         convertDrawArrays,
         convertDrawElements,
       ]});
-    }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]);
+    }, [hasImageId, gl, convertAttributesBufferUpdate, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertInitTexture, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]);
 
     return {
       getScriptProcessor,

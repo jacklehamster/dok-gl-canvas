@@ -7,8 +7,10 @@ scripts:
     - uniform:
         location: frame
         float: ~{frame}
-    - clear: { color: true }
-      drawArrays: { vertexCount: 6 }
+    - clear:
+        color: true
+      drawArrays:
+        vertexCount: 6
   - name: loadImage
     actions:
     - hooks: [hasImageId]
@@ -21,20 +23,31 @@ scripts:
           imageId: ~{imageId}
         callback:
           onLoad:
-          - loadTexture:
-              textureId: TEXTURE0
+          - initTexture:
+              textureId: 0
+              width: ~{textureSize}
+              height: ~{textureSize}
+          - sets:
+              spriteWidth: ~{width / rows}
+              spriteHeight: ~{height / cols}
+              slotSideCount: ~{textureSize / slotSize}
+          - loop: ["~{rows}", "~{cols}"]
+            loadTexture:
+              textureId: 0
               imageId: ~{imageId}
+              sourceRect: ["~{i * spriteWidth}", "~{j * spriteHeight}", "~{spriteWidth}", "~{spriteHeight}"]
+              destRect: ["~{mod(index, slotSideCount) * slotSize}", 0, "~{slotSize}", "~{slotSize}"]
           - executeScript: redraw
-          - log: "~Image dimension: {width} x {height}"
       - pause: ~{hasImageId(imageId)}
       - log: "~Image loaded: {imageId}"
   - actions:
     - actions:
       - sets:
-          spriteWidth: 238
-          spriteSheetWidth: 1886
-      - sets:
-          w: ~{spriteWidth / spriteSheetWidth}
+          slotSize: 256
+          textureSize: 4096
+    - uniform:
+        location: slotTex
+        float: ~{slotSize / textureSize}
     - executeScript: initBuffer
       parameters:
         location: position
@@ -54,15 +67,19 @@ scripts:
         buffer: [
           0, 0,
           0, 1,
-          "~{w}", 1,
+          1, 1,
           0, 0,
-          "~{w}", 1,
-          "~{w}", 0,
+          1, 1,
+          1, 0,
         ]
     - executeScript: loadImage
       parameters:
         src: turtle.png
         imageId: turtle
+        slotSize: ~{slotSize}
+        textureSize: ~{textureSize}
+        rows: 8
+        cols: 1
     - hooks: [hasImageId]
       pause: ~{not hasImageId("turtle")}
     - executeScript: refresh

@@ -26826,7 +26826,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React.createElement(Control, {
       controller: controller
-    }, React.createElement(Node, _extends({}, props))), hud);
+    }, React.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -94266,9 +94266,12 @@ var convertLoopProperty = function convertLoopProperty(action, stepResults, util
   }
 };
 var VARIABLE_NAMES = "ijklmnopqrstuvwxyzabcdefgh".split("");
-function keepLooping(parameters, context, loops, steps, depth) {
+function keepLooping(parameters, context, loops, steps, depth, base) {
   if (depth === void 0) {
     depth = 0;
+  }
+  if (base === void 0) {
+    base = 0;
   }
   if (depth >= loops.length) {
     execute(steps, parameters, context);
@@ -94277,9 +94280,11 @@ function keepLooping(parameters, context, loops, steps, depth) {
   var length = loops[depth].valueOf(parameters);
   var p = parameters;
   var letter = VARIABLE_NAMES[depth];
+  var subBase = base * length;
   for (var i = 0; i < length; i++) {
-    p.index = p[letter] = i;
-    keepLooping(p, context, loops, steps, depth + 1);
+    p[letter] = i;
+    p.index = subBase + i;
+    keepLooping(p, context, loops, steps, depth + 1, subBase + i);
   }
 }
 
@@ -94647,15 +94652,20 @@ function useTypes() {
         return WebGL2RenderingContext.ARRAY_BUFFER;
     }
   }, []);
+  var convertTextureId = useCallback(function (index) {
+    return index >= 0 && index <= 31 ? "TEXTURE" + index : undefined;
+  }, []);
   var getBufferTarget = useCallback(function (target) {
     return convertValueOf(target, convertBufferTarget);
   }, [convertBufferTarget]);
   return {
     getGlUsage: getGlUsage,
-    getBufferTarget: getBufferTarget
+    getBufferTarget: getBufferTarget,
+    convertTextureId: convertTextureId
   };
 }
 
+var MAX_TEXTURE_SIZE = 4096;
 function useImageAction(_ref) {
   var gl = _ref.gl;
   var images = useRef({});
@@ -94670,17 +94680,60 @@ function useImageAction(_ref) {
       });
     };
   }, [textureBuffers, images, gl]);
-  var textImage2d = useCallback(function (source, texture) {
-    gl === null || gl === void 0 ? void 0 : gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-  }, [gl]);
-  var loadTexture = useCallback(function (source, textureId, texture) {
+  var tempCanvas = useRef(document.createElement("canvas"));
+  var tempContext = useMemo(function () {
+    var context = tempCanvas.current.getContext("2d");
+    if (context) {
+      context.imageSmoothingEnabled = true;
+    }
+    return context;
+  }, [tempCanvas]);
+  useEffect(function () {
+    if (window.location.search.indexOf("debug-canvas") >= 0 && tempCanvas.current) {
+      document.body.appendChild(tempCanvas.current);
+    }
+  }, [tempCanvas]);
+  var applyTexImage2d = useCallback(function (source, _ref2, _ref3) {
+    var srcX = _ref2[0],
+      srcY = _ref2[1],
+      srcWidth = _ref2[2],
+      srcHeight = _ref2[3];
+    var dstX = _ref3[0],
+      dstY = _ref3[1],
+      dstWidth = _ref3[2],
+      dstHeight = _ref3[3];
+    if (!srcWidth && !srcHeight && !dstWidth && !dstHeight) {
+      gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    } else {
+      if (!tempContext) {
+        return;
+      }
+      var canvas = tempContext === null || tempContext === void 0 ? void 0 : tempContext.canvas;
+      if (source instanceof ImageData) {
+        canvas.width = dstWidth || source.width;
+        canvas.height = dstHeight || source.height;
+        tempContext.putImageData(source, 0, 0);
+        if (srcX || srcY) {
+          console.warn("Offset not available when sending imageData");
+        }
+      } else {
+        var sourceWidth = srcWidth || source.width;
+        var sourceHeight = srcHeight || source.height;
+        canvas.width = dstWidth || sourceWidth;
+        canvas.height = dstHeight || sourceHeight;
+        tempContext.drawImage(source, srcX, srcY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+      }
+      gl === null || gl === void 0 ? void 0 : gl.texSubImage2D(gl.TEXTURE_2D, 0, dstX, dstY, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    }
+  }, [gl, tempContext]);
+  var loadTexture = useCallback(function (source, textureId, texture, sourceRect, destRect) {
     gl === null || gl === void 0 ? void 0 : gl.activeTexture(gl[textureId]);
-    textImage2d(source, texture);
-    gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl === null || gl === void 0 ? void 0 : gl.bindTexture(gl.TEXTURE_2D, texture);
+    applyTexImage2d(source, sourceRect, destRect);
     gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  }, [gl, textImage2d]);
+  }, [gl, applyTexImage2d]);
   var loadImage = useCallback(function (src, imageId, onLoad) {
     var image = new Image();
     image.src = src;
@@ -94755,24 +94808,39 @@ function useImageAction(_ref) {
       if (!texture) {
         return;
       }
+      gl === null || gl === void 0 ? void 0 : gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       textureBuffers.current[textureId] = texture;
     }
     return textureBuffers.current[textureId];
   }, [textureBuffers, gl]);
-  var executeLoadTextureAction = useCallback(function (imageId, textureId) {
+  var initTexture = useCallback(function (texture, width, height) {
+    if (texture) {
+      getTexture(texture);
+      gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width != null ? width : MAX_TEXTURE_SIZE, height != null ? height : MAX_TEXTURE_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    } else {
+      console.warn("Invalid texture to init");
+    }
+  }, [getTexture, gl]);
+  var executeLoadTextureAction = useCallback(function (imageId, textureId, sourceRect, destRect) {
+    if (!textureId) {
+      console.warn("Invalid texture Id");
+      return;
+    }
     var imageInfo = images.current[imageId];
     if (imageInfo) {
       var texture = getTexture(textureId);
       if (texture) {
         if (imageInfo.activated) {
-          textImage2d(imageInfo.src, texture);
+          gl === null || gl === void 0 ? void 0 : gl.bindTexture(gl.TEXTURE_2D, texture);
+          applyTexImage2d(imageInfo.src, sourceRect, destRect);
         } else {
-          loadTexture(imageInfo.src, textureId, texture);
+          loadTexture(imageInfo.src, textureId, texture, sourceRect, destRect);
           imageInfo.activated = true;
         }
       }
     }
-  }, [loadTexture, textImage2d, images, getTexture]);
+  }, [getTexture, gl, applyTexImage2d, loadTexture]);
   var hasImageId = useCallback(function (imageId) {
     return !!images.current[imageId];
   }, [images]);
@@ -94780,6 +94848,7 @@ function useImageAction(_ref) {
     loadImage: loadImage,
     loadVideo: loadVideo,
     executeLoadTextureAction: executeLoadTextureAction,
+    initTexture: initTexture,
     hasImageId: hasImageId
   };
 }
@@ -94839,11 +94908,13 @@ function useGlAction(_ref) {
     drawElements = _useDraw.drawElements;
   var _useTypes = useTypes(),
     getGlUsage = _useTypes.getGlUsage,
-    getBufferTarget = _useTypes.getBufferTarget;
+    getBufferTarget = _useTypes.getBufferTarget,
+    convertTextureId = _useTypes.convertTextureId;
   var _useImageAction = useImageAction({
       gl: gl
     }),
     executeLoadTextureAction = _useImageAction.executeLoadTextureAction,
+    initTexture = _useImageAction.initTexture,
     loadVideo = _useImageAction.loadVideo,
     loadImage = _useImageAction.loadImage,
     hasImageId = _useImageAction.hasImageId;
@@ -95135,22 +95206,58 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [activateProgram]);
-  var convertLoadTexture = useCallback(function (_ref14, results) {
-    var loadTexture = _ref14.loadTexture;
+  var convertInitTexture = useCallback(function (action, results) {
     try {
-      if (!loadTexture) {
+      if (!action.initTexture) {
         return Promise.resolve();
       }
-      var imageId = calculateString(loadTexture.imageId);
-      var textureId = loadTexture.textureId;
+      var _action$initTexture = action.initTexture,
+        textureId = _action$initTexture.textureId,
+        width = _action$initTexture.width,
+        height = _action$initTexture.height;
+      var textureIndex = calculateNumber(textureId);
+      var widthValue = action.initTexture.width ? calculateNumber(width) : undefined;
+      var heightValue = action.initTexture.height ? calculateNumber(height) : undefined;
       results.push(function (parameters) {
-        return executeLoadTextureAction(imageId.valueOf(parameters), textureId);
+        initTexture(convertTextureId(textureIndex.valueOf(parameters)), widthValue === null || widthValue === void 0 ? void 0 : widthValue.valueOf(parameters), heightValue === null || heightValue === void 0 ? void 0 : heightValue.valueOf(parameters));
       });
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [executeLoadTextureAction]);
+  }, [initTexture, convertTextureId]);
+  var convertLoadTexture = useCallback(function (_ref14, results) {
+    var loadTexture = _ref14.loadTexture;
+    try {
+      var _loadTexture$sourceRe, _loadTexture$destRect;
+      if (!loadTexture) {
+        return Promise.resolve();
+      }
+      var imageId = calculateString(loadTexture.imageId);
+      var textureIndex = calculateNumber(loadTexture.textureId);
+      var sourceRectValueOf = (_loadTexture$sourceRe = loadTexture.sourceRect) === null || _loadTexture$sourceRe === void 0 ? void 0 : _loadTexture$sourceRe.map(function (value) {
+        return calculateNumber(value);
+      });
+      var destRectValueOf = (_loadTexture$destRect = loadTexture.destRect) === null || _loadTexture$destRect === void 0 ? void 0 : _loadTexture$destRect.map(function (value) {
+        return calculateNumber(value);
+      });
+      var sourceRect = [0, 0, 0, 0];
+      var destRect = [0, 0, 0, 0];
+      results.push(function (parameters) {
+        if (sourceRectValueOf || destRectValueOf) {
+          for (var i = 0; i < 4; i++) {
+            var _sourceRectValueOf$i$, _destRectValueOf$i$va;
+            sourceRect[i] = (_sourceRectValueOf$i$ = sourceRectValueOf === null || sourceRectValueOf === void 0 ? void 0 : sourceRectValueOf[i].valueOf(parameters)) != null ? _sourceRectValueOf$i$ : 0;
+            destRect[i] = (_destRectValueOf$i$va = destRectValueOf === null || destRectValueOf === void 0 ? void 0 : destRectValueOf[i].valueOf(parameters)) != null ? _destRectValueOf$i$va : 0;
+          }
+        }
+        executeLoadTextureAction(imageId.valueOf(parameters), convertTextureId(textureIndex.valueOf(parameters)), sourceRect, destRect);
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [executeLoadTextureAction, convertTextureId]);
   var convertVideo = useCallback(function (_ref15, results, utils) {
     var video = _ref15.video;
     try {
@@ -95356,42 +95463,14 @@ function useGlAction(_ref) {
       return Promise.reject(e);
     }
   }, [initializeMatrix]);
-  var convertEnableDepth = useCallback(function (action, results) {
-    try {
-      if (!action.enableDepth) {
-        return Promise.resolve();
-      }
-      var _action$enableDepth = action.enableDepth,
-        enable = _action$enableDepth.enable,
-        depthFunc = _action$enableDepth.depthFunc;
-      var enableValue = calculateBoolean(enable, true);
-      var depthFuncValue = calculateString(depthFunc);
-      results.push(function (parameters) {
-        if (enableValue.valueOf(parameters)) {
-          gl === null || gl === void 0 ? void 0 : gl.enable(WebGL2RenderingContext.DEPTH_TEST);
-        } else {
-          gl === null || gl === void 0 ? void 0 : gl.disable(WebGL2RenderingContext.DEPTH_TEST);
-        }
-        var depthFunction = depthFuncValue.valueOf(parameters);
-        if (depthFunction.length) {
-          gl === null || gl === void 0 ? void 0 : gl.depthFunc(WebGL2RenderingContext[depthFunction]);
-        }
-        gl === null || gl === void 0 ? void 0 : gl.enable(WebGL2RenderingContext.BLEND);
-        gl === null || gl === void 0 ? void 0 : gl.blendFunc(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA);
-      });
-      return Promise.resolve();
-    } catch (e) {
-      return Promise.reject(e);
-    }
-  }, [gl]);
   var getScriptProcessor = useCallback(function (scripts) {
     return new ScriptProcessor(scripts, _extends({}, DEFAULT_EXTERNALS, {
       hasImageId: hasImageId,
       gl: gl
     }), {
-      actionsConvertor: [convertAttributesBufferUpdate].concat(getDefaultConvertors().actionsConvertor, [convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements])
+      actionsConvertor: [convertAttributesBufferUpdate].concat(getDefaultConvertors().actionsConvertor, [convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertInitTexture, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements])
     });
-  }, [hasImageId, gl, convertAttributesBufferUpdate, convertEnableDepth, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]);
+  }, [hasImageId, gl, convertAttributesBufferUpdate, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertInitTexture, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]);
   return {
     getScriptProcessor: getScriptProcessor
   };

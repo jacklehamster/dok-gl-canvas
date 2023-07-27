@@ -5,6 +5,7 @@ layout (location=0) in vec4 position;
 layout (location=1) in vec2 tex;
 
 uniform float frame;
+uniform float slotTex;
 
 out vec2 vTex;
 
@@ -15,7 +16,7 @@ float modPlus(float a, float b) {
 void main() {
     float f = modPlus(floor(frame), 8.);
 
-    vTex = tex;
-    vTex.x += f * (238.0 / 1886.0);
+    vTex = tex * slotTex;
+    vTex.x += f * slotTex;
     gl_Position = position;
 }

@@ -5,7 +5,7 @@ scripts:
   - name: loadTexture
     actions:
       - loadTexture:
-          textureId: TEXTURE0
+          textureId: 0
           imageId: video
   - name: redraw
     actions:
@@ -69,9 +69,7 @@ scripts:
         volume: 0
       callback:
         onLoad:
-        - loadTexture:
-            textureId: TEXTURE0
-            imageId: video
+        - executeScript: loadTexture
     - hooks: [hasImageId]
       pause: ~{not hasImageId("video")}
     - executeScript: refresh

@@ -27,6 +27,8 @@
     "yaml": "^2.3.1"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "file:../node_modules/@typescript-eslint/eslint-plugin",
+    "@typescript-eslint/parser": "file:../node_modules/@typescript-eslint/parser",
     "@babel/plugin-syntax-object-rest-spread": "^7.8.3"
   },
   "browserslist": {
