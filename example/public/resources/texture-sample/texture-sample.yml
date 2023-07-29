@@ -2,6 +2,8 @@
 
 scripts:
   - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/load-image.yaml
+  - reference: ../lib/load-texture-sprites.yaml
   - name: refresh
     actions:
     - uniform:
@@ -11,43 +13,17 @@ scripts:
         color: true
       drawArrays:
         vertexCount: 6
-  - name: loadImage
-    actions:
-    - hooks: [hasImageId]
-      actions:
-      - uniform:
-          location: uTexture
-          int: 0
-        image:
-          src: ~{src}
-          imageId: ~{imageId}
-        callback:
-          onLoad:
-          - initTexture:
-              textureId: 0
-              width: ~{textureSize}
-              height: ~{textureSize}
-          - sets:
-              spriteWidth: ~{width / rows}
-              spriteHeight: ~{height / cols}
-              slotSideCount: ~{textureSize / slotSize}
-          - loop: ["~{rows}", "~{cols}"]
-            loadTexture:
-              textureId: 0
-              imageId: ~{imageId}
-              sourceRect: ["~{i * spriteWidth}", "~{j * spriteHeight}", "~{spriteWidth}", "~{spriteHeight}"]
-              destRect: ["~{mod(index, slotSideCount) * slotSize}", 0, "~{slotSize}", "~{slotSize}"]
-          - executeScript: redraw
-      - pause: ~{hasImageId(imageId)}
-      - log: "~Image loaded: {imageId}"
   - actions:
-    - actions:
-      - sets:
-          slotSize: 256
-          textureSize: 4096
+    - sets:
+        slotSize: 256
+        textureSize: 4096
+    - sets:
+        frameStart: 0
+        frameCount: 8
+        slotStart: 0
     - uniform:
-        location: slotTex
-        float: ~{slotSize / textureSize}
+        location: slotSideCount
+        float: ~{textureSize / slotSize}
     - executeScript: initBuffer
       parameters:
         location: position
@@ -72,14 +48,29 @@ scripts:
           1, 1,
           1, 0,
         ]
-    - executeScript: loadImage
+    - executeScript: initBuffer
       parameters:
-        src: turtle.png
-        imageId: turtle
-        slotSize: ~{slotSize}
-        textureSize: ~{textureSize}
-        rows: 8
-        cols: 1
+        location: animation
+        size: 2
+        buffer: [
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+        ]
+    - uniform:
+        location: uTextures
+        ints: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    - executeScript: loadTextureSprites
+      parameters:
+        textureSprites:
+        - src: turtle.png
+          imageId: turtle
+          sourceSpriteWidth: 238
+          sourceSpriteHeight: 256
+          frameCount: 8
     - hooks: [hasImageId]
       pause: ~{not hasImageId("turtle")}
     - executeScript: refresh

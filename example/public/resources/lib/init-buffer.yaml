@@ -21,7 +21,7 @@ actions:
     rows: 1
   loop: ~{rows}
   vertexAttribPointer:
-    location: ["~{location}", "~{index}"]
+    location: ["~{location}", "~{loopIndex}"]
     size: ~{size}
     enable: true
     divisor: ~{divisor}

@@ -100,7 +100,7 @@ scripts:
         zFar: 1000
     - uniform:
         location: orthogonal
-        buffer: ~{matrix}
+        matrix: ~{matrix}
     - perspectiveProjectionMatrixTransform:
         viewAngle: 45
         aspect: 1
@@ -108,7 +108,7 @@ scripts:
         zFar: 1000
     - uniform:
         location: perspective
-        buffer: ~{matrix}
+        matrix: ~{matrix}
     - uniform:
         location: isPerspective
         float: 1

@@ -10,5 +10,6 @@ export interface GlConfig {
 }
 
 export interface GlController {
+    gl?: WebGL2RenderingContext;
     executeScript?(name: string, parameters?: ExecutionParameters): Promise<() => void>;
 }

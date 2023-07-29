@@ -17,7 +17,7 @@ scripts:
       - loop: ~{attributeBufferLength}
         set:
           variable: attributeBuffer
-          access: ["~{index}"]
+          access: ["~{loopIndex}"]
           value: ~{value + (random() - 0.5) / 100}
     - executeScript: redraw
   - actions:

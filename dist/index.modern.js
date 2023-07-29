@@ -26826,7 +26826,7 @@ var ReactHook = /*#__PURE__*/function () {
   ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React.createElement(Control, {
       controller: controller
-    }, React.createElement(Node, _extends({}, props))), hud);
+    }, React.createElement(Node, Object.assign({}, props))), hud);
   };
   return ReactHook;
 }();
@@ -93217,6 +93217,9 @@ function filterMatchesTags(filter, tags) {
   });
 }
 function filterScripts(scripts, filter) {
+  return filterScriptsHelper(spreadScripts(scripts), filter);
+}
+function filterScriptsHelper(scripts, filter) {
   var namesToFilter = !filter.name ? undefined : Array.isArray(filter.name) ? filter.name : [filter.name];
   return scripts.filter(function (_ref) {
     var name = _ref.name,
@@ -93230,7 +93233,8 @@ function filterScripts(scripts, filter) {
     return true;
   });
 }
-var convertScripts = function convertScripts(scripts, external, convertorSet, processorHelper) {
+
+var convertScriptsHelper = function convertScriptsHelper(scripts, external, convertorSet, processorHelper) {
   try {
     var scriptMap = new Map();
     scripts.forEach(function (script) {
@@ -93248,7 +93252,8 @@ var convertScripts = function convertScripts(scripts, external, convertorSet, pr
       var _scriptMap$get;
       var _interrupt = false;
       var scriptSteps = (_scriptMap$get = scriptMap.get(script)) != null ? _scriptMap$get : [];
-      var actions = script.actions;
+      var _script$actions = script.actions,
+        actions = _script$actions === void 0 ? [] : _script$actions;
       var _temp = _forTo(actions, function (i) {
         var getRemainingActions = function getRemainingActions() {
           return actions.slice(i + 1);
@@ -93275,6 +93280,26 @@ var convertScripts = function convertScripts(scripts, external, convertorSet, pr
     return Promise.reject(e);
   }
 };
+var convertScripts = function convertScripts(scripts, external, convertorSet, processorHelper) {
+  try {
+    return convertScriptsHelper(spreadScripts(scripts), external, convertorSet, processorHelper);
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+function spreadScripts(scripts, results) {
+  if (scripts === void 0) {
+    scripts = [];
+  }
+  if (results === void 0) {
+    results = [];
+  }
+  scripts.forEach(function (script) {
+    spreadScripts(script.scripts, results);
+    results.push(script);
+  });
+  return results;
+}
 var convertAction = function convertAction(action, stepResults, utils, external, convertorSet) {
   try {
     var _exit = false;
@@ -93499,14 +93524,16 @@ function calculateMap(value) {
   };
 }
 
-function calculateObject(value) {
+function calculateObject(value, defaultValue) {
   var _value$access;
   var subject = calculateResolution(value.subject);
   var access = ((_value$access = value.access) != null ? _value$access : []).map(function (key) {
     return calculateResolution(key);
   });
+  var formula = value.formula ? calculateResolution(value.formula) : undefined;
   return {
     valueOf: function valueOf(parameters) {
+      var _node;
       var node = subject === null || subject === void 0 ? void 0 : subject.valueOf(parameters);
       var keys = access.map(function (key) {
         return key === null || key === void 0 ? void 0 : key.valueOf(parameters);
@@ -93515,19 +93542,25 @@ function calculateObject(value) {
         var key = _step.value;
         if (Array.isArray(node)) {
           if (typeof key === "number") {
-            var _node;
-            node = (_node = node) === null || _node === void 0 ? void 0 : _node[key];
+            var _node2;
+            node = (_node2 = node) === null || _node2 === void 0 ? void 0 : _node2[key];
           } else {
-            return undefined;
+            node = undefined;
+            break;
           }
         } else if (typeof key === "string" && typeof node === "object") {
-          var _node2;
-          node = (_node2 = node) === null || _node2 === void 0 ? void 0 : _node2[key];
+          var _node3;
+          node = (_node3 = node) === null || _node3 === void 0 ? void 0 : _node3[key];
         } else {
-          return undefined;
+          node = undefined;
+          break;
         }
       }
-      return node;
+      if (formula && parameters) {
+        parameters.value = node;
+        node = formula.valueOf(parameters);
+      }
+      return (_node = node) != null ? _node : defaultValue;
     }
   };
 }
@@ -93583,6 +93616,12 @@ function calculateNumber(value, defaultValue) {
       }
     };
   }
+  if (typeof value === "object") {
+    if (value.subject) {
+      return calculateObject(value);
+    }
+    throw new Error("Invalid expression. You need a subject");
+  }
   var evaluator = getFormulaEvaluator(value);
   return {
     valueOf: function valueOf(parameters) {
@@ -93605,6 +93644,12 @@ function calculateString(value, defaultValue) {
       }
     };
   }
+  if (typeof value === "object") {
+    if (value.subject) {
+      return calculateObject(value, defaultValue);
+    }
+    throw new Error("Invalid expression. You need a subject");
+  }
   var evaluator = getFormulaEvaluator(value);
   return {
     valueOf: function valueOf(parameters) {
@@ -93626,6 +93671,12 @@ function calculateBoolean(value, defaultValue) {
         return defaultValue;
       }
     };
+  }
+  if (typeof value === "object") {
+    if (value.subject) {
+      return calculateObject(value);
+    }
+    throw new Error("Invalid expression. You need a subject");
   }
   var evaluator = getFormulaEvaluator(value);
   return {
@@ -94225,7 +94276,7 @@ var convertLoopEachProperty = function convertLoopEachProperty(action, stepResul
         var array = loopEachResolution === null || loopEachResolution === void 0 ? void 0 : loopEachResolution.valueOf(parameters);
         if (array) {
           for (var i = 0; i < array.length; i++) {
-            parameters.index = i;
+            parameters.loopIndex = i;
             parameters.element = array[i];
             execute(subStepResults, parameters, context);
           }
@@ -94283,7 +94334,7 @@ function keepLooping(parameters, context, loops, steps, depth, base) {
   var subBase = base * length;
   for (var i = 0; i < length; i++) {
     p[letter] = i;
-    p.index = subBase + i;
+    p.loopIndex = subBase + i;
     keepLooping(p, context, loops, steps, depth + 1, subBase + i);
   }
 }
@@ -95138,11 +95189,25 @@ function useGlAction(_ref) {
           return gl === null || gl === void 0 ? void 0 : gl.uniform1f((_getUniformLocation2 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation2 : null, _value.valueOf(parameters));
         });
       }
-      if ((uniform === null || uniform === void 0 ? void 0 : uniform.buffer) !== undefined) {
-        var _value2 = calculateTypedArray(uniform.buffer);
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform.matrix) !== undefined) {
+        var _value2 = calculateTypedArray(uniform.matrix);
         results.push(function (parameters) {
           var _getUniformLocation3;
           return gl === null || gl === void 0 ? void 0 : gl.uniformMatrix4fv((_getUniformLocation3 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation3 : null, false, _value2.valueOf(parameters));
+        });
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform.ints) !== undefined) {
+        var _value3 = calculateTypedArray(uniform.ints);
+        results.push(function (parameters) {
+          var _getUniformLocation4;
+          return gl === null || gl === void 0 ? void 0 : gl.uniform1iv((_getUniformLocation4 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation4 : null, _value3.valueOf(parameters));
+        });
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform.floats) !== undefined) {
+        var _value4 = calculateTypedArray(uniform.floats);
+        results.push(function (parameters) {
+          var _getUniformLocation5;
+          return gl === null || gl === void 0 ? void 0 : gl.uniform1fv((_getUniformLocation5 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation5 : null, _value4.valueOf(parameters));
         });
       }
       return Promise.resolve();
@@ -95272,8 +95337,8 @@ function useGlAction(_ref) {
       results.push(function (parameters, context) {
         loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), context, function (video) {
           onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
-            width: video.width,
-            height: video.height
+            videoWidth: video.width,
+            videoHeight: video.height
           });
         });
       });
@@ -95295,8 +95360,8 @@ function useGlAction(_ref) {
       results.push(function (parameters, context) {
         loadImage(src.valueOf(parameters), imageId.valueOf(parameters), function (image) {
           onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
-            width: image.naturalWidth,
-            height: image.naturalHeight
+            imageWidth: image.naturalWidth,
+            imageHeight: image.naturalHeight
           });
         });
       });
@@ -95546,8 +95611,9 @@ function GLCanvas(props) {
   useEffect(function () {
     if (controller) {
       controller.executeScript = executeScript;
+      controller.gl = gl;
     }
-  }, [controller, executeScript]);
+  }, [controller, executeScript, gl]);
   return React.createElement("canvas", {
     ref: canvasRef,
     width: width,

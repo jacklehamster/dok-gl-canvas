@@ -229,9 +229,17 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         const value = calculateNumber(uniform.float);
         results.push((parameters) => gl?.uniform1f(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
       }
-      if (uniform?.buffer !== undefined) {
-        const value = calculateTypedArray(uniform.buffer) as ValueOf<Float32Array>;
+      if (uniform?.matrix !== undefined) {
+        const value = calculateTypedArray(uniform.matrix) as ValueOf<Float32List>;
         results.push((parameters) => gl?.uniformMatrix4fv(getUniformLocation(location.valueOf(parameters)) ?? null, false, value.valueOf(parameters)));
+      }
+      if (uniform?.ints !== undefined) {
+        const value = calculateTypedArray(uniform.ints) as ValueOf<Int32List>;
+        results.push((parameters) => gl?.uniform1iv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
+      }
+      if (uniform?.floats !== undefined) {
+        const value = calculateTypedArray(uniform.floats) as ValueOf<Float32List>;
+        results.push((parameters) => gl?.uniform1fv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
       }
     }, [getUniformLocation, gl]);
 
@@ -330,7 +338,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
         loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters), context, (video) => {
-          onLoad?.(context, { width: video.width, height: video.height });
+          onLoad?.(context, { videoWidth: video.width, videoHeight: video.height });
         });
       });
     }, [loadVideo]);
@@ -345,7 +353,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
         loadImage(src.valueOf(parameters), imageId.valueOf(parameters), (image) => {
-          onLoad?.(context, { width: image.naturalWidth, height: image.naturalHeight });
+          onLoad?.(context, { imageWidth: image.naturalWidth, imageHeight: image.naturalHeight });
         });
       });
     }, [loadImage]);

@@ -57,10 +57,12 @@ export default function GLCanvas(props?: Props): JSX.Element {
     useEffect(() => {
         if (controller) {
             controller.executeScript = executeScript;
+            controller.gl = gl;
         }
     }, [
         controller,
         executeScript,
+        gl,
     ]);
 
     return <canvas ref={canvasRef}

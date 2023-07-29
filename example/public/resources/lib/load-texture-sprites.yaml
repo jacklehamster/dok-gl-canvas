@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json#/definitions/GlScript
+
+name: loadTextureSprites
+# scripts:
+# - reference: ../lib/load-image.yaml
+actions:
+- defaultValues:
+    textureSize: 4096
+    slotSize: 256
+- sets:
+    slotStart: 0
+- loopEach: ~{textureSprites}
+  actions:
+  - executeScript: loadImage
+    parameters:
+      src: ~{element.src}
+      imageId: ~{element.imageId}
+      sourceSpriteWidth: ~{element.sourceSpriteWidth}
+      sourceSpriteHeight: ~{element.sourceSpriteHeight}
+      sourceStart: ~{element.frameStart}
+      frameCount: ~{element.frameCount}
+      slotStart: ~{slotStart}
+      slotSize: ~{slotSize}
+      textureSize: ~{textureSize}
+  - sets:
+      slotStart: ~{value + element.frameCount}
+
+    

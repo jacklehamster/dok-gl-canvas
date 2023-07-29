@@ -20,11 +20,11 @@ scripts:
         instanceCount: ~{instanceCount}
       loop: ~{instanceCount}
       spriteMatrixTransform:
-        translate: ["~{-0.5 + index * 0.01}", 0, "~{-index * .5}"]
+        translate: ["~{-0.5 + loopIndex * 0.01}", 0, "~{-loopIndex * .5}"]
         scale: ["~{size}", "~{size}", "~{size}"]
-        rotation: [0, "~{mod(time * index / 100, 360)}", 0]
+        rotation: [0, "~{mod(time * loopIndex / 100, 360)}", 0]
       bufferSubDataMatrix:
-        index: ~{index}        
+        index: ~{loopIndex}
     - executeScript: redraw
       parameters:
         vertexCount: ~{vertexCount}
@@ -77,7 +77,7 @@ scripts:
         zFar: 1000
     - uniform:
         location: orthogonal
-        buffer: ~{matrix}
+        matrix: ~{matrix}
     - perspectiveProjectionMatrixTransform:
         viewAngle: 45
         aspect: 1
@@ -85,7 +85,7 @@ scripts:
         zFar: 1000
     - uniform:
         location: perspective
-        buffer: ~{matrix}
+        matrix: ~{matrix}
     - uniform:
         location: isPerspective
         float: 1
