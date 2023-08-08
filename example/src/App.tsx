@@ -16,6 +16,7 @@ enum Sample {
   INDEXED = "indexed",
   INDEXED_INSTANCED = "indexed-instances",
   TEXTURE_INSTANCED = "textured-indexed-instances",
+  SPRITES = "sprites",
 }
 
 const assembler = new Assembler();
@@ -33,10 +34,11 @@ const samples: Record<string, React.JSX.Element> = {
   [Sample.INDEXED]: <SampleRenderer assembler={assembler} path="resources/indexed-element-sample/indexed.yml" />,
   [Sample.INDEXED_INSTANCED]: <SampleRenderer assembler={assembler} path="resources/indexed-instances-sample/indexed.yml" />,
   [Sample.TEXTURE_INSTANCED]: <SampleRenderer assembler={assembler} path="resources/textured-indexed-instances/texture-indexed.yml" />,
+  [Sample.SPRITES]: <SampleRenderer assembler={assembler} path="resources/sprites-sample/sprites.yml" />,
 };
 
 export const App = () => {
-  const [sample, setSample] = useState<string>(Sample.TRIANGLE);
+  const [sample, setSample] = useState<string>(Sample.TEXTURE);
   return <>
     <select id="sample" style={{ position: "sticky", top: 0 }} value={sample} onChange={({ target }) => setSample(target.value)}>
       {Object.keys(samples).map((type, index) => <option key={type} value={type}>{index+1} - {type} sample</option>)}

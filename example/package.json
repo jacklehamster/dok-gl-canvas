@@ -19,7 +19,7 @@
     "@types/react-dom": "file:../node_modules/@types/react-dom",
     "dok-editor": "^1.0.14",
     "dok-gl-canvas": "file:..",
-    "obj-assembler": "^1.1.7",
+    "obj-assembler": "^1.1.9",
     "react": "file:../node_modules/react",
     "react-dom": "file:../node_modules/react-dom",
     "react-scripts": "file:../node_modules/react-scripts",

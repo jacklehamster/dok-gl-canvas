@@ -2,7 +2,6 @@
 
 scripts:
   - reference: ../lib/init-buffer.yaml
-  - reference: ../lib/load-image.yaml
   - reference: ../lib/load-texture-sprites.yaml
   - name: refresh
     actions:

@@ -5,7 +5,6 @@ scripts:
   - reference: ../lib/init-buffer.yaml
   - reference: ../lib/matrix-identity.yaml
   - reference: ../lib/init-matrix.yaml
-  - reference: ../lib/load-image.yaml
   - reference: ../lib/load-texture-sprites.yaml
   - name: redraw
     actions:

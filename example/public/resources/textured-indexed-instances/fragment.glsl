@@ -13,6 +13,9 @@ vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
 void main() {
     fragColor = getTextureColor(textureIndex, vTex);
+    if (fragColor.a <= .01) {
+      discard;
+    }
 }
 
 const float threshold = 0.00001;

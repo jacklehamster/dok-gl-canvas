@@ -353,6 +353,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const onLoad = utils.executeCallback?.onLoad;
       results.push((parameters, context) => {
         loadImage(src.valueOf(parameters), imageId.valueOf(parameters), (image) => {
+          console.log("onLoad parameters", parameters);
           onLoad?.(context, { imageWidth: image.naturalWidth, imageHeight: image.naturalHeight });
         });
       });
