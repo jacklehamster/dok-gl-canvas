@@ -1,6 +1,33 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { convertValueOf, calculateTypeArrayConstructor, getGlType, getByteSize } from 'dok-gl-actions';
+import { convertValueOf, calculateTypeArrayConstructor, getGlType, getByteSize, StepScript as StepScript$1 } from 'dok-gl-actions';
 import { mat4, quat, vec3 } from 'gl-matrix';
+
+function _extends() {
+  _extends = Object.assign ? Object.assign.bind() : function (target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+    return target;
+  };
+  return _extends.apply(this, arguments);
+}
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {};
+  var sourceKeys = Object.keys(source);
+  var key, i;
+  for (i = 0; i < sourceKeys.length; i++) {
+    key = sourceKeys[i];
+    if (excluded.indexOf(key) >= 0) continue;
+    target[key] = source[key];
+  }
+  return target;
+}
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -26780,12 +26807,13 @@ if (process.env.NODE_ENV === 'production') {
 }
 });
 
-function Control({
-  controller,
-  children
-}) {
-  const [active, setActive] = useState(true);
-  useEffect(() => {
+function Control(_ref) {
+  var controller = _ref.controller,
+    children = _ref.children;
+  var _useState = useState(true),
+    active = _useState[0],
+    setActive = _useState[1];
+  useEffect(function () {
     if (controller) {
       controller.setActive = setActive;
     }
@@ -26793,15 +26821,17 @@ function Control({
   return React.createElement("div", null, active && children);
 }
 
-class ReactHook {
-  static hookup(hud, Node, props, controller) {
+var ReactHook = /*#__PURE__*/function () {
+  function ReactHook() {}
+  ReactHook.hookup = function hookup(hud, Node, props, controller) {
     reactDom.render(React.createElement(Control, {
       controller: controller
     }, React.createElement(Node, Object.assign({}, props))), hud);
-  }
-}
+  };
+  return ReactHook;
+}();
 
-const DEFAULT_ATTRIBUTES = {
+var DEFAULT_ATTRIBUTES = {
   alpha: true,
   antialias: false,
   depth: true,
@@ -26812,36 +26842,37 @@ const DEFAULT_ATTRIBUTES = {
   preserveDrawingBuffer: false,
   stencil: false
 };
-function useGL({
-  canvasRef,
-  webglAttributes
-}) {
-  const [gl, setGL] = useState();
-  React.useLayoutEffect(() => {
-    var _canvas$getContext;
-    const canvas = canvasRef.current;
-    setGL((canvas === null || canvas === void 0 ? void 0 : (_canvas$getContext = canvas.getContext) === null || _canvas$getContext === void 0 ? void 0 : _canvas$getContext.call(canvas, "webgl2", {
-      ...DEFAULT_ATTRIBUTES,
-      ...webglAttributes
-    })) ?? undefined);
+function useGL(_ref) {
+  var canvasRef = _ref.canvasRef,
+    webglAttributes = _ref.webglAttributes;
+  var _useState = useState(),
+    gl = _useState[0],
+    setGL = _useState[1];
+  React.useLayoutEffect(function () {
+    var _canvas$getContext, _canvas$getContext2;
+    var canvas = canvasRef.current;
+    setGL((_canvas$getContext = canvas === null || canvas === void 0 ? void 0 : (_canvas$getContext2 = canvas.getContext) === null || _canvas$getContext2 === void 0 ? void 0 : _canvas$getContext2.call(canvas, "webgl2", _extends({}, DEFAULT_ATTRIBUTES, webglAttributes))) != null ? _canvas$getContext : undefined);
   }, [canvasRef, webglAttributes]);
-  const glProxy = useMemo(() => {
+  var glProxy = useMemo(function () {
     if (window.location.search.indexOf("proxy") < 0) {
       return gl;
     }
-    const proxy = gl ? new Proxy(gl, {
-      get(target, prop) {
-        const t = target;
-        const result = t[prop];
+    var proxy = gl ? new Proxy(gl, {
+      get: function get(target, prop) {
+        var t = target;
+        var result = t[prop];
         if (typeof result === "function") {
-          const f = (...params) => {
-            const returnValue = result.apply(t, params);
-            console.log(`gl.${String(prop)}(`, params, ') = ', returnValue);
+          var f = function f() {
+            for (var _len = arguments.length, params = new Array(_len), _key = 0; _key < _len; _key++) {
+              params[_key] = arguments[_key];
+            }
+            var returnValue = result.apply(t, params);
+            console.log("gl." + String(prop) + "(", params, ') = ', returnValue);
             return returnValue;
           };
           return f;
         } else {
-          console.log(`gl.${String(prop)} = `, result);
+          console.log("gl." + String(prop) + " = ", result);
           return result;
         }
       }
@@ -27778,32 +27809,34 @@ var index = (function () {
     return ResizeObserver;
 })();
 
-function useCanvasSize({
-  gl,
-  canvasRef,
-  pixelRatio
-}) {
-  const [width, setWidth] = useState(0);
-  const [height, setHeight] = useState(0);
-  React.useLayoutEffect(() => {
-    const canvas = canvasRef.current;
+function useCanvasSize(_ref) {
+  var gl = _ref.gl,
+    canvasRef = _ref.canvasRef,
+    pixelRatio = _ref.pixelRatio;
+  var _useState = useState(0),
+    width = _useState[0],
+    setWidth = _useState[1];
+  var _useState2 = useState(0),
+    height = _useState2[0],
+    setHeight = _useState2[1];
+  React.useLayoutEffect(function () {
+    var canvas = canvasRef.current;
     if (canvas) {
-      const resize = () => {
-        const {
-          width,
-          height
-        } = canvas.getBoundingClientRect();
+      var resize = function resize() {
+        var _canvas$getBoundingCl = canvas.getBoundingClientRect(),
+          width = _canvas$getBoundingCl.width,
+          height = _canvas$getBoundingCl.height;
         setWidth(pixelRatio * width);
         setHeight(pixelRatio * height);
       };
-      const resizeObserver = new index(resize);
+      var resizeObserver = new index(resize);
       resizeObserver.observe(canvas);
-      const observer = new MutationObserver(resize);
+      var observer = new MutationObserver(resize);
       observer.observe(canvas, {
         attributes: true,
         attributeFilter: ["style"]
       });
-      return () => {
+      return function () {
         setWidth(0);
         setHeight(0);
         resizeObserver.disconnect();
@@ -27811,53 +27844,51 @@ function useCanvasSize({
       };
     }
   }, [pixelRatio, canvasRef]);
-  useEffect(() => {
+  useEffect(function () {
     gl === null || gl === void 0 ? void 0 : gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
   }, [gl, width, height]);
   return {
-    width,
-    height
+    width: width,
+    height: height
   };
 }
 
-let nextId = 1;
-function useShader({
-  gl
-}) {
-  const typeName = useCallback(type => {
+var nextId = 1;
+function useShader(_ref) {
+  var gl = _ref.gl;
+  var typeName = useCallback(function (type) {
     return type === (gl === null || gl === void 0 ? void 0 : gl.VERTEX_SHADER) ? "vertex" : type === (gl === null || gl === void 0 ? void 0 : gl.FRAGMENT_SHADER) ? "fragment" : undefined;
   }, [gl]);
-  const createShader = useCallback((shaderSource, type) => {
+  var createShader = useCallback(function (shaderSource, type) {
     if (!gl) {
       return;
     }
     if (type !== gl.VERTEX_SHADER && type !== gl.FRAGMENT_SHADER) {
-      throw new Error(`Shader error in ${typeName(type)}`);
+      throw new Error("Shader error in " + typeName(type));
     }
-    const shader = gl.createShader(type);
+    var shader = gl.createShader(type);
     if (!shader) {
-      throw new Error(`Unable to generate ${typeName(type)} shader.`);
+      throw new Error("Unable to generate " + typeName(type) + " shader.");
     }
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error(`Shader compile error in ${typeName(type)}:` + gl.getShaderInfoLog(shader));
+      console.error("Shader compile error in " + typeName(type) + ":" + gl.getShaderInfoLog(shader));
     }
     return shader;
   }, [gl, typeName]);
-  const createProgram = useCallback(({
-    vertex,
-    fragment
-  }) => {
+  var createProgram = useCallback(function (_ref2) {
+    var vertex = _ref2.vertex,
+      fragment = _ref2.fragment;
     if (!gl) {
       return;
     }
-    const program = gl.createProgram();
+    var program = gl.createProgram();
     if (!program) {
-      throw new Error(`Unable to create program.`);
+      throw new Error("Unable to create program.");
     }
-    const vertexShader = createShader(vertex, gl.VERTEX_SHADER);
-    const fragmentShader = createShader(fragment, gl.FRAGMENT_SHADER);
+    var vertexShader = createShader(vertex, gl.VERTEX_SHADER);
+    var fragmentShader = createShader(fragment, gl.FRAGMENT_SHADER);
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
@@ -27869,15 +27900,15 @@ function useShader({
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error("Unable to initialize the shader program:\n" + gl.getProgramInfoLog(program));
     }
-    const result = {
+    var result = {
       id: nextId++,
-      program,
-      vertex,
-      fragment
+      program: program,
+      vertex: vertex,
+      fragment: fragment
     };
     return result;
   }, [createShader, gl]);
-  const removeProgram = useCallback(programResult => {
+  var removeProgram = useCallback(function (programResult) {
     if (!gl) {
       return;
     }
@@ -27887,42 +27918,47 @@ function useShader({
     programResult.program = undefined;
   }, [gl]);
   return {
-    createProgram,
-    removeProgram
+    createProgram: createProgram,
+    removeProgram: removeProgram
   };
 }
 
-function useProgram({
-  gl,
-  programs
-}) {
-  const {
-    createProgram,
-    removeProgram
-  } = useShader({
-    gl
-  });
-  const [programResults, setProgramResults] = useState({});
-  const [activeProgram, setActiveProgram] = useState();
-  const [loadedPrograms, setLoadedPrograms] = useState();
-  const updatePrograms = useCallback(programs => {
-    setProgramResults(results => {
-      const newResults = {
-        ...results
-      };
-      Object.entries(results).forEach(([programId, result]) => {
-        if (!(programs !== null && programs !== void 0 && programs.find(({
-          id,
-          vertex,
-          fragment
-        }) => id === programId && result.vertex === vertex && result.fragment === fragment))) {
+function useProgram(_ref) {
+  var gl = _ref.gl,
+    programs = _ref.programs;
+  var _useShader = useShader({
+      gl: gl
+    }),
+    createProgram = _useShader.createProgram,
+    removeProgram = _useShader.removeProgram;
+  var _useState = useState({}),
+    programResults = _useState[0],
+    setProgramResults = _useState[1];
+  var _useState2 = useState(),
+    activeProgram = _useState2[0],
+    setActiveProgram = _useState2[1];
+  var _useState3 = useState(),
+    loadedPrograms = _useState3[0],
+    setLoadedPrograms = _useState3[1];
+  var updatePrograms = useCallback(function (programs) {
+    setProgramResults(function (results) {
+      var newResults = _extends({}, results);
+      Object.entries(results).forEach(function (_ref2) {
+        var programId = _ref2[0],
+          result = _ref2[1];
+        if (!(programs !== null && programs !== void 0 && programs.find(function (_ref3) {
+          var id = _ref3.id,
+            vertex = _ref3.vertex,
+            fragment = _ref3.fragment;
+          return id === programId && result.vertex === vertex && result.fragment === fragment;
+        }))) {
           removeProgram(result);
           delete newResults[programId];
         }
       });
-      (programs ?? []).forEach(program => {
+      (programs != null ? programs : []).forEach(function (program) {
         if (program.id && !newResults[program.id]) {
-          const result = createProgram(program);
+          var result = createProgram(program);
           if (result) {
             newResults[program.id] = result;
           }
@@ -27931,14 +27967,16 @@ function useProgram({
       return newResults;
     });
   }, [createProgram, removeProgram]);
-  useEffect(() => {
+  useEffect(function () {
     setActiveProgram(undefined);
     updatePrograms(programs);
-    return () => updatePrograms(undefined);
+    return function () {
+      return updatePrograms(undefined);
+    };
   }, [programs, updatePrograms]);
-  const activateProgram = useCallback(programId => {
+  var activateProgram = useCallback(function (programId) {
     if (gl && programId) {
-      const result = programResults[programId];
+      var result = programResults[programId];
       if (result !== null && result !== void 0 && result.program) {
         setActiveProgram(result.program);
         gl.useProgram(result.program);
@@ -27948,37 +27986,39 @@ function useProgram({
     }
     return false;
   }, [gl, programResults, programs]);
-  const getUniformLocation = useCallback((name, programId) => {
+  var getUniformLocation = useCallback(function (name, programId) {
     if (gl) {
-      var _programResults;
-      const program = ((_programResults = programResults[programId ?? ""]) === null || _programResults === void 0 ? void 0 : _programResults.program) ?? activeProgram;
+      var _programResults$progr, _programResults;
+      var program = (_programResults$progr = (_programResults = programResults[programId != null ? programId : ""]) === null || _programResults === void 0 ? void 0 : _programResults.program) != null ? _programResults$progr : activeProgram;
       if (program) {
-        return gl.getUniformLocation(program, name) ?? undefined;
+        var _gl$getUniformLocatio;
+        return (_gl$getUniformLocatio = gl.getUniformLocation(program, name)) != null ? _gl$getUniformLocatio : undefined;
       }
     }
     return;
   }, [gl, programResults, activeProgram]);
-  const getAttributeLocation = useCallback((name, programId) => {
+  var getAttributeLocation = useCallback(function (name, programId) {
     if (gl) {
-      var _programResults2;
-      const program = ((_programResults2 = programResults[programId ?? ""]) === null || _programResults2 === void 0 ? void 0 : _programResults2.program) ?? activeProgram;
+      var _programResults$progr2, _programResults2;
+      var program = (_programResults$progr2 = (_programResults2 = programResults[programId != null ? programId : ""]) === null || _programResults2 === void 0 ? void 0 : _programResults2.program) != null ? _programResults$progr2 : activeProgram;
       if (program) {
-        return gl.getAttribLocation(program, name) ?? -1;
+        var _gl$getAttribLocation;
+        return (_gl$getAttribLocation = gl.getAttribLocation(program, name)) != null ? _gl$getAttribLocation : -1;
       }
     }
     return -1;
   }, [gl, programResults, activeProgram]);
-  useEffect(() => {
+  useEffect(function () {
     var _programs$;
-    const programId = programs === null || programs === void 0 ? void 0 : (_programs$ = programs[0]) === null || _programs$ === void 0 ? void 0 : _programs$.id;
+    var programId = programs === null || programs === void 0 ? void 0 : (_programs$ = programs[0]) === null || _programs$ === void 0 ? void 0 : _programs$.id;
     activateProgram(programId);
   }, [gl, activateProgram, programs]);
-  const programLoading = loadedPrograms !== programs;
+  var programLoading = loadedPrograms !== programs;
   return {
-    getAttributeLocation,
-    getUniformLocation,
-    activateProgram,
-    programLoading,
+    getAttributeLocation: getAttributeLocation,
+    getUniformLocation: getUniformLocation,
+    activateProgram: activateProgram,
+    programLoading: programLoading,
     activeProgram: programLoading ? undefined : activeProgram
   };
 }
@@ -28001,7 +28041,7 @@ function _extends() {
 module.exports = _extends, module.exports.__esModule = true, module.exports["default"] = module.exports;
 });
 
-var _extends = unwrapExports(_extends_1);
+var _extends$1 = unwrapExports(_extends_1);
 
 var DEFAULT_CONFIG = {
   // minimum relative difference between two compared values,
@@ -28375,7 +28415,7 @@ var config = /* #__PURE__ */function config(options) {
   }
   return Object.freeze(DEFAULT_CONFIG);
 };
-_extends(config, DEFAULT_CONFIG, {
+_extends$1(config, DEFAULT_CONFIG, {
   MATRIX_OPTIONS,
   NUMBER_OPTIONS
 });
@@ -30678,7 +30718,7 @@ var typedFunction = createCommonjsModule(function (module, exports) {
   return typedFunction;
 
 }));
-
+//# sourceMappingURL=typed-function.js.map
 });
 
 /**
@@ -60612,7 +60652,7 @@ var createUnitClass = /* #__PURE__ */factory(name$2u, dependencies$2u, _ref => {
       this.fixPrefix = valuelessUnit.fixPrefix;
       this.skipAutomaticSimplification = valuelessUnit.skipAutomaticSimplification;
       this.dimensions = valuelessUnit.dimensions.slice(0);
-      this.units = valuelessUnit.units.map(u => _extends({}, u));
+      this.units = valuelessUnit.units.map(u => _extends$1({}, u));
     } else {
       throw new TypeError('Second parameter in Unit constructor must be a string or valueless Unit');
     }
@@ -62352,9 +62392,9 @@ var createUnitClass = /* #__PURE__ */factory(name$2u, dependencies$2u, _ref => {
       }
     }
   };
-  PREFIXES.SHORTLONG = _extends({}, PREFIXES.SHORT, PREFIXES.LONG);
-  PREFIXES.BINARY_SHORT = _extends({}, PREFIXES.BINARY_SHORT_SI, PREFIXES.BINARY_SHORT_IEC);
-  PREFIXES.BINARY_LONG = _extends({}, PREFIXES.BINARY_LONG_SI, PREFIXES.BINARY_LONG_IEC);
+  PREFIXES.SHORTLONG = _extends$1({}, PREFIXES.SHORT, PREFIXES.LONG);
+  PREFIXES.BINARY_SHORT = _extends$1({}, PREFIXES.BINARY_SHORT_SI, PREFIXES.BINARY_SHORT_IEC);
+  PREFIXES.BINARY_LONG = _extends$1({}, PREFIXES.BINARY_LONG_SI, PREFIXES.BINARY_LONG_IEC);
 
   /* Internally, each unit is represented by a value and a dimension array. The elements of the dimensions array have the following meaning:
    * Index  Dimension
@@ -68932,7 +68972,7 @@ var createConditionalNode = /* #__PURE__ */factory(name$3g, dependencies$3g, _re
 // Map the characters to escape to their escaped values. The list is derived
 // from http://www.cespedes.org/blog/85/how-to-escape-latex-special-characters
 
-var _extends$1 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+var _extends$2 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var defaultEscapes = {
   "{": "\\{",
@@ -68956,7 +68996,7 @@ var formatEscapes = {
 };
 
 var defaultEscapeMapFn = function defaultEscapeMapFn(defaultEscapes, formatEscapes) {
-  return _extends$1({}, defaultEscapes, formatEscapes);
+  return _extends$2({}, defaultEscapes, formatEscapes);
 };
 
 /**
@@ -68977,7 +69017,7 @@ var dist = function (str) {
   var runningStr = String(str);
   var result = "";
 
-  var escapes = escapeMapFn(_extends$1({}, defaultEscapes), preserveFormatting ? _extends$1({}, formatEscapes) : {});
+  var escapes = escapeMapFn(_extends$2({}, defaultEscapes), preserveFormatting ? _extends$2({}, formatEscapes) : {});
   var escapeKeys = Object.keys(escapes); // as it is reused later on
 
   // Algorithm: Go through the string character by character, if it matches
@@ -72704,7 +72744,7 @@ var createParse = /* #__PURE__ */factory(name$3r, dependencies$3r, _ref => {
    */
   function parseStart(expression, extraNodes) {
     var state = initialState();
-    _extends(state, {
+    _extends$1(state, {
       expression,
       extraNodes
     });
@@ -73179,32 +73219,32 @@ var createParse = /* #__PURE__ */factory(name$3r, dependencies$3r, _ref => {
       // Match the "number /" part of the pattern "number / number symbol"
       if (state.token === '/' && rule2Node(last)) {
         // Look ahead to see if the next token is a number
-        tokenStates.push(_extends({}, state));
+        tokenStates.push(_extends$1({}, state));
         getTokenSkipNewline(state);
 
         // Match the "number / number" part of the pattern
         if (state.tokenType === TOKENTYPE.NUMBER) {
           // Look ahead again
-          tokenStates.push(_extends({}, state));
+          tokenStates.push(_extends$1({}, state));
           getTokenSkipNewline(state);
 
           // Match the "symbol" part of the pattern, or a left parenthesis
           if (state.tokenType === TOKENTYPE.SYMBOL || state.token === '(') {
             // We've matched the pattern "number / number symbol".
             // Rewind once and build the "number / number" node; the symbol will be consumed later
-            _extends(state, tokenStates.pop());
+            _extends$1(state, tokenStates.pop());
             tokenStates.pop();
             last = parsePercentage(state);
             node = new OperatorNode('/', 'divide', [node, last]);
           } else {
             // Not a match, so rewind
             tokenStates.pop();
-            _extends(state, tokenStates.pop());
+            _extends$1(state, tokenStates.pop());
             break;
           }
         } else {
           // Not a match, so rewind
-          _extends(state, tokenStates.pop());
+          _extends$1(state, tokenStates.pop());
           break;
         }
       } else {
@@ -74559,7 +74599,7 @@ var createQr = /* #__PURE__ */factory(name$3x, dependencies$3x, _ref => {
    * @return {{Q: Array | Matrix, R: Array | Matrix}} Q: the orthogonal
    * matrix and R: the upper triangular matrix
    */
-  return _extends(typed(name$3x, {
+  return _extends$1(typed(name$3x, {
     DenseMatrix: function DenseMatrix(m) {
       return _denseQR(m);
     },
@@ -84809,8 +84849,8 @@ if (module && module.exports) {
 var _nodeResolve_empty = {};
 
 var _nodeResolve_empty$1 = {
-	__proto__: null,
-	'default': _nodeResolve_empty
+  __proto__: null,
+  'default': _nodeResolve_empty
 };
 
 var require$$0 = getCjsExportFromNamespace(_nodeResolve_empty$1);
@@ -92764,7 +92804,7 @@ var rationalize = createRationalize({
   subtract,
   typed
 });
-_extends(math, {
+_extends$1(math, {
   e: e$1,
   false: _false,
   fineStructure,
@@ -93069,7 +93109,7 @@ _extends(math, {
   lyap,
   config
 });
-_extends(mathWithTransform, math, {
+_extends$1(mathWithTransform, math, {
   filter: createFilterTransform({
     typed
   }),
@@ -93170,7 +93210,7 @@ _extends(mathWithTransform, math, {
     variance
   })
 });
-_extends(classes, {
+_extends$1(classes, {
   BigNumber,
   Complex: Complex$1,
   Fraction: Fraction$1,
@@ -93271,8 +93311,8 @@ function v4(options, buf, offset) {
   return unsafeStringify(rnds);
 }
 
-function _extends$2() {
-  _extends$2 = Object.assign ? Object.assign.bind() : function (target) {
+function _extends$3() {
+  _extends$3 = Object.assign ? Object.assign.bind() : function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
       for (var key in source) {
@@ -93283,9 +93323,9 @@ function _extends$2() {
     }
     return target;
   };
-  return _extends$2.apply(this, arguments);
+  return _extends$3.apply(this, arguments);
 }
-function _objectWithoutPropertiesLoose(source, excluded) {
+function _objectWithoutPropertiesLoose$1(source, excluded) {
   if (source == null) return {};
   var target = {};
   var sourceKeys = Object.keys(source);
@@ -93377,7 +93417,7 @@ var Context = /*#__PURE__*/function () {
     this.cleanupActions = cleanupActions;
     this.objectPool = objectPool;
     this.postActionListener = postActionListener;
-    this.external = _extends$2({}, DEFAULT_EXTERNALS, external);
+    this.external = _extends$3({}, DEFAULT_EXTERNALS, external);
     this.locked = new Set();
   }
   var _proto = Context.prototype;
@@ -93386,6 +93426,7 @@ var Context = /*#__PURE__*/function () {
   };
   _proto.addPostAction = function addPostAction(postAction) {
     if (!this.postActionListener.has(postAction)) {
+      postAction.parameters.postAction = postAction;
       this.postActionListener.add(postAction);
     }
   };
@@ -93448,6 +93489,23 @@ var ConvertBehavior;
   ConvertBehavior[ConvertBehavior["SKIP_REMAINING_CONVERTORS"] = 1] = "SKIP_REMAINING_CONVERTORS";
   ConvertBehavior[ConvertBehavior["SKIP_REMAINING_ACTIONS"] = 2] = "SKIP_REMAINING_ACTIONS";
 })(ConvertBehavior || (ConvertBehavior = {}));
+var StepScript = /*#__PURE__*/function () {
+  function StepScript(steps) {
+    var _this = this;
+    this.steps = [];
+    steps === null || steps === void 0 ? void 0 : steps.forEach(function (step) {
+      return _this.add(step);
+    });
+  }
+  var _proto = StepScript.prototype;
+  _proto.add = function add(step) {
+    this.steps.push(step);
+  };
+  _proto.getSteps = function getSteps() {
+    return this.steps;
+  };
+  return StepScript;
+}();
 
 // A type of promise-like that resolves synchronously and supports only one observer
 const _Pact = /*#__PURE__*/(function() {
@@ -93627,7 +93685,7 @@ function execute(steps, parameters, context) {
   if (context === void 0) {
     context = createContext();
   }
-  if (!(steps !== null && steps !== void 0 && steps.length)) {
+  if (!steps.getSteps().length) {
     return;
   }
   if (!context.parameters) {
@@ -93638,7 +93696,7 @@ function execute(steps, parameters, context) {
   if (changedParameters) {
     params.push(parameters);
   }
-  for (var _iterator = _createForOfIteratorHelperLoose(steps), _step; !(_step = _iterator()).done;) {
+  for (var _iterator = _createForOfIteratorHelperLoose(steps.getSteps()), _step; !(_step = _iterator()).done;) {
     var step = _step.value;
     step(parameters, context);
   }
@@ -93684,20 +93742,23 @@ var convertScriptsHelper = function convertScriptsHelper(scripts, external, conv
   try {
     var scriptMap = new Map();
     scripts.forEach(function (script) {
-      return scriptMap.set(script, []);
+      return scriptMap.set(script, new StepScript());
     });
     var getSteps = function getSteps(filter) {
       var filteredScripts = filterScripts(scripts, filter);
-      var steps = [];
+      var steps = new StepScript();
       filteredScripts.forEach(function (script) {
-        return steps.push.apply(steps, scriptMap.get(script));
+        var stepScript = scriptMap.get(script);
+        stepScript === null || stepScript === void 0 ? void 0 : stepScript.getSteps().forEach(function (step) {
+          return steps.add(step);
+        });
       });
       return steps;
     };
     var _temp2 = _forOf(scripts, function (script) {
       var _scriptMap$get;
       var _interrupt = false;
-      var scriptSteps = (_scriptMap$get = scriptMap.get(script)) != null ? _scriptMap$get : [];
+      var scriptSteps = (_scriptMap$get = scriptMap.get(script)) != null ? _scriptMap$get : new StepScript();
       var _script$actions = script.actions,
         actions = _script$actions === void 0 ? [] : _script$actions;
       var _temp = _forTo(actions, function (i) {
@@ -93847,7 +93908,8 @@ function calculateEvaluator(evaluator, parameters, formula, defaultValue) {
     var _evaluator$evaluate;
     return (_evaluator$evaluate = evaluator.evaluate(scope != null ? scope : {})) != null ? _evaluator$evaluate : defaultValue;
   } catch (e) {
-    console.error("Error: " + e + " on formula: " + formula + ", scope: ", JSON.parse(JSON.stringify(scope)));
+    console.error("Error: " + e + " on formula: " + formula + ", scope: ", scope);
+    debugger;
   }
   return defaultValue;
 }
@@ -94222,14 +94284,14 @@ var convertRefreshProperty = function convertRefreshProperty(action, stepResults
       return Promise.resolve();
     }
     var refresh = action.refresh,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded);
-    var subStepResults = [];
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded);
+    var subStepResults = new StepScript();
     var processIdValue = calculateString(refresh.processId, "");
     var stop = calculateBoolean(refresh.stop);
     var cleanupAfterRefresh = calculateBoolean(refresh.cleanupAfterRefresh);
     var frameRate = calculateNumber(refresh.frameRate, DEFAULT_REFRESH_FRAME_RATE);
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      stepResults.push(function (parameters, context) {
+      stepResults.add(function (parameters, context) {
         if (stop.valueOf(parameters)) {
           utils.stopRefresh(processIdValue.valueOf(parameters));
         } else {
@@ -94288,7 +94350,7 @@ var convertExecuteCallbackProperty = function convertExecuteCallbackProperty(act
     }
     var executeCallback = action.executeCallback;
     var callbackToExecute = calculateString(executeCallback);
-    results.push(function (parameters, context) {
+    results.add(function (parameters, context) {
       var _utils$executeCallbac, _utils$executeCallbac2;
       var callbackName = callbackToExecute.valueOf(parameters);
       (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : (_utils$executeCallbac2 = _utils$executeCallbac[callbackName]) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.call(_utils$executeCallbac, context, parameters);
@@ -94301,11 +94363,11 @@ var convertExecuteCallbackProperty = function convertExecuteCallbackProperty(act
 var convertCallbackProperty = function convertCallbackProperty(action, results, utils, external, convertorSet) {
   try {
     var _temp2 = function _temp2() {
-      var subStepResults = [];
-      return Promise.resolve(convertAction(subAction, subStepResults, _extends$2({}, utils, {
+      var subStepResults = new StepScript();
+      return Promise.resolve(convertAction(subAction, subStepResults, _extends$3({}, utils, {
         executeCallback: executeCallback
       }), external, convertorSet)).then(function () {
-        results.push(function (parameters, context) {
+        results.add(function (parameters, context) {
           for (var key in callback) {
             callbackParameters[key] = newParams(parameters, context);
           }
@@ -94318,15 +94380,15 @@ var convertCallbackProperty = function convertCallbackProperty(action, results, 
       return Promise.resolve();
     }
     var callback = action.callback,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded$1);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$1);
     var callbackParameters = {};
-    var executeCallback = _extends$2({}, utils.executeCallback);
+    var executeCallback = _extends$3({}, utils.executeCallback);
     var _temp = _forIn(callback, function (key) {
-      var callbackSteps = [];
-      return Promise.resolve(convertActions(callback[key], callbackSteps, _extends$2({}, utils, {
+      var callbackSteps = new StepScript();
+      return Promise.resolve(convertActions(callback[key], callbackSteps, _extends$3({}, utils, {
         executeCallback: executeCallback
       }), external, convertorSet)).then(function () {
-        var onCallback = callbackSteps.length ? function (context, additionalParameters) {
+        var onCallback = callbackSteps.getSteps().length ? function (context, additionalParameters) {
           var p = callbackParameters[key];
           if (additionalParameters) {
             if (p) {
@@ -94363,11 +94425,11 @@ var convertConditionProperty = function convertConditionProperty(action, results
       return Promise.resolve(ConvertBehavior.SKIP_REMAINING_CONVERTORS);
     }
     var condition = action.condition,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded$2);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$2);
     var conditionResolution = calculateBoolean(condition);
-    var subStepResults = [];
+    var subStepResults = new StepScript();
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      results.push(function (parameters, context) {
+      results.add(function (parameters, context) {
         if (conditionResolution.valueOf(parameters)) {
           execute(subStepResults, parameters, context);
         }
@@ -94391,7 +94453,7 @@ var convertExternalCallProperty = function convertExternalCallProperty(action, r
     var argsValues = args.map(function (m) {
       return calculateResolution(m);
     });
-    results.push(function (parameters) {
+    results.add(function (parameters) {
       var _subjectResolution$va;
       var subject = (_subjectResolution$va = subjectResolution === null || subjectResolution === void 0 ? void 0 : subjectResolution.valueOf(parameters)) != null ? _subjectResolution$va : external;
       if (subject && typeof subject === "object" && !Array.isArray(subject)) {
@@ -94421,21 +94483,21 @@ var convertLockProperty = function convertLockProperty(action, results, utils, e
     }
     var lock = action.lock,
       unlock = action.unlock,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded3);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded3);
     if (unlock) {
       var unlockResolution = calculateString(unlock);
-      results.push(function (parameters, context) {
+      results.add(function (parameters, context) {
         context.locked["delete"](unlockResolution.valueOf(parameters));
       });
     }
     return Promise.resolve(function () {
       if (lock) {
         var lockResolution = calculateString(lock);
-        var postStepResults = [];
+        var postStepResults = new StepScript();
         var remainingActions = utils.getRemainingActions();
         return Promise.resolve(convertAction(subAction, postStepResults, utils, external, convertorSet)).then(function () {
           function _temp6() {
-            results.push(function (parameters, context) {
+            results.add(function (parameters, context) {
               var lockId = lockResolution.valueOf(parameters);
               context.locked.add(lockId);
               var step = function step(parameters, context) {
@@ -94472,13 +94534,18 @@ var convertPauseProperty = function convertPauseProperty(action, results, utils,
       return Promise.resolve();
     }
     var pause = action.pause,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded2);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded2);
     var pauseResolution = calculateBoolean(pause);
-    var postStepResults = [];
+    var postStepResults = new StepScript();
     var remainingActions = utils.getRemainingActions();
     return Promise.resolve(convertAction(subAction, postStepResults, utils, external, convertorSet)).then(function () {
       function _temp4() {
         var step = function step(parameters, context) {
+          var _parameters$postActio;
+          var postExecution = (_parameters$postActio = parameters.postAction) != null ? _parameters$postActio : {
+            steps: [step],
+            parameters: {}
+          };
           for (var i in parameters) {
             postExecution.parameters[i] = parameters[i];
           }
@@ -94489,11 +94556,7 @@ var convertPauseProperty = function convertPauseProperty(action, results, utils,
             context.addPostAction(postExecution);
           }
         };
-        var postExecution = {
-          steps: [step],
-          parameters: {}
-        };
-        results.push(step);
+        results.add(step);
         return ConvertBehavior.SKIP_REMAINING_ACTIONS;
       }
       var _temp3 = _forOf(remainingActions, function (action) {
@@ -94511,16 +94574,16 @@ var convertDelayProperty = function convertDelayProperty(action, results, utils,
       return Promise.resolve();
     }
     var delay = action.delay,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded$3);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$3);
     var delayAmount = calculateNumber(delay);
-    var postStepResults = [];
+    var postStepResults = new StepScript();
     var remainingActions = utils.getRemainingActions();
     return Promise.resolve(convertAction(subAction, postStepResults, utils, external, convertorSet)).then(function () {
       function _temp2() {
         var performPostSteps = function performPostSteps(context, parameters) {
           execute(postStepResults, parameters, context);
         };
-        results.push(function (parameters, context) {
+        results.add(function (parameters, context) {
           var timeout = external.setTimeout(performPostSteps, delayAmount.valueOf(parameters), context, parameters);
           context.addCleanup(function () {
             return clearTimeout(timeout);
@@ -94549,7 +94612,7 @@ var convertDefaultValuesProperty = function convertDefaultValuesProperty(action,
         value = _ref2[1];
       return [key, calculateResolution(value)];
     });
-    results.push(function (parameters, context) {
+    results.add(function (parameters, context) {
       var paramsTemp = newParams(undefined, context);
       for (var _iterator3 = _createForOfIteratorHelperLoose(defaultValuesEntries), _step3; !(_step3 = _iterator3()).done;) {
         var _step3$value = _step3.value,
@@ -94584,7 +94647,7 @@ var convertSetsProperty = function convertSetsProperty(action, results) {
         value = _ref[1];
       return [key, calculateResolution(value)];
     });
-    results.push(function (parameters, context) {
+    results.add(function (parameters, context) {
       var paramsTemp = newParams(undefined, context);
       for (var _iterator = _createForOfIteratorHelperLoose(setsEntries), _step; !(_step = _iterator()).done;) {
         var _step$value = _step.value,
@@ -94618,7 +94681,7 @@ var convertSetProperty = function convertSetProperty(action, results) {
       return calculateResolution(a);
     })) != null ? _set$access$map : []);
     var value = calculateResolution(set.value);
-    results.push(function (parameters) {
+    results.add(function (parameters) {
       var root = parameters;
       for (var i = 0; i < access.length; i++) {
         var _access$i;
@@ -94664,7 +94727,7 @@ var convertHooksProperty = function convertHooksProperty(action, results, _, ext
     var hooksValueOf = hooksResolution.map(function (hook) {
       return calculateString(hook);
     });
-    results.push(function (parameters) {
+    results.add(function (parameters) {
       for (var _iterator = _createForOfIteratorHelperLoose(hooksValueOf), _step; !(_step = _iterator()).done;) {
         var hook = _step.value;
         var h = hook.valueOf(parameters);
@@ -94691,7 +94754,7 @@ var convertLogProperty = function convertLogProperty(action, results, _, externa
     var resolutions = messages.map(function (m) {
       return calculateResolution(m);
     });
-    results.push(function (parameters) {
+    results.add(function (parameters) {
       return external.log.apply(external, resolutions.map(function (r) {
         return r === null || r === void 0 ? void 0 : r.valueOf(parameters);
       }));
@@ -94710,11 +94773,11 @@ var convertLoopEachProperty = function convertLoopEachProperty(action, stepResul
       return Promise.resolve();
     }
     var loopEach = action.loopEach,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded3$1);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded3$1);
     var loopEachResolution = calculateArray(loopEach);
-    var subStepResults = [];
+    var subStepResults = new StepScript();
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      stepResults.push(function (parameters, context) {
+      stepResults.add(function (parameters, context) {
         var array = loopEachResolution === null || loopEachResolution === void 0 ? void 0 : loopEachResolution.valueOf(parameters);
         if (array) {
           for (var i = 0; i < array.length; i++) {
@@ -94739,7 +94802,7 @@ var convertLoopProperty = function convertLoopProperty(action, stepResults, util
       return Promise.resolve(ConvertBehavior.SKIP_REMAINING_CONVERTORS);
     }
     var loop = action.loop,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded$4);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$4);
     var loops = Array.isArray(loop) ? loop : [loop];
     if (!loops.length) {
       return Promise.resolve(ConvertBehavior.SKIP_REMAINING_CONVERTORS);
@@ -94747,9 +94810,9 @@ var convertLoopProperty = function convertLoopProperty(action, stepResults, util
     var loopResolution = loops.map(function (loop) {
       return calculateNumber(loop, 0);
     });
-    var subStepResults = [];
+    var subStepResults = new StepScript();
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      stepResults.push(function (parameters, context) {
+      stepResults.add(function (parameters, context) {
         return keepLooping(parameters, context, loopResolution, subStepResults);
       });
       return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
@@ -94788,15 +94851,15 @@ var convertParametersProperty = function convertParametersProperty(action, resul
       return Promise.resolve();
     }
     var parameters = action.parameters,
-      subAction = _objectWithoutPropertiesLoose(action, _excluded$5);
+      subAction = _objectWithoutPropertiesLoose$1(action, _excluded$5);
     var paramEntries = Object.entries(parameters != null ? parameters : {}).map(function (_ref) {
       var key = _ref[0],
         resolution = _ref[1];
       return [key, calculateResolution(resolution)];
     });
-    var subStepResults = [];
+    var subStepResults = new StepScript();
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      results.push(function (parameters, context) {
+      results.add(function (parameters, context) {
         var paramValues = newParams(undefined, context);
         for (var _iterator = _createForOfIteratorHelperLoose(paramEntries), _step; !(_step = _iterator()).done;) {
           var _entry$;
@@ -94825,7 +94888,7 @@ var convertScriptProperty = function convertScriptProperty(action, results, _ref
     var steps = getSteps({
       name: name
     });
-    results.push(function (parameters, context) {
+    results.add(function (parameters, context) {
       return execute(steps, parameters, context);
     });
     return Promise.resolve();
@@ -94851,7 +94914,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
     this.refreshCleanups = {};
     this.scripts = scripts;
     this.convertorSet = convertorSet;
-    this.external = _extends$2({}, DEFAULT_EXTERNALS, external);
+    this.external = _extends$3({}, DEFAULT_EXTERNALS, external);
   }
   var _proto = ScriptProcessor.prototype;
   _proto.updateScripts = function updateScripts(scripts) {
@@ -94899,11 +94962,11 @@ var ScriptProcessor = /*#__PURE__*/function () {
       var _this3 = this;
       return Promise.resolve(_this3.fetchScripts()).then(function (scriptMap) {
         var scripts = filterScripts(_this3.scripts, filter);
-        var steps = [];
+        var steps = new StepScript();
         scripts.forEach(function (script) {
           var _scriptMap$get;
-          return (_scriptMap$get = scriptMap.get(script)) === null || _scriptMap$get === void 0 ? void 0 : _scriptMap$get.forEach(function (step) {
-            return steps.push(step);
+          return (_scriptMap$get = scriptMap.get(script)) === null || _scriptMap$get === void 0 ? void 0 : _scriptMap$get.getSteps().forEach(function (step) {
+            return steps.add(step);
           });
         });
         return steps;
@@ -94922,7 +94985,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
       return Promise.resolve(_this4.getSteps({
         name: name
       })).then(function (_this4$getSteps) {
-        execute(_this4$getSteps, _extends$2({}, parameters, {
+        execute(_this4$getSteps, _extends$3({}, parameters, {
           time: undefined,
           index: undefined
         }), context);
@@ -94944,7 +95007,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
       return Promise.resolve(_this5.getSteps({
         tags: tags
       })).then(function (_this5$getSteps) {
-        execute(_this5$getSteps, _extends$2({}, parameters, {
+        execute(_this5$getSteps, _extends$3({}, parameters, {
           time: undefined,
           index: undefined
         }), context);
@@ -94981,7 +95044,7 @@ var ScriptProcessor = /*#__PURE__*/function () {
       behavior = {};
     }
     var context = createContext();
-    var parameters = _extends$2({}, behavior.parameters, {
+    var parameters = _extends$3({}, behavior.parameters, {
       time: 0,
       frame: 0
     });
@@ -95032,73 +95095,78 @@ var ScriptProcessor = /*#__PURE__*/function () {
   };
   return ScriptProcessor;
 }();
+//# sourceMappingURL=index.modern.js.map
 
 function clearRecord(record, clean) {
-  Object.entries(record).forEach(([key, elem]) => {
+  Object.entries(record).forEach(function (_ref) {
+    var key = _ref[0],
+      elem = _ref[1];
     clean === null || clean === void 0 ? void 0 : clean(elem);
     delete record[key];
   });
 }
 
-function useBufferAttributes({
-  gl,
-  getAttributeLocation
-}) {
-  const bindVertexArray = useCallback(() => {
-    const triangleArray = (gl === null || gl === void 0 ? void 0 : gl.createVertexArray()) ?? null;
+function useBufferAttributes(_ref) {
+  var gl = _ref.gl,
+    getAttributeLocation = _ref.getAttributeLocation;
+  var bindVertexArray = useCallback(function () {
+    var _gl$createVertexArray;
+    var triangleArray = (_gl$createVertexArray = gl === null || gl === void 0 ? void 0 : gl.createVertexArray()) != null ? _gl$createVertexArray : null;
     gl === null || gl === void 0 ? void 0 : gl.bindVertexArray(triangleArray);
-    return () => gl === null || gl === void 0 ? void 0 : gl.deleteVertexArray(triangleArray);
+    return function () {
+      return gl === null || gl === void 0 ? void 0 : gl.deleteVertexArray(triangleArray);
+    };
   }, [gl]);
-  const bufferRecord = useRef({});
-  useEffect(() => {
-    const record = bufferRecord.current;
-    return () => {
-      clearRecord(record, info => {
+  var bufferRecord = useRef({});
+  useEffect(function () {
+    var record = bufferRecord.current;
+    return function () {
+      clearRecord(record, function (info) {
         if (info.buffer) {
           gl === null || gl === void 0 ? void 0 : gl.deleteBuffer(info.buffer);
         }
       });
     };
   }, [gl, bufferRecord]);
-  const createBuffer = useCallback(location => {
+  var createBuffer = useCallback(function (location) {
     if (bufferRecord.current[location]) {
       gl === null || gl === void 0 ? void 0 : gl.deleteBuffer(bufferRecord.current[location].buffer);
       delete bufferRecord.current[location];
     }
-    const bufferBuffer = gl === null || gl === void 0 ? void 0 : gl.createBuffer();
+    var bufferBuffer = gl === null || gl === void 0 ? void 0 : gl.createBuffer();
     if (!bufferBuffer) {
-      throw new Error(`Unable to create buffer "${location}"`);
+      throw new Error("Unable to create buffer \"" + location + "\"");
     }
-    const record = {
+    var record = {
       buffer: bufferBuffer,
       location: getAttributeLocation(location)
     };
     bufferRecord.current[location] = record;
     return record;
   }, [bufferRecord, gl, getAttributeLocation]);
-  const getBufferAttribute = useCallback((location, autoCreate) => {
-    const attribute = bufferRecord.current[location];
+  var getBufferAttribute = useCallback(function (location, autoCreate) {
+    var attribute = bufferRecord.current[location];
     if (!attribute) {
       if (autoCreate) {
         return createBuffer(location);
       }
-      throw new Error(`Attribute "${location}" not created. Make sure "createBuffer" is called.`);
+      throw new Error("Attribute \"" + location + "\" not created. Make sure \"createBuffer\" is called.");
     }
     return attribute;
   }, [bufferRecord, createBuffer]);
-  const bufferData = useCallback((target, location, bufferArray, bufferSize, glUsage) => {
-    const bufferInfo = getBufferAttribute(location);
+  var bufferData = useCallback(function (target, location, bufferArray, bufferSize, glUsage) {
+    var bufferInfo = getBufferAttribute(location);
     if (bufferArray) {
       gl === null || gl === void 0 ? void 0 : gl.bufferData(target, bufferArray, glUsage);
     } else {
       gl === null || gl === void 0 ? void 0 : gl.bufferData(target, bufferSize, glUsage);
     }
     bufferInfo.bufferSize = bufferSize;
-    bufferInfo.bufferArray = bufferArray ?? new Float32Array(bufferInfo.bufferSize / Float32Array.BYTES_PER_ELEMENT).fill(0);
+    bufferInfo.bufferArray = bufferArray != null ? bufferArray : new Float32Array(bufferInfo.bufferSize / Float32Array.BYTES_PER_ELEMENT).fill(0);
     bufferInfo.usage = glUsage;
     bufferInfo.target = target;
   }, [gl, getBufferAttribute]);
-  const bufferSubData = useCallback((target, bufferArray, dstByteOffset, srcOffset, length) => {
+  var bufferSubData = useCallback(function (target, bufferArray, dstByteOffset, srcOffset, length) {
     if (srcOffset) {
       gl === null || gl === void 0 ? void 0 : gl.bufferSubData(target, dstByteOffset, bufferArray, srcOffset, length);
     } else {
@@ -95106,16 +95174,16 @@ function useBufferAttributes({
     }
   }, [gl]);
   return {
-    bindVertexArray,
-    createBuffer,
-    getBufferAttribute,
-    bufferData,
-    bufferSubData
+    bindVertexArray: bindVertexArray,
+    createBuffer: createBuffer,
+    getBufferAttribute: getBufferAttribute,
+    bufferData: bufferData,
+    bufferSubData: bufferSubData
   };
 }
 
 function useTypes() {
-  const convertUsage = useCallback(usage => {
+  var convertUsage = useCallback(function (usage) {
     switch (usage) {
       case "DYNAMIC_DRAW":
         return WebGL2RenderingContext.DYNAMIC_DRAW;
@@ -95127,10 +95195,10 @@ function useTypes() {
         return WebGL2RenderingContext.STATIC_DRAW;
     }
   }, []);
-  const getGlUsage = useCallback(usage => {
+  var getGlUsage = useCallback(function (usage) {
     return convertValueOf(usage, convertUsage);
   }, [convertUsage]);
-  const convertBufferTarget = useCallback(target => {
+  var convertBufferTarget = useCallback(function (target) {
     switch (target) {
       case "ARRAY_BUFFER":
         return WebGL2RenderingContext.ARRAY_BUFFER;
@@ -95140,47 +95208,56 @@ function useTypes() {
         return WebGL2RenderingContext.ARRAY_BUFFER;
     }
   }, []);
-  const convertTextureId = useCallback(index => {
-    return index >= 0 && index <= 31 ? `TEXTURE${index}` : undefined;
+  var convertTextureId = useCallback(function (index) {
+    return index >= 0 && index <= 31 ? "TEXTURE" + index : undefined;
   }, []);
-  const getBufferTarget = useCallback(target => {
+  var getBufferTarget = useCallback(function (target) {
     return convertValueOf(target, convertBufferTarget);
   }, [convertBufferTarget]);
   return {
-    getGlUsage,
-    getBufferTarget,
-    convertTextureId
+    getGlUsage: getGlUsage,
+    getBufferTarget: getBufferTarget,
+    convertTextureId: convertTextureId
   };
 }
 
-const MAX_TEXTURE_SIZE = 4096;
-function useImageAction({
-  gl
-}) {
-  const images = useRef({});
-  const textureBuffers = useRef({});
-  useEffect(() => {
-    const imagesRecord = images.current;
-    const textureRecord = textureBuffers.current;
-    return () => {
+var MAX_TEXTURE_SIZE = 4096;
+function useImageAction(_ref) {
+  var gl = _ref.gl;
+  var images = useRef({});
+  var textureBuffers = useRef({});
+  useEffect(function () {
+    var imagesRecord = images.current;
+    var textureRecord = textureBuffers.current;
+    return function () {
       clearRecord(imagesRecord);
-      clearRecord(textureRecord, texture => gl === null || gl === void 0 ? void 0 : gl.deleteTexture(texture));
+      clearRecord(textureRecord, function (texture) {
+        return gl === null || gl === void 0 ? void 0 : gl.deleteTexture(texture);
+      });
     };
   }, [textureBuffers, images, gl]);
-  const tempCanvas = useRef(document.createElement("canvas"));
-  const tempContext = useMemo(() => {
-    const context = tempCanvas.current.getContext("2d");
+  var tempCanvas = useRef(document.createElement("canvas"));
+  var tempContext = useMemo(function () {
+    var context = tempCanvas.current.getContext("2d");
     if (context) {
       context.imageSmoothingEnabled = true;
     }
     return context;
   }, [tempCanvas]);
-  useEffect(() => {
+  useEffect(function () {
     if (window.location.search.indexOf("debug-canvas") >= 0 && tempCanvas.current) {
       document.body.appendChild(tempCanvas.current);
     }
   }, [tempCanvas]);
-  const applyTexImage2d = useCallback((source, [srcX, srcY, srcWidth, srcHeight], [dstX, dstY, dstWidth, dstHeight]) => {
+  var applyTexImage2d = useCallback(function (source, _ref2, _ref3) {
+    var srcX = _ref2[0],
+      srcY = _ref2[1],
+      srcWidth = _ref2[2],
+      srcHeight = _ref2[3];
+    var dstX = _ref3[0],
+      dstY = _ref3[1],
+      dstWidth = _ref3[2],
+      dstHeight = _ref3[3];
     if (!srcWidth && !srcHeight && !dstWidth && !dstHeight) {
       gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
       gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -95189,7 +95266,7 @@ function useImageAction({
       if (!tempContext) {
         return;
       }
-      const canvas = tempContext === null || tempContext === void 0 ? void 0 : tempContext.canvas;
+      var canvas = tempContext === null || tempContext === void 0 ? void 0 : tempContext.canvas;
       if (source instanceof ImageData) {
         canvas.width = dstWidth || source.width;
         canvas.height = dstHeight || source.height;
@@ -95198,8 +95275,8 @@ function useImageAction({
           console.warn("Offset not available when sending imageData");
         }
       } else {
-        const sourceWidth = srcWidth || source.width;
-        const sourceHeight = srcHeight || source.height;
+        var sourceWidth = srcWidth || source.width;
+        var sourceHeight = srcHeight || source.height;
         canvas.width = dstWidth || sourceWidth;
         canvas.height = dstHeight || sourceHeight;
         tempContext.drawImage(source, srcX, srcY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
@@ -95207,16 +95284,16 @@ function useImageAction({
       gl === null || gl === void 0 ? void 0 : gl.texSubImage2D(gl.TEXTURE_2D, 0, dstX, dstY, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     }
   }, [gl, tempContext]);
-  const loadTexture = useCallback((source, textureId, texture, sourceRect, destRect) => {
+  var loadTexture = useCallback(function (source, textureId, texture, sourceRect, destRect) {
     gl === null || gl === void 0 ? void 0 : gl.activeTexture(gl[textureId]);
     gl === null || gl === void 0 ? void 0 : gl.bindTexture(gl.TEXTURE_2D, texture);
     applyTexImage2d(source, sourceRect, destRect);
     gl === null || gl === void 0 ? void 0 : gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }, [gl, applyTexImage2d]);
-  const loadImage = useCallback((src, imageId, onLoad) => {
-    const image = new Image();
+  var loadImage = useCallback(function (src, imageId, onLoad) {
+    var image = new Image();
     image.src = src;
-    const imageLoaded = () => {
+    var imageLoaded = function imageLoaded() {
       images.current[imageId] = {
         src: image,
         activated: false
@@ -95226,19 +95303,23 @@ function useImageAction({
     image.addEventListener("load", imageLoaded, {
       once: true
     });
-    image.addEventListener("error", e => {
+    image.addEventListener("error", function (e) {
       console.error("image error", e.error);
     });
-    return () => image.removeEventListener("load", imageLoaded);
+    return function () {
+      return image.removeEventListener("load", imageLoaded);
+    };
   }, [images]);
-  const loadVideo = useCallback((src, imageId, volume, context, onLoad) => {
-    const video = document.createElement("video");
+  var loadVideo = useCallback(function (src, imageId, volume, context, onLoad) {
+    var video = document.createElement("video");
     video.loop = true;
     if (volume !== undefined) {
       video.volume = volume;
     }
-    const startVideo = () => video.play();
-    const videoPlaying = () => {
+    var startVideo = function startVideo() {
+      return video.play();
+    };
+    var videoPlaying = function videoPlaying() {
       images.current[imageId] = {
         src: video,
         activated: false
@@ -95249,33 +95330,37 @@ function useImageAction({
     video.addEventListener("playing", videoPlaying, {
       once: true
     });
-    video.addEventListener("error", e => console.error("video error", e.error));
-    let cancelled = false;
+    video.addEventListener("error", function (e) {
+      return console.error("video error", e.error);
+    });
+    var cancelled = false;
     if (src === "webcam") {
       navigator.mediaDevices.getUserMedia({
         video: true
-      }).then(stream => {
+      }).then(function (stream) {
         if (cancelled) {
           return;
         }
         video.srcObject = stream;
-        context.addCleanup(() => {
-          stream.getTracks().forEach(track => track.stop());
+        context.addCleanup(function () {
+          stream.getTracks().forEach(function (track) {
+            return track.stop();
+          });
         });
       });
     } else {
       video.src = src;
     }
-    context.addCleanup(() => {
+    context.addCleanup(function () {
       cancelled = true;
       video.pause();
       video.removeEventListener("playing", videoPlaying);
       video.removeEventListener("loadmetadata", startVideo);
     });
   }, [images]);
-  const getTexture = useCallback(textureId => {
+  var getTexture = useCallback(function (textureId) {
     if (!textureBuffers.current[textureId]) {
-      const texture = gl === null || gl === void 0 ? void 0 : gl.createTexture();
+      var texture = gl === null || gl === void 0 ? void 0 : gl.createTexture();
       if (!texture) {
         return;
       }
@@ -95285,22 +95370,22 @@ function useImageAction({
     }
     return textureBuffers.current[textureId];
   }, [textureBuffers, gl]);
-  const initTexture = useCallback((texture, width, height) => {
+  var initTexture = useCallback(function (texture, width, height) {
     if (texture) {
       getTexture(texture);
-      gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width ?? MAX_TEXTURE_SIZE, height ?? MAX_TEXTURE_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl === null || gl === void 0 ? void 0 : gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width != null ? width : MAX_TEXTURE_SIZE, height != null ? height : MAX_TEXTURE_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     } else {
       console.warn("Invalid texture to init");
     }
   }, [getTexture, gl]);
-  const executeLoadTextureAction = useCallback((imageId, textureId, sourceRect, destRect) => {
+  var executeLoadTextureAction = useCallback(function (imageId, textureId, sourceRect, destRect) {
     if (!textureId) {
       console.warn("Invalid texture Id");
       return;
     }
-    const imageInfo = images.current[imageId];
+    var imageInfo = images.current[imageId];
     if (imageInfo) {
-      const texture = getTexture(textureId);
+      var texture = getTexture(textureId);
       if (texture) {
         if (imageInfo.activated) {
           gl === null || gl === void 0 ? void 0 : gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -95312,29 +95397,28 @@ function useImageAction({
       }
     }
   }, [getTexture, gl, applyTexImage2d, loadTexture]);
-  const hasImageId = useCallback(imageId => {
+  var hasImageId = useCallback(function (imageId) {
     return !!images.current[imageId];
   }, [images]);
   return {
-    loadImage,
-    loadVideo,
-    executeLoadTextureAction,
-    initTexture,
-    hasImageId
+    loadImage: loadImage,
+    loadVideo: loadVideo,
+    executeLoadTextureAction: executeLoadTextureAction,
+    initTexture: initTexture,
+    hasImageId: hasImageId
   };
 }
 
-function useDraw({
-  gl
-}) {
-  const drawArrays = useCallback((mode, first, count, instances) => {
+function useDraw(_ref) {
+  var gl = _ref.gl;
+  var drawArrays = useCallback(function (mode, first, count, instances) {
     if (instances !== undefined) {
       gl === null || gl === void 0 ? void 0 : gl.drawArraysInstanced(mode, first, count, instances);
     } else {
       gl === null || gl === void 0 ? void 0 : gl.drawArrays(mode, first, count);
     }
   }, [gl]);
-  const drawElements = useCallback((mode, count, type, offset, instances) => {
+  var drawElements = useCallback(function (mode, count, type, offset, instances) {
     if (instances !== undefined) {
       gl === null || gl === void 0 ? void 0 : gl.drawElementsInstanced(mode, count, type, offset, instances);
     } else {
@@ -95342,576 +95426,695 @@ function useDraw({
     }
   }, [gl]);
   return {
-    drawArrays,
-    drawElements
+    drawArrays: drawArrays,
+    drawElements: drawElements
   };
 }
 
-const MATRIX_SIZE = 16;
-function useGlAction({
-  gl,
-  getAttributeLocation,
-  getUniformLocation,
-  activateProgram
-}) {
-  const bufferRecord = useRef({});
-  useEffect(() => {
-    const record = bufferRecord.current;
-    return () => {
-      clearRecord(record, info => {
+var _excluded$6 = ["updateAttributeBuffer"];
+var MATRIX_SIZE = 16;
+function useGlAction(_ref) {
+  var gl = _ref.gl,
+    getAttributeLocation = _ref.getAttributeLocation,
+    getUniformLocation = _ref.getUniformLocation,
+    activateProgram = _ref.activateProgram;
+  var bufferRecord = useRef({});
+  useEffect(function () {
+    var record = bufferRecord.current;
+    return function () {
+      clearRecord(record, function (info) {
         if (info.buffer) {
           gl === null || gl === void 0 ? void 0 : gl.deleteBuffer(info.buffer);
         }
       });
     };
   }, [gl, bufferRecord]);
-  const {
-    bindVertexArray,
-    getBufferAttribute,
-    bufferData,
-    bufferSubData
-  } = useBufferAttributes({
-    gl,
-    getAttributeLocation
-  });
-  const {
-    drawArrays,
-    drawElements
-  } = useDraw({
-    gl
-  });
-  const {
-    getGlUsage,
-    getBufferTarget,
-    convertTextureId
-  } = useTypes();
-  const {
-    executeLoadTextureAction,
-    initTexture,
-    loadVideo,
-    loadImage,
-    hasImageId
-  } = useImageAction({
-    gl
-  });
-  const getBufferInfo = useCallback(location => {
+  var _useBufferAttributes = useBufferAttributes({
+      gl: gl,
+      getAttributeLocation: getAttributeLocation
+    }),
+    bindVertexArray = _useBufferAttributes.bindVertexArray,
+    getBufferAttribute = _useBufferAttributes.getBufferAttribute,
+    bufferData = _useBufferAttributes.bufferData,
+    bufferSubData = _useBufferAttributes.bufferSubData;
+  var _useDraw = useDraw({
+      gl: gl
+    }),
+    drawArrays = _useDraw.drawArrays,
+    drawElements = _useDraw.drawElements;
+  var _useTypes = useTypes(),
+    getGlUsage = _useTypes.getGlUsage,
+    getBufferTarget = _useTypes.getBufferTarget,
+    convertTextureId = _useTypes.convertTextureId;
+  var _useImageAction = useImageAction({
+      gl: gl
+    }),
+    executeLoadTextureAction = _useImageAction.executeLoadTextureAction,
+    initTexture = _useImageAction.initTexture,
+    loadVideo = _useImageAction.loadVideo,
+    loadImage = _useImageAction.loadImage,
+    hasImageId = _useImageAction.hasImageId;
+  var getBufferInfo = useCallback(function (location) {
     return getBufferAttribute(location, true);
   }, [getBufferAttribute]);
-  const lastBoundBuffer = useRef();
-  const bindBuffer = useCallback((target, bufferInfo) => {
+  var lastBoundBuffer = useRef();
+  var bindBuffer = useCallback(function (target, bufferInfo) {
     if (lastBoundBuffer.current !== bufferInfo) {
       lastBoundBuffer.current = bufferInfo;
       gl === null || gl === void 0 ? void 0 : gl.bindBuffer(target, bufferInfo.buffer);
     }
   }, [gl, lastBoundBuffer]);
-  const convertBufferData = useCallback(async ({
-    bufferData: buffer
-  }, results) => {
-    if (!buffer || !gl) {
-      return;
-    }
-    const location = calculateString(buffer.location);
-    const target = buffer.target ? getBufferTarget(calculateString(buffer.target)) : undefined;
-    const data = buffer.buffer ? calculateTypedArray(buffer.buffer, calculateTypeArrayConstructor(buffer.glType)) : undefined;
-    const length = calculateNumber(buffer.length);
-    const glUsage = buffer.usage ? getGlUsage(calculateString(buffer.usage)) : undefined;
-    results.push(parameters => {
-      const locationValue = location.valueOf(parameters);
-      const bufferInfo = getBufferInfo(locationValue);
-      const targetValue = (target === null || target === void 0 ? void 0 : target.valueOf(parameters)) ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
-      const usageValue = (glUsage === null || glUsage === void 0 ? void 0 : glUsage.valueOf(parameters)) ?? bufferInfo.usage ?? WebGL2RenderingContext.STATIC_DRAW;
-      bindBuffer(targetValue, bufferInfo);
-      const dataToBuffer = data === null || data === void 0 ? void 0 : data.valueOf(parameters);
-      const bufferSize = dataToBuffer ? dataToBuffer.length : length === null || length === void 0 ? void 0 : length.valueOf(parameters);
-      if (bufferSize) {
-        bufferData(targetValue, locationValue, dataToBuffer, bufferSize, usageValue);
+  var convertBufferData = useCallback(function (_ref2, results) {
+    var buffer = _ref2.bufferData;
+    try {
+      if (!buffer || !gl) {
+        return Promise.resolve();
       }
-    });
-  }, [gl, getBufferTarget, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
-  const convertBufferSubData = useCallback(async ({
-    bufferSubData: buffer
-  }, results) => {
-    if (!(buffer !== null && buffer !== void 0 && buffer.data)) {
-      return;
-    }
-    const target = buffer.target ? getBufferTarget(calculateString(buffer.target)) : undefined;
-    const data = calculateTypedArray(buffer.data, calculateTypeArrayConstructor(buffer.glType));
-    const dstByteOffset = calculateNumber(buffer.dstByteOffset);
-    const srcOffset = calculateNumber(buffer.srcOffset);
-    const length = calculateNumber(bufferSubData.length);
-    const location = buffer.location !== undefined ? calculateString(buffer.location) : undefined;
-    results.push(parameters => {
-      const bufferInfo = location ? getBufferInfo(location.valueOf(parameters)) : undefined;
-      const targetValue = (target === null || target === void 0 ? void 0 : target.valueOf(parameters)) ?? (bufferInfo === null || bufferInfo === void 0 ? void 0 : bufferInfo.target) ?? WebGL2RenderingContext.ARRAY_BUFFER;
-      if (bufferInfo !== undefined) {
+      var location = calculateString(buffer.location);
+      var target = buffer.target ? getBufferTarget(calculateString(buffer.target)) : undefined;
+      var data = buffer.buffer ? calculateTypedArray(buffer.buffer, calculateTypeArrayConstructor(buffer.glType)) : undefined;
+      var length = calculateNumber(buffer.length);
+      var glUsage = buffer.usage ? getGlUsage(calculateString(buffer.usage)) : undefined;
+      results.add(function (parameters) {
+        var _ref3, _target$valueOf, _ref4, _glUsage$valueOf;
+        var locationValue = location.valueOf(parameters);
+        var bufferInfo = getBufferInfo(locationValue);
+        var targetValue = (_ref3 = (_target$valueOf = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf : bufferInfo.target) != null ? _ref3 : WebGL2RenderingContext.ARRAY_BUFFER;
+        var usageValue = (_ref4 = (_glUsage$valueOf = glUsage === null || glUsage === void 0 ? void 0 : glUsage.valueOf(parameters)) != null ? _glUsage$valueOf : bufferInfo.usage) != null ? _ref4 : WebGL2RenderingContext.STATIC_DRAW;
         bindBuffer(targetValue, bufferInfo);
+        var dataToBuffer = data === null || data === void 0 ? void 0 : data.valueOf(parameters);
+        var bufferSize = dataToBuffer ? dataToBuffer.length : length === null || length === void 0 ? void 0 : length.valueOf(parameters);
+        if (bufferSize) {
+          bufferData(targetValue, locationValue, dataToBuffer, bufferSize, usageValue);
+        }
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [gl, getBufferTarget, getBufferInfo, bindBuffer, getGlUsage, bufferData]);
+  var convertBufferSubData = useCallback(function (_ref5, results) {
+    var buffer = _ref5.bufferSubData;
+    try {
+      if (!(buffer !== null && buffer !== void 0 && buffer.data)) {
+        return Promise.resolve();
       }
-      const bufferArray = data.valueOf(parameters);
-      if (bufferArray) {
-        bufferSubData(targetValue, bufferArray, dstByteOffset.valueOf(parameters), srcOffset.valueOf(parameters), length.valueOf(parameters) || bufferArray.length);
-      }
-    });
+      var target = buffer.target ? getBufferTarget(calculateString(buffer.target)) : undefined;
+      var data = calculateTypedArray(buffer.data, calculateTypeArrayConstructor(buffer.glType));
+      var dstByteOffset = calculateNumber(buffer.dstByteOffset);
+      var srcOffset = calculateNumber(buffer.srcOffset);
+      var length = calculateNumber(bufferSubData.length);
+      var location = buffer.location !== undefined ? calculateString(buffer.location) : undefined;
+      results.add(function (parameters) {
+        var _ref6, _target$valueOf2;
+        var bufferInfo = location ? getBufferInfo(location.valueOf(parameters)) : undefined;
+        var targetValue = (_ref6 = (_target$valueOf2 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf2 : bufferInfo === null || bufferInfo === void 0 ? void 0 : bufferInfo.target) != null ? _ref6 : WebGL2RenderingContext.ARRAY_BUFFER;
+        if (bufferInfo !== undefined) {
+          bindBuffer(targetValue, bufferInfo);
+        }
+        var bufferArray = data.valueOf(parameters);
+        if (bufferArray) {
+          bufferSubData(targetValue, bufferArray, dstByteOffset.valueOf(parameters), srcOffset.valueOf(parameters), length.valueOf(parameters) || bufferArray.length);
+        }
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }, [bufferSubData, getBufferInfo, bindBuffer, getBufferTarget]);
-  const convertVertexArray = useCallback(async ({
-    bindVertexArray: bind
-  }, results) => {
-    if (!bind) {
-      return;
+  var convertVertexArray = useCallback(function (_ref7, results) {
+    var bind = _ref7.bindVertexArray;
+    try {
+      if (!bind) {
+        return Promise.resolve();
+      }
+      results.add(function (_, context) {
+        var cleanup = bindVertexArray();
+        context.addCleanup(cleanup);
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    results.push((_, context) => {
-      const cleanup = bindVertexArray();
-      context.addCleanup(cleanup);
-    });
   }, [bindVertexArray]);
-  const convertBindBuffer = useCallback(async ({
-    bindBuffer: bind
-  }, results) => {
-    if (!bind) {
-      return;
+  var convertBindBuffer = useCallback(function (_ref8, results) {
+    var bind = _ref8.bindBuffer;
+    try {
+      if (!bind) {
+        return Promise.resolve();
+      }
+      var target = bind.target ? getBufferTarget(calculateString(bind.target)) : undefined;
+      var location = calculateString(bind.location);
+      results.add(function (parameters) {
+        var _ref9, _target$valueOf3, _getBufferInfo;
+        var locationValue = location.valueOf(parameters);
+        var targetValue = (_ref9 = (_target$valueOf3 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf3 : (_getBufferInfo = getBufferInfo(locationValue)) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) != null ? _ref9 : WebGL2RenderingContext.ARRAY_BUFFER;
+        bindBuffer(targetValue, getBufferInfo(locationValue));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const target = bind.target ? getBufferTarget(calculateString(bind.target)) : undefined;
-    const location = calculateString(bind.location);
-    results.push(parameters => {
-      var _getBufferInfo;
-      const locationValue = location.valueOf(parameters);
-      const targetValue = (target === null || target === void 0 ? void 0 : target.valueOf(parameters)) ?? ((_getBufferInfo = getBufferInfo(locationValue)) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) ?? WebGL2RenderingContext.ARRAY_BUFFER;
-      bindBuffer(targetValue, getBufferInfo(locationValue));
-    });
   }, [bindBuffer, getBufferInfo, getBufferTarget]);
-  const convertDrawArrays = useCallback(async (action, results) => {
-    if (!action.drawArrays) {
-      return;
+  var convertDrawArrays = useCallback(function (action, results) {
+    try {
+      if (!action.drawArrays) {
+        return Promise.resolve();
+      }
+      var _action$drawArrays = action.drawArrays,
+        vertexFirst = _action$drawArrays.vertexFirst,
+        vertexCount = _action$drawArrays.vertexCount,
+        instanceCount = _action$drawArrays.instanceCount;
+      var first = calculateNumber(vertexFirst, 0);
+      var count = calculateNumber(vertexCount, 0);
+      var instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
+      results.add(function (parameters) {
+        drawArrays(WebGL2RenderingContext.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const {
-      vertexFirst,
-      vertexCount,
-      instanceCount
-    } = action.drawArrays;
-    const first = calculateNumber(vertexFirst, 0);
-    const count = calculateNumber(vertexCount, 0);
-    const instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
-    results.push(parameters => {
-      drawArrays(WebGL2RenderingContext.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
-    });
   }, [drawArrays]);
-  const convertDrawElements = useCallback(async (action, results) => {
-    if (!action.drawElements) {
-      return;
+  var convertDrawElements = useCallback(function (action, results) {
+    try {
+      if (!action.drawElements) {
+        return Promise.resolve();
+      }
+      var _action$drawElements = action.drawElements,
+        count = _action$drawElements.count,
+        glType = _action$drawElements.glType,
+        offset = _action$drawElements.offset,
+        instanceCount = _action$drawElements.instanceCount;
+      var instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
+      var countValueOf = calculateNumber(count, 0);
+      var glTypeValueOf = getGlType(glType);
+      var offsetValueOf = calculateNumber(offset);
+      results.add(function (parameters) {
+        drawElements(WebGL2RenderingContext.TRIANGLES, countValueOf.valueOf(parameters), glTypeValueOf.valueOf(parameters), offsetValueOf.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const {
-      count,
-      glType,
-      offset,
-      instanceCount
-    } = action.drawElements;
-    const instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
-    const countValueOf = calculateNumber(count, 0);
-    const glTypeValueOf = getGlType(glType);
-    const offsetValueOf = calculateNumber(offset);
-    results.push(parameters => {
-      drawElements(WebGL2RenderingContext.TRIANGLES, countValueOf.valueOf(parameters), glTypeValueOf.valueOf(parameters), offsetValueOf.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
-    });
   }, [drawElements]);
-  const resolveLocation = useCallback(location => {
+  var resolveLocation = useCallback(function (location) {
     if (Array.isArray(location)) {
       return [calculateString(location[0]), calculateNumber(location[1])];
     }
     return [calculateString(location), 0];
   }, []);
-  const convertVertexAttribPointer = useCallback(async ({
-    vertexAttribPointer: attributes
-  }, results) => {
-    if (!attributes) {
-      return;
+  var convertVertexAttribPointer = useCallback(function (_ref10, results) {
+    var attributes = _ref10.vertexAttribPointer;
+    try {
+      if (!attributes) {
+        return Promise.resolve();
+      }
+      var _resolveLocation = resolveLocation(attributes.location),
+        loc = _resolveLocation[0],
+        locationOffset = _resolveLocation[1];
+      var size = calculateNumber(attributes.size);
+      var glType = getGlType(attributes.glType);
+      var byteSize = getByteSize(attributes.glType);
+      var normalized = calculateBoolean(attributes.normalized);
+      var stride = calculateNumber(attributes.stride);
+      var offset = calculateNumber(attributes.offset);
+      var enable = attributes.enable !== undefined ? calculateBoolean(attributes.enable) : undefined;
+      var divisor = attributes.divisor !== undefined ? calculateNumber(attributes.divisor) : undefined;
+      results.add(function (parameters, context) {
+        var locationValue = loc.valueOf(parameters);
+        var bufferInfo = getBufferInfo(locationValue);
+        if (bufferInfo.location < 0) {
+          throw new Error("Invalid location to call vertexAttribPointer on: \"" + locationValue + "\"");
+        }
+        var sizeValue = size.valueOf(parameters);
+        var offsetValue = offset.valueOf(parameters);
+        var normalizedValue = normalized.valueOf(parameters);
+        var strideValue = stride.valueOf(parameters);
+        var divisorValue = divisor === null || divisor === void 0 ? void 0 : divisor.valueOf(parameters);
+        var enableValue = enable === null || enable === void 0 ? void 0 : enable.valueOf(parameters);
+        var sizeMul = sizeValue * byteSize.valueOf(parameters);
+        var locationOffsetValue = locationOffset.valueOf(parameters);
+        var finalOffset = offsetValue + locationOffsetValue * sizeMul;
+        var finalLocation = bufferInfo.location + locationOffsetValue;
+        gl === null || gl === void 0 ? void 0 : gl.vertexAttribPointer(finalLocation, sizeValue, glType.valueOf(parameters), normalizedValue, strideValue, finalOffset);
+        if (divisorValue !== undefined) {
+          gl === null || gl === void 0 ? void 0 : gl.vertexAttribDivisor(finalLocation, divisorValue);
+        }
+        if (enableValue !== undefined) {
+          gl === null || gl === void 0 ? void 0 : gl.enableVertexAttribArray(finalLocation);
+          context.addCleanup(function () {
+            return gl === null || gl === void 0 ? void 0 : gl.disableVertexAttribArray(finalLocation);
+          });
+        }
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const [loc, locationOffset] = resolveLocation(attributes.location);
-    const size = calculateNumber(attributes.size);
-    const glType = getGlType(attributes.glType);
-    const byteSize = getByteSize(attributes.glType);
-    const normalized = calculateBoolean(attributes.normalized);
-    const stride = calculateNumber(attributes.stride);
-    const offset = calculateNumber(attributes.offset);
-    const enable = attributes.enable !== undefined ? calculateBoolean(attributes.enable) : undefined;
-    const divisor = attributes.divisor !== undefined ? calculateNumber(attributes.divisor) : undefined;
-    results.push((parameters, context) => {
-      const locationValue = loc.valueOf(parameters);
-      const bufferInfo = getBufferInfo(locationValue);
-      if (bufferInfo.location < 0) {
-        throw new Error(`Invalid location to call vertexAttribPointer on: "${locationValue}"`);
-      }
-      const sizeValue = size.valueOf(parameters);
-      const offsetValue = offset.valueOf(parameters);
-      const normalizedValue = normalized.valueOf(parameters);
-      const strideValue = stride.valueOf(parameters);
-      const divisorValue = divisor === null || divisor === void 0 ? void 0 : divisor.valueOf(parameters);
-      const enableValue = enable === null || enable === void 0 ? void 0 : enable.valueOf(parameters);
-      const sizeMul = sizeValue * byteSize.valueOf(parameters);
-      const locationOffsetValue = locationOffset.valueOf(parameters);
-      const finalOffset = offsetValue + locationOffsetValue * sizeMul;
-      const finalLocation = bufferInfo.location + locationOffsetValue;
-      gl === null || gl === void 0 ? void 0 : gl.vertexAttribPointer(finalLocation, sizeValue, glType.valueOf(parameters), normalizedValue, strideValue, finalOffset);
-      if (divisorValue !== undefined) {
-        gl === null || gl === void 0 ? void 0 : gl.vertexAttribDivisor(finalLocation, divisorValue);
-      }
-      if (enableValue !== undefined) {
-        gl === null || gl === void 0 ? void 0 : gl.enableVertexAttribArray(finalLocation);
-        context.addCleanup(() => gl === null || gl === void 0 ? void 0 : gl.disableVertexAttribArray(finalLocation));
-      }
-    });
   }, [resolveLocation, getBufferInfo, gl]);
-  const convertUniform = useCallback(async ({
-    uniform
-  }, results) => {
-    if (!uniform) {
-      return;
-    }
-    const location = calculateString(uniform.location);
-    if ((uniform === null || uniform === void 0 ? void 0 : uniform.int) !== undefined) {
-      const value = calculateNumber(uniform.int);
-      results.push(parameters => gl === null || gl === void 0 ? void 0 : gl.uniform1i(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
-    }
-    if ((uniform === null || uniform === void 0 ? void 0 : uniform.float) !== undefined) {
-      const value = calculateNumber(uniform.float);
-      results.push(parameters => gl === null || gl === void 0 ? void 0 : gl.uniform1f(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
-    }
-    if ((uniform === null || uniform === void 0 ? void 0 : uniform.matrix) !== undefined) {
-      const value = calculateTypedArray(uniform.matrix);
-      results.push(parameters => gl === null || gl === void 0 ? void 0 : gl.uniformMatrix4fv(getUniformLocation(location.valueOf(parameters)) ?? null, false, value.valueOf(parameters)));
-    }
-    if ((uniform === null || uniform === void 0 ? void 0 : uniform.ints) !== undefined) {
-      const value = calculateTypedArray(uniform.ints);
-      results.push(parameters => gl === null || gl === void 0 ? void 0 : gl.uniform1iv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
-    }
-    if ((uniform === null || uniform === void 0 ? void 0 : uniform.floats) !== undefined) {
-      const value = calculateTypedArray(uniform.floats);
-      results.push(parameters => gl === null || gl === void 0 ? void 0 : gl.uniform1fv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
+  var convertUniform = useCallback(function (_ref11, results) {
+    var uniform = _ref11.uniform;
+    try {
+      if (!uniform) {
+        return Promise.resolve();
+      }
+      var location = calculateString(uniform.location);
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform["int"]) !== undefined) {
+        var value = calculateNumber(uniform["int"]);
+        results.add(function (parameters) {
+          var _getUniformLocation;
+          return gl === null || gl === void 0 ? void 0 : gl.uniform1i((_getUniformLocation = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation : null, value.valueOf(parameters));
+        });
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform["float"]) !== undefined) {
+        var _value = calculateNumber(uniform["float"]);
+        results.add(function (parameters) {
+          var _getUniformLocation2;
+          return gl === null || gl === void 0 ? void 0 : gl.uniform1f((_getUniformLocation2 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation2 : null, _value.valueOf(parameters));
+        });
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform.matrix) !== undefined) {
+        var _value2 = calculateTypedArray(uniform.matrix);
+        results.add(function (parameters) {
+          var _getUniformLocation3;
+          return gl === null || gl === void 0 ? void 0 : gl.uniformMatrix4fv((_getUniformLocation3 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation3 : null, false, _value2.valueOf(parameters));
+        });
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform.ints) !== undefined) {
+        var _value3 = calculateTypedArray(uniform.ints);
+        results.add(function (parameters) {
+          var _getUniformLocation4;
+          return gl === null || gl === void 0 ? void 0 : gl.uniform1iv((_getUniformLocation4 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation4 : null, _value3.valueOf(parameters));
+        });
+      }
+      if ((uniform === null || uniform === void 0 ? void 0 : uniform.floats) !== undefined) {
+        var _value4 = calculateTypedArray(uniform.floats);
+        results.add(function (parameters) {
+          var _getUniformLocation5;
+          return gl === null || gl === void 0 ? void 0 : gl.uniform1fv((_getUniformLocation5 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation5 : null, _value4.valueOf(parameters));
+        });
+      }
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
   }, [getUniformLocation, gl]);
-  const convertClear = useCallback(async ({
-    clear
-  }, results) => {
-    if (!clear) {
-      return;
-    }
-    if (typeof clear !== "object" || clear.hasOwnProperty("formula")) {
-      const _clearField = clear;
-      const clearResolution = calculateNumber(_clearField);
-      results.push(parameters => {
-        const bitValue = clearResolution.valueOf(parameters);
+  var convertClear = useCallback(function (_ref12, results) {
+    var clear = _ref12.clear;
+    try {
+      if (!clear) {
+        return Promise.resolve();
+      }
+      if (typeof clear !== "object" || clear.hasOwnProperty("formula")) {
+        var _clearField = clear;
+        var clearResolution = calculateNumber(_clearField);
+        results.add(function (parameters) {
+          var bitValue = clearResolution.valueOf(parameters);
+          if (bitValue) {
+            gl === null || gl === void 0 ? void 0 : gl.clear(bitValue);
+          }
+        });
+        return Promise.resolve();
+      }
+      var clearField = clear;
+      var color = calculateBoolean(clearField.color);
+      var depth = calculateBoolean(clearField.depth);
+      var stencil = calculateBoolean(clearField.stencil);
+      results.add(function (parameters) {
+        var bitValue = 0;
+        if (color.valueOf(parameters)) {
+          bitValue |= WebGL2RenderingContext.COLOR_BUFFER_BIT;
+        }
+        if (depth.valueOf(parameters)) {
+          bitValue |= WebGL2RenderingContext.DEPTH_BUFFER_BIT;
+        }
+        if (stencil.valueOf(parameters)) {
+          bitValue |= WebGL2RenderingContext.STENCIL_BUFFER_BIT;
+        }
         if (bitValue) {
           gl === null || gl === void 0 ? void 0 : gl.clear(bitValue);
         }
       });
-      return;
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const clearField = clear;
-    const color = calculateBoolean(clearField.color);
-    const depth = calculateBoolean(clearField.depth);
-    const stencil = calculateBoolean(clearField.stencil);
-    results.push(parameters => {
-      let bitValue = 0;
-      if (color.valueOf(parameters)) {
-        bitValue |= WebGL2RenderingContext.COLOR_BUFFER_BIT;
-      }
-      if (depth.valueOf(parameters)) {
-        bitValue |= WebGL2RenderingContext.DEPTH_BUFFER_BIT;
-      }
-      if (stencil.valueOf(parameters)) {
-        bitValue |= WebGL2RenderingContext.STENCIL_BUFFER_BIT;
-      }
-      if (bitValue) {
-        gl === null || gl === void 0 ? void 0 : gl.clear(bitValue);
-      }
-    });
   }, [gl]);
-  const convertActivateProgram = useCallback(async ({
-    activateProgram: activateProgramProp
-  }, results) => {
-    if (!activateProgramProp) {
-      return;
-    }
-    const id = calculateString(activateProgramProp);
-    results.push(parameters => activateProgram(id.valueOf(parameters)));
-  }, [activateProgram]);
-  const convertInitTexture = useCallback(async (action, results) => {
-    if (!action.initTexture) {
-      return;
-    }
-    const {
-      textureId,
-      width,
-      height
-    } = action.initTexture;
-    const textureIndex = calculateNumber(textureId);
-    const widthValue = action.initTexture.width ? calculateNumber(width) : undefined;
-    const heightValue = action.initTexture.height ? calculateNumber(height) : undefined;
-    results.push(parameters => {
-      initTexture(convertTextureId(textureIndex.valueOf(parameters)), widthValue === null || widthValue === void 0 ? void 0 : widthValue.valueOf(parameters), heightValue === null || heightValue === void 0 ? void 0 : heightValue.valueOf(parameters));
-    });
-  }, [initTexture, convertTextureId]);
-  const convertLoadTexture = useCallback(async ({
-    loadTexture
-  }, results) => {
-    var _loadTexture$sourceRe, _loadTexture$destRect;
-    if (!loadTexture) {
-      return;
-    }
-    const imageId = calculateString(loadTexture.imageId);
-    const textureIndex = calculateNumber(loadTexture.textureId);
-    const sourceRectValueOf = (_loadTexture$sourceRe = loadTexture.sourceRect) === null || _loadTexture$sourceRe === void 0 ? void 0 : _loadTexture$sourceRe.map(value => calculateNumber(value));
-    const destRectValueOf = (_loadTexture$destRect = loadTexture.destRect) === null || _loadTexture$destRect === void 0 ? void 0 : _loadTexture$destRect.map(value => calculateNumber(value));
-    const sourceRect = [0, 0, 0, 0];
-    const destRect = [0, 0, 0, 0];
-    results.push(parameters => {
-      if (sourceRectValueOf || destRectValueOf) {
-        for (let i = 0; i < 4; i++) {
-          sourceRect[i] = (sourceRectValueOf === null || sourceRectValueOf === void 0 ? void 0 : sourceRectValueOf[i].valueOf(parameters)) ?? 0;
-          destRect[i] = (destRectValueOf === null || destRectValueOf === void 0 ? void 0 : destRectValueOf[i].valueOf(parameters)) ?? 0;
-        }
+  var convertActivateProgram = useCallback(function (_ref13, results) {
+    var activateProgramProp = _ref13.activateProgram;
+    try {
+      if (!activateProgramProp) {
+        return Promise.resolve();
       }
-      executeLoadTextureAction(imageId.valueOf(parameters), convertTextureId(textureIndex.valueOf(parameters)), sourceRect, destRect);
-    });
+      var id = calculateString(activateProgramProp);
+      results.add(function (parameters) {
+        return activateProgram(id.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [activateProgram]);
+  var convertInitTexture = useCallback(function (action, results) {
+    try {
+      if (!action.initTexture) {
+        return Promise.resolve();
+      }
+      var _action$initTexture = action.initTexture,
+        textureId = _action$initTexture.textureId,
+        width = _action$initTexture.width,
+        height = _action$initTexture.height;
+      var textureIndex = calculateNumber(textureId);
+      var widthValue = action.initTexture.width ? calculateNumber(width) : undefined;
+      var heightValue = action.initTexture.height ? calculateNumber(height) : undefined;
+      results.add(function (parameters) {
+        initTexture(convertTextureId(textureIndex.valueOf(parameters)), widthValue === null || widthValue === void 0 ? void 0 : widthValue.valueOf(parameters), heightValue === null || heightValue === void 0 ? void 0 : heightValue.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [initTexture, convertTextureId]);
+  var convertLoadTexture = useCallback(function (_ref14, results) {
+    var loadTexture = _ref14.loadTexture;
+    try {
+      var _loadTexture$sourceRe, _loadTexture$destRect;
+      if (!loadTexture) {
+        return Promise.resolve();
+      }
+      var imageId = calculateString(loadTexture.imageId);
+      var textureIndex = calculateNumber(loadTexture.textureId);
+      var sourceRectValueOf = (_loadTexture$sourceRe = loadTexture.sourceRect) === null || _loadTexture$sourceRe === void 0 ? void 0 : _loadTexture$sourceRe.map(function (value) {
+        return calculateNumber(value);
+      });
+      var destRectValueOf = (_loadTexture$destRect = loadTexture.destRect) === null || _loadTexture$destRect === void 0 ? void 0 : _loadTexture$destRect.map(function (value) {
+        return calculateNumber(value);
+      });
+      var sourceRect = [0, 0, 0, 0];
+      var destRect = [0, 0, 0, 0];
+      results.add(function (parameters) {
+        if (sourceRectValueOf || destRectValueOf) {
+          for (var i = 0; i < 4; i++) {
+            var _sourceRectValueOf$i$, _destRectValueOf$i$va;
+            sourceRect[i] = (_sourceRectValueOf$i$ = sourceRectValueOf === null || sourceRectValueOf === void 0 ? void 0 : sourceRectValueOf[i].valueOf(parameters)) != null ? _sourceRectValueOf$i$ : 0;
+            destRect[i] = (_destRectValueOf$i$va = destRectValueOf === null || destRectValueOf === void 0 ? void 0 : destRectValueOf[i].valueOf(parameters)) != null ? _destRectValueOf$i$va : 0;
+          }
+        }
+        executeLoadTextureAction(imageId.valueOf(parameters), convertTextureId(textureIndex.valueOf(parameters)), sourceRect, destRect);
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }, [executeLoadTextureAction, convertTextureId]);
-  const convertVideo = useCallback(async ({
-    video
-  }, results, utils) => {
-    var _utils$executeCallbac;
-    if (!video) {
-      return;
-    }
-    const src = calculateString(video.src);
-    const imageId = calculateString(video.imageId);
-    const volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
-    const onLoad = (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : _utils$executeCallbac.onLoad;
-    results.push((parameters, context) => {
-      loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), context, video => {
-        onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
-          videoWidth: video.width,
-          videoHeight: video.height
+  var convertVideo = useCallback(function (_ref15, results, utils) {
+    var video = _ref15.video;
+    try {
+      var _utils$executeCallbac;
+      if (!video) {
+        return Promise.resolve();
+      }
+      var src = calculateString(video.src);
+      var imageId = calculateString(video.imageId);
+      var volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
+      var onLoad = (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : _utils$executeCallbac.onLoad;
+      results.add(function (parameters, context) {
+        loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), context, function (video) {
+          onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
+            videoWidth: video.width,
+            videoHeight: video.height
+          });
         });
       });
-    });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }, [loadVideo]);
-  const convertImage = useCallback(async ({
-    image
-  }, results, utils) => {
-    var _utils$executeCallbac2;
-    if (!image) {
-      return;
-    }
-    const src = calculateString(image.src);
-    const imageId = calculateString(image.imageId);
-    const onLoad = (_utils$executeCallbac2 = utils.executeCallback) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.onLoad;
-    results.push((parameters, context) => {
-      loadImage(src.valueOf(parameters), imageId.valueOf(parameters), image => {
-        console.log("onLoad parameters", parameters);
-        onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
-          imageWidth: image.naturalWidth,
-          imageHeight: image.naturalHeight
+  var convertImage = useCallback(function (_ref16, results, utils) {
+    var image = _ref16.image;
+    try {
+      var _utils$executeCallbac2;
+      if (!image) {
+        return Promise.resolve();
+      }
+      var src = calculateString(image.src);
+      var imageId = calculateString(image.imageId);
+      var onLoad = (_utils$executeCallbac2 = utils.executeCallback) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.onLoad;
+      results.add(function (parameters, context) {
+        loadImage(src.valueOf(parameters), imageId.valueOf(parameters), function (image) {
+          console.log("onLoad parameters", parameters);
+          onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
+            imageWidth: image.naturalWidth,
+            imageHeight: image.naturalHeight
+          });
         });
       });
-    });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }, [loadImage]);
-  const initializeMatrix = useCallback(parameters => {
-    const m = new Float32Array(MATRIX_SIZE);
+  var initializeMatrix = useCallback(function (parameters) {
+    var m = new Float32Array(MATRIX_SIZE);
     mat4.identity(m);
     parameters.matrix = m;
   }, []);
-  const convertInitMatrix = useCallback(async (action, results) => {
-    if (!action.initMatrix) {
-      return;
-    }
-    results.push(initializeMatrix);
-  }, [initializeMatrix]);
-  const convertSpriteMatrixTransform = useCallback(async (action, results) => {
-    if (!action.spriteMatrixTransform) {
-      return;
-    }
-    const {
-      translate,
-      rotation,
-      scale
-    } = action.spriteMatrixTransform;
-    const translateResolution = (translate === null || translate === void 0 ? void 0 : translate.map(r => calculateNumber(r, 0))) ?? [0, 0, 0];
-    const rotationResolution = (rotation === null || rotation === void 0 ? void 0 : rotation.map(r => calculateNumber(r, 0))) ?? [0, 0, 0];
-    const scaleResolution = (scale === null || scale === void 0 ? void 0 : scale.map(r => calculateNumber(r, 1))) ?? [1, 1, 1];
-    const quaternion = quat.create();
-    const translationVec3 = vec3.create();
-    const scaleVec3 = vec3.create();
-    results.push(parameters => {
-      if (!parameters.matrix) {
-        initializeMatrix(parameters);
+  var convertInitMatrix = useCallback(function (action, results) {
+    try {
+      if (!action.initMatrix) {
+        return Promise.resolve();
       }
-      const matrix = parameters.matrix;
-      mat4.fromRotationTranslationScale(matrix, quat.fromEuler(quaternion, rotationResolution[0].valueOf(parameters), rotationResolution[1].valueOf(parameters), rotationResolution[2].valueOf(parameters)), vec3.set(translationVec3, translateResolution[0].valueOf(parameters), translateResolution[1].valueOf(parameters), translateResolution[2].valueOf(parameters)), vec3.set(scaleVec3, scaleResolution[0].valueOf(parameters), scaleResolution[1].valueOf(parameters), scaleResolution[2].valueOf(parameters)));
-    });
-  }, [initializeMatrix]);
-  const convertMatrixBufferSubData = useCallback(async (action, results) => {
-    if (!action.bufferSubDataMatrix) {
-      return;
+      results.add(initializeMatrix);
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const {
-      index
-    } = action.bufferSubDataMatrix;
-    const indexResolution = calculateNumber(index);
-    results.push(parameters => {
-      if (!parameters.matrix) {
-        initializeMatrix(parameters);
+  }, [initializeMatrix]);
+  var convertSpriteMatrixTransform = useCallback(function (action, results) {
+    try {
+      var _translate$map, _rotation$map, _scale$map;
+      if (!action.spriteMatrixTransform) {
+        return Promise.resolve();
       }
-      const matrix = parameters.matrix;
-      const bytesPerInstance = MATRIX_SIZE * Float32Array.BYTES_PER_ELEMENT;
-      const indexValue = indexResolution.valueOf(parameters);
-      bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, matrix, indexValue * bytesPerInstance);
-    });
+      var _action$spriteMatrixT = action.spriteMatrixTransform,
+        translate = _action$spriteMatrixT.translate,
+        rotation = _action$spriteMatrixT.rotation,
+        scale = _action$spriteMatrixT.scale;
+      var translateResolution = (_translate$map = translate === null || translate === void 0 ? void 0 : translate.map(function (r) {
+        return calculateNumber(r, 0);
+      })) != null ? _translate$map : [0, 0, 0];
+      var rotationResolution = (_rotation$map = rotation === null || rotation === void 0 ? void 0 : rotation.map(function (r) {
+        return calculateNumber(r, 0);
+      })) != null ? _rotation$map : [0, 0, 0];
+      var scaleResolution = (_scale$map = scale === null || scale === void 0 ? void 0 : scale.map(function (r) {
+        return calculateNumber(r, 1);
+      })) != null ? _scale$map : [1, 1, 1];
+      var quaternion = quat.create();
+      var translationVec3 = vec3.create();
+      var scaleVec3 = vec3.create();
+      results.add(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
+        mat4.fromRotationTranslationScale(matrix, quat.fromEuler(quaternion, rotationResolution[0].valueOf(parameters), rotationResolution[1].valueOf(parameters), rotationResolution[2].valueOf(parameters)), vec3.set(translationVec3, translateResolution[0].valueOf(parameters), translateResolution[1].valueOf(parameters), translateResolution[2].valueOf(parameters)), vec3.set(scaleVec3, scaleResolution[0].valueOf(parameters), scaleResolution[1].valueOf(parameters), scaleResolution[2].valueOf(parameters)));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [initializeMatrix]);
+  var convertMatrixBufferSubData = useCallback(function (action, results) {
+    try {
+      if (!action.bufferSubDataMatrix) {
+        return Promise.resolve();
+      }
+      var index = action.bufferSubDataMatrix.index;
+      var indexResolution = calculateNumber(index);
+      results.add(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
+        var bytesPerInstance = MATRIX_SIZE * Float32Array.BYTES_PER_ELEMENT;
+        var indexValue = indexResolution.valueOf(parameters);
+        bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, matrix, indexValue * bytesPerInstance);
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }, [initializeMatrix, bufferSubData]);
-  const convertAttributesBufferUpdate = useCallback(async (action, results, utils, external, actionConversionMap) => {
-    if (!action.updateAttributeBuffer) {
-      return;
+  var convertAttributesBufferUpdate = useCallback(function (action, results, utils, external, actionConversionMap) {
+    try {
+      if (!action.updateAttributeBuffer) {
+        return Promise.resolve();
+      }
+      var updateAttributeBuffer = action.updateAttributeBuffer,
+        subAction = _objectWithoutPropertiesLoose(action, _excluded$6);
+      var target = updateAttributeBuffer.target ? getBufferTarget(calculateString(updateAttributeBuffer.target)) : undefined;
+      var location = calculateString(updateAttributeBuffer.location);
+      var subStepResults = new StepScript$1([]);
+      return Promise.resolve(convertAction(subAction, subStepResults, utils, external, actionConversionMap)).then(function () {
+        results.add(function (parameters, context) {
+          var _ref17, _target$valueOf4, _bufferInfo$usage;
+          var locationValue = location.valueOf(parameters);
+          var bufferInfo = getBufferInfo(locationValue);
+          var targetValue = (_ref17 = (_target$valueOf4 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf4 : bufferInfo.target) != null ? _ref17 : WebGL2RenderingContext.ARRAY_BUFFER;
+          bindBuffer(targetValue, bufferInfo);
+          var array = bufferInfo.bufferArray;
+          gl === null || gl === void 0 ? void 0 : gl.getBufferSubData(targetValue, 0, array);
+          parameters.attributeBuffer = array;
+          parameters.attributeBufferLength = array.length;
+          execute(subStepResults, parameters, context);
+          gl === null || gl === void 0 ? void 0 : gl.bufferData(targetValue, array, (_bufferInfo$usage = bufferInfo.usage) != null ? _bufferInfo$usage : gl.DYNAMIC_DRAW);
+        });
+        return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
+      });
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const {
-      updateAttributeBuffer,
-      ...subAction
-    } = action;
-    const target = updateAttributeBuffer.target ? getBufferTarget(calculateString(updateAttributeBuffer.target)) : undefined;
-    const location = calculateString(updateAttributeBuffer.location);
-    const subStepResults = [];
-    await convertAction(subAction, subStepResults, utils, external, actionConversionMap);
-    results.push((parameters, context) => {
-      const locationValue = location.valueOf(parameters);
-      const bufferInfo = getBufferInfo(locationValue);
-      const targetValue = (target === null || target === void 0 ? void 0 : target.valueOf(parameters)) ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
-      bindBuffer(targetValue, bufferInfo);
-      const array = bufferInfo.bufferArray;
-      gl === null || gl === void 0 ? void 0 : gl.getBufferSubData(targetValue, 0, array);
-      parameters.attributeBuffer = array;
-      parameters.attributeBufferLength = array.length;
-      execute(subStepResults, parameters, context);
-      gl === null || gl === void 0 ? void 0 : gl.bufferData(targetValue, array, bufferInfo.usage ?? gl.DYNAMIC_DRAW);
-    });
-    return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
   }, [getBufferTarget, getBufferInfo, bindBuffer, gl]);
-  const convertOrthographicProjection = useCallback(async (action, results) => {
-    if (!action.orthogonalProjectionMatrixTransform) {
-      return;
-    }
-    const {
-      left,
-      right,
-      top,
-      bottom,
-      zFar,
-      zNear
-    } = action.orthogonalProjectionMatrixTransform;
-    const leftValue = calculateNumber(left);
-    const rightValue = calculateNumber(right);
-    const topValue = calculateNumber(top);
-    const bottomValue = calculateNumber(bottom);
-    const zFarValue = calculateNumber(zFar, 5000);
-    const zNearValue = calculateNumber(zNear, -100);
-    results.push(parameters => {
-      if (!parameters.matrix) {
-        initializeMatrix(parameters);
+  var convertOrthographicProjection = useCallback(function (action, results) {
+    try {
+      if (!action.orthogonalProjectionMatrixTransform) {
+        return Promise.resolve();
       }
-      const matrix = parameters.matrix;
-      mat4.ortho(matrix, leftValue.valueOf(parameters), rightValue.valueOf(parameters), topValue.valueOf(parameters), bottomValue.valueOf(parameters), zFarValue.valueOf(parameters), zNearValue.valueOf(parameters));
-    });
-  }, [initializeMatrix]);
-  const convertPerspectiveProjection = useCallback(async (action, results) => {
-    if (!action.perspectiveProjectionMatrixTransform) {
-      return;
+      var _action$orthogonalPro = action.orthogonalProjectionMatrixTransform,
+        left = _action$orthogonalPro.left,
+        right = _action$orthogonalPro.right,
+        top = _action$orthogonalPro.top,
+        bottom = _action$orthogonalPro.bottom,
+        zFar = _action$orthogonalPro.zFar,
+        zNear = _action$orthogonalPro.zNear;
+      var leftValue = calculateNumber(left);
+      var rightValue = calculateNumber(right);
+      var topValue = calculateNumber(top);
+      var bottomValue = calculateNumber(bottom);
+      var zFarValue = calculateNumber(zFar, 5000);
+      var zNearValue = calculateNumber(zNear, -100);
+      results.add(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
+        mat4.ortho(matrix, leftValue.valueOf(parameters), rightValue.valueOf(parameters), topValue.valueOf(parameters), bottomValue.valueOf(parameters), zFarValue.valueOf(parameters), zNearValue.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
     }
-    const {
-      viewAngle,
-      zNear,
-      zFar,
-      aspect
-    } = action.perspectiveProjectionMatrixTransform;
-    const viewAngleValue = calculateNumber(viewAngle, 45);
-    const zFarValue = calculateNumber(zFar, 5000);
-    const zNearValue = calculateNumber(zNear, -100);
-    const aspectValue = calculateNumber(aspect, 1);
-    const DEG_TO_RADIANT = Math.PI / 90;
-    results.push(parameters => {
-      if (!parameters.matrix) {
-        initializeMatrix(parameters);
-      }
-      const matrix = parameters.matrix;
-      mat4.perspective(matrix, viewAngleValue.valueOf(parameters) * DEG_TO_RADIANT, aspectValue.valueOf(parameters), zNearValue.valueOf(parameters), zFarValue.valueOf(parameters));
-    });
   }, [initializeMatrix]);
-  const getScriptProcessor = useCallback(scripts => {
-    return new ScriptProcessor(scripts, {
-      ...DEFAULT_EXTERNALS,
-      hasImageId,
-      gl
-    }, {
-      actionsConvertor: [convertAttributesBufferUpdate, ...getDefaultConvertors().actionsConvertor, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertInitTexture, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]
+  var convertPerspectiveProjection = useCallback(function (action, results) {
+    try {
+      if (!action.perspectiveProjectionMatrixTransform) {
+        return Promise.resolve();
+      }
+      var _action$perspectivePr = action.perspectiveProjectionMatrixTransform,
+        viewAngle = _action$perspectivePr.viewAngle,
+        zNear = _action$perspectivePr.zNear,
+        zFar = _action$perspectivePr.zFar,
+        aspect = _action$perspectivePr.aspect;
+      var viewAngleValue = calculateNumber(viewAngle, 45);
+      var zFarValue = calculateNumber(zFar, 5000);
+      var zNearValue = calculateNumber(zNear, -100);
+      var aspectValue = calculateNumber(aspect, 1);
+      var DEG_TO_RADIANT = Math.PI / 90;
+      results.add(function (parameters) {
+        if (!parameters.matrix) {
+          initializeMatrix(parameters);
+        }
+        var matrix = parameters.matrix;
+        mat4.perspective(matrix, viewAngleValue.valueOf(parameters) * DEG_TO_RADIANT, aspectValue.valueOf(parameters), zNearValue.valueOf(parameters), zFarValue.valueOf(parameters));
+      });
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, [initializeMatrix]);
+  var getScriptProcessor = useCallback(function (scripts) {
+    return new ScriptProcessor(scripts, _extends({}, DEFAULT_EXTERNALS, {
+      hasImageId: hasImageId,
+      gl: gl
+    }), {
+      actionsConvertor: [convertAttributesBufferUpdate].concat(getDefaultConvertors().actionsConvertor, [convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertInitTexture, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements])
     });
   }, [hasImageId, gl, convertAttributesBufferUpdate, convertClear, convertInitMatrix, convertBindBuffer, convertBufferData, convertBufferSubData, convertVertexArray, convertVertexAttribPointer, convertActivateProgram, convertInitTexture, convertLoadTexture, convertVideo, convertImage, convertSpriteMatrixTransform, convertMatrixBufferSubData, convertOrthographicProjection, convertPerspectiveProjection, convertUniform, convertDrawArrays, convertDrawElements]);
   return {
-    getScriptProcessor
+    getScriptProcessor: getScriptProcessor
   };
 }
 
 function GLCanvas(props) {
-  const {
-    pixelRatio = devicePixelRatio,
-    controller,
-    webglAttributes,
-    programs,
-    style,
-    scripts = []
-  } = props ?? {};
-  const canvasRef = React.useRef(null);
-  const gl = useGL({
-    canvasRef,
-    webglAttributes
+  var _ref = props != null ? props : {},
+    _ref$pixelRatio = _ref.pixelRatio,
+    pixelRatio = _ref$pixelRatio === void 0 ? devicePixelRatio : _ref$pixelRatio,
+    controller = _ref.controller,
+    webglAttributes = _ref.webglAttributes,
+    programs = _ref.programs,
+    style = _ref.style,
+    _ref$scripts = _ref.scripts,
+    scripts = _ref$scripts === void 0 ? [] : _ref$scripts;
+  var canvasRef = React.useRef(null);
+  var gl = useGL({
+    canvasRef: canvasRef,
+    webglAttributes: webglAttributes
   });
-  const {
-    width,
-    height
-  } = useCanvasSize({
-    gl,
-    canvasRef,
-    pixelRatio
-  });
-  const {
-    getAttributeLocation,
-    getUniformLocation,
-    activateProgram,
-    activeProgram
-  } = useProgram({
-    gl,
-    programs
-  });
-  const glConfig = useMemo(() => gl ? {
-    gl,
-    getUniformLocation,
-    getAttributeLocation
-  } : undefined, [gl, getUniformLocation, getAttributeLocation]);
-  const {
-    getScriptProcessor
-  } = useGlAction({
-    gl,
-    getAttributeLocation,
-    getUniformLocation,
-    activateProgram
-  });
-  const processor = useMemo(() => getScriptProcessor(scripts), [scripts, getScriptProcessor]);
-  const executeScript = useCallback(async (name, parameters) => {
-    return await processor.runByName(name, parameters);
+  var _useCanvasSize = useCanvasSize({
+      gl: gl,
+      canvasRef: canvasRef,
+      pixelRatio: pixelRatio
+    }),
+    width = _useCanvasSize.width,
+    height = _useCanvasSize.height;
+  var _useProgram = useProgram({
+      gl: gl,
+      programs: programs
+    }),
+    getAttributeLocation = _useProgram.getAttributeLocation,
+    getUniformLocation = _useProgram.getUniformLocation,
+    activateProgram = _useProgram.activateProgram,
+    activeProgram = _useProgram.activeProgram;
+  var glConfig = useMemo(function () {
+    return gl ? {
+      gl: gl,
+      getUniformLocation: getUniformLocation,
+      getAttributeLocation: getAttributeLocation
+    } : undefined;
+  }, [gl, getUniformLocation, getAttributeLocation]);
+  var _useGlAction = useGlAction({
+      gl: gl,
+      getAttributeLocation: getAttributeLocation,
+      getUniformLocation: getUniformLocation,
+      activateProgram: activateProgram
+    }),
+    getScriptProcessor = _useGlAction.getScriptProcessor;
+  var processor = useMemo(function () {
+    return getScriptProcessor(scripts);
+  }, [scripts, getScriptProcessor]);
+  var executeScript = useCallback(function (name, parameters) {
+    try {
+      return Promise.resolve(processor.runByName(name, parameters));
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }, [processor]);
-  const ready = useMemo(() => !!(gl && activeProgram && width && height && glConfig), [gl, activeProgram, width, height, glConfig]);
-  useEffect(() => {
+  var ready = useMemo(function () {
+    return !!(gl && activeProgram && width && height && glConfig);
+  }, [gl, activeProgram, width, height, glConfig]);
+  useEffect(function () {
     if (ready) {
-      const cleanup = processor === null || processor === void 0 ? void 0 : processor.runByTags(["main"]);
-      return async () => {
-        var _await$cleanup;
-        return (_await$cleanup = await cleanup) === null || _await$cleanup === void 0 ? void 0 : _await$cleanup();
+      var cleanup = processor === null || processor === void 0 ? void 0 : processor.runByTags(["main"]);
+      return function () {
+        return Promise.resolve(cleanup).then(function (_cleanup) {
+          return _cleanup === null || _cleanup === void 0 ? void 0 : _cleanup();
+        });
       };
     }
   }, [activeProgram, ready, processor]);
-  useEffect(() => {
+  useEffect(function () {
     if (controller) {
       controller.executeScript = executeScript;
       controller.gl = gl;
@@ -95921,21 +96124,19 @@ function GLCanvas(props) {
     ref: canvasRef,
     width: width,
     height: height,
-    style: {
+    style: _extends({
       width: "100%",
-      height: "100%",
-      ...style
-    }
+      height: "100%"
+    }, style)
   });
 }
 
 function hookupCanvas(div, props, controller) {
-  ReactHook.hookup(div, GLCanvas$1, {
-    ...props,
-    controller
-  }, controller);
+  ReactHook.hookup(div, GLCanvas$1, _extends({}, props, {
+    controller: controller
+  }), controller);
 }
-const GLCanvas$1 = GLCanvas;
+var GLCanvas$1 = GLCanvas;
 
 export { GLCanvas$1 as GLCanvas, hookupCanvas };
 //# sourceMappingURL=index.modern.js.map
