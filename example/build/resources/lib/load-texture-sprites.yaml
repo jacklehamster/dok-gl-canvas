@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json#/definitions/GlScript
+
+name: loadTextureSprites
+scripts:
+- reference: ./load-image.yaml
+actions:
+- hooks: [hasImageId]
+- defaultValues:
+    textureSize: 4096
+    slotSize: 256
+    loadCount: [0]
+- sets:
+    slotStart: 0
+    spriteIndex: 0
+- sets:
+    texInitialized: [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+    spriteSheetInitialized: [false]
+- initTexture:
+      textureId: 0
+      width: ~{textureSize}
+      height: ~{textureSize}
+- initTexture:
+      textureId: 1
+      width: ~{textureSize}
+      height: ~{textureSize}
+- log: ~{loadCount}
+- loopEach: ~{textureSprites}
+  actions:
+  - pause: ~{spriteIndex == loopIndex}
+  - log: ~START LOADING {element.imageId}
+  - executeScript: loadImage
+    parameters:
+      src: ~{element.src}
+      imageId: ~{element.imageId}
+      sourceSpriteWidth: ~{element.sourceSpriteWidth}
+      sourceSpriteHeight: ~{element.sourceSpriteHeight}
+      sourceStart: ~{element.frameStart}
+      frameCount: ~{element.frameCount}
+      slotStart: ~{slotStart}
+      slotSize: ~{slotSize}
+      textureSize: ~{textureSize}
+      texInitialized: ~{texInitialized}
+      spriteSheetInitialized: ~{spriteSheetInitialized}
+  - log: ~P0 - SPRITESHEET INITIALIZED {spriteSheetInitialized}
+  # - pause: {subject: "~{spriteSheetInitialized}", access: [0], formula: "~{not value}"}
+  - pause: ~{not spriteSheetInitialized[1]}
+  - log: ~P1 - SPRITESHEET INITIALIZED {spriteSheetInitialized}
+  - set:
+        variable: spriteSheetInitialized
+        access: [0]
+        value: false
+  - sets:
+      slotStart: ~{value + element.frameCount}
+#   - pause: ~{not hasImageId(element.imageId)}
+  - sets:
+      spriteIndex: ~{value + 1}
+  - log:
+    - "LOADED!!!"
+    - ~{element}
+    - ~{spriteIndex}
+    - ~{slotStart}
+  - set:
+      variable: loadCount
+      access: [0]
+      value: ~{value + 1}
+  - log: ~{loadCount}
+
+    

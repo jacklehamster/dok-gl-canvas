@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - name: loadTexture
+    actions:
+      - loadTexture:
+          textureId: 0
+          imageId: video
+  - name: redraw
+    actions:
+      - clear:
+          color: true
+        drawArrays:
+          vertexCount: 6
+  - name: animate
+    actions:
+    - updateAttributeBuffer:
+        location: position
+      actions:
+      - set:
+          variable: attributeBuffer
+          access: [0]
+          value: ~{sin(time/500) / 2}
+      - set:
+          variable: attributeBuffer
+          access: [9]
+          value: ~{sin(time/500) / 2}
+      - set:
+          variable: attributeBuffer
+          access: [15]
+          value: ~{1 + sin(time/500) / 2}
+  - name: refresh
+    actions:
+    - executeScript: loadTexture
+    - executeScript: animate
+    - executeScript: redraw
+  - actions:
+    - executeScript: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          -0.5, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+          -0.5, 0.5, 0.0,
+          0.5, -0.5, 0.0,
+          0.5, 0.5, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: tex
+        size: 2
+        buffer: [
+          0, 0,
+          0, 1,
+          1, 1,
+          0, 0,
+          1, 1,
+          1, 0,
+        ]
+    - uniform:
+        location: uTexture
+        int: 0
+      video:
+        src: webcam
+        imageId: video
+        volume: 0
+      callback:
+        onLoad:
+        - executeScript: loadTexture
+    - hooks: [hasImageId]
+      pause: ~{not hasImageId("video")}
+    - executeScript: refresh
+      refresh:
+        frameRate: 60
+    tags: [main]
+programs:
+  - id: sample-video-texture
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

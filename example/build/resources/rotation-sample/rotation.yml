@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/matrix-identity.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true }
+      drawArrays:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - bindBuffer:
+        location: matrix
+    - loopEach:
+      - size: .3
+        rotateSpeed: ~{1 / 10}
+      - size: .5
+        rotateSpeed: ~{1 / 50}
+      - size: .7
+        rotateSpeed: ~{1 / 100}
+      initMatrix: true
+      spriteMatrixTransform:
+        translate: ["~{-0.5 + loopIndex * 0.5}", 0, 0]
+        scale: ["~{element.size}", "~{element.size}", "~{element.size}"]
+        rotation: [0, 0, "~{mod(time * element.rotateSpeed, 360)}"]
+      bufferSubDataMatrix:
+        index: ~{loopIndex}
+    - executeScript: redraw
+  - actions:
+    - sets:
+        instanceCount: 3
+        vertexCount: 3
+        BYTES_PER_FLOAT: 4
+    - executeScript: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          0.0, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: matrix
+        size: 4
+        length: ~{3 * 16 * BYTES_PER_FLOAT}
+        rows: 4
+        divisor: 1
+        stride: ~{4 * 4 * BYTES_PER_FLOAT}
+    - executeScript: matrixIdentity
+      parameters:
+        attributeName: matrix
+    - executeScript: refresh
+      refresh:
+        frameRate: 60
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+    tags: [main]
+programs:
+  - id: sample-motion
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

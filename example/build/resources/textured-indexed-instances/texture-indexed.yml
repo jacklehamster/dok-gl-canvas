@@ -1,0 +1,181 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/buffer-data.yaml
+  - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/matrix-identity.yaml
+  - reference: ../lib/init-matrix.yaml
+  - reference: ../lib/load-texture-sprites.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true, depth: true }
+      drawElements:
+        count: ~{vertexCount}
+        glType: UNSIGNED_SHORT
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - uniform:
+        location: frame
+        float: ~{frame}
+    - bindBuffer:
+        location: matrix
+    - parameters:
+        size: 2
+        time: ~{time}
+        rotateSpeed: ~{1/10}
+        instanceCount: ~{instanceCount}
+      loop: ~{instanceCount}
+      spriteMatrixTransform:
+        translate: [0, "~{loopIndex * 2 - 5}", "~{-15}"]
+        scale: ["~{size - loopIndex * 0.2}", "~{size - loopIndex * 0.2}", 0]
+        rotation: [0, "~{mod(time * rotateSpeed, 360)}", 0]
+      bufferSubDataMatrix:
+        index: ~{loopIndex}
+    - executeScript: redraw
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - actions:
+    - sets:
+        walls: 1
+        vertexPerWall: 6
+        instanceCount: 10
+    - sets:
+        vertexCount: ~{vertexPerWall * walls}
+        BYTES_PER_FLOAT: 4
+    - sets:
+        slotSize: 256
+        textureSize: 4096
+    - sets:
+        frameStart: 0
+        frameCount: 8
+        slotStart: 0
+    - uniform:
+        location: slotTex
+        float: ~{slotSize / textureSize}
+    - executeScript: initBuffer
+      parameters:
+        target: ARRAY_BUFFER
+        location: position
+        size: 3
+        buffer: [
+          1, 1, 0,
+          1, -1, 0,
+          -1, -1, 0,
+          -1, 1, 0,
+        ]
+    - executeScript: bufferData
+      parameters:
+        target: ELEMENT_ARRAY_BUFFER
+        glType: UNSIGNED_SHORT
+        location: index
+        buffer: [
+          0, 1, 2,  # Face
+          3, 0, 2,  # Face
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: tex
+        size: 2
+        buffer: [
+          0, 0,
+          0, 1,
+          1, 1,
+          1, 0,
+        ]
+    - executeScript: initMatrix
+      parameters:
+        location: matrix
+        instanceCount: ~{instanceCount}
+    - executeScript: initBuffer
+      parameters:
+        location: animation
+        size: 2
+        length: ~{instanceCount * 2 * BYTES_PER_FLOAT}
+        divisor: 1
+        stride: ~{2 * BYTES_PER_FLOAT}
+    - loop: ~{instanceCount}
+      bufferSubData:
+        dstByteOffset: ~{loopIndex * 2 * BYTES_PER_FLOAT}
+        data: ["~{slotStart}", "~{frameCount}"]
+    - initMatrix: true
+    - orthogonalProjectionMatrixTransform:
+        left: -10
+        right: 10
+        top: -10
+        bottom: 10
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: orthogonal
+        matrix: ~{matrix}
+    - perspectiveProjectionMatrixTransform:
+        viewAngle: 45
+        aspect: 1
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: perspective
+        matrix: ~{matrix}
+    - uniform:
+        location: isPerspective
+        float: 1
+    - initMatrix: true
+    - hooks:
+      - gl
+      actions:
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [BLEND]}
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [DEPTH_TEST]}
+      # - callExternal:
+      #     subject: ~{gl}
+      #     method: enable
+      #     arguments: {subject: "~{gl}", access: [CULL_FACE]}
+      - callExternal:
+          subject: ~{gl}
+          method: depthFunc
+          arguments: {subject: "~{gl}", access: [LEQUAL]}
+      - callExternal:
+          subject: ~{gl}
+          method: blendFunc
+          arguments:
+          - {subject: "~{gl}", access: [SRC_ALPHA]}
+          - {subject: "~{gl}", access: [ONE_MINUS_SRC_ALPHA]}
+      # - callExternal:
+      #     subject: ~{gl}
+      #     method: cullFace
+      #     arguments:
+      #     - {subject: "~{gl}", access: [BACK]}
+    - uniform:
+        location: uTextures
+        ints: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    - uniform:
+        location: slotSideCount
+        float: ~{textureSize / slotSize}
+    - executeScript: loadTextureSprites
+      parameters:
+        textureSprites:
+        - src: turtle.png
+          imageId: turtle
+          sourceSpriteWidth: 238
+          sourceSpriteHeight: 256
+          frameCount: 8
+    - hooks: [hasImageId]
+      pause: ~{not hasImageId("turtle")}
+    - executeScript: refresh
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+      refresh:
+        frameRate: 30
+    tags: [main]
+programs:
+  - id: sample-motion
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

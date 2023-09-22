@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/matrix-identity.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true }
+      drawArrays:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - updateAttributeBuffer:
+        location: matrix
+      actions:
+      - loop: ~{attributeBufferLength}
+        set:
+          variable: attributeBuffer
+          access: ["~{loopIndex}"]
+          value: ~{value + (random() - 0.5) / 100}
+    - executeScript: redraw
+  - actions:
+    - sets:
+        instanceCount: 3
+        vertexCount: 3
+        BYTES_PER_FLOAT: 4
+    - executeScript: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          0.0, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+        ]
+        divisor: 1
+    - executeScript: initBuffer
+      parameters:
+        location: shift
+        size: 3
+        buffer: [
+          0, 0, 0,
+          -.5, -.5, 0,
+          .5, .5, 0,
+        ]
+        divisor: 1
+    - executeScript: initBuffer
+      parameters:
+        location: matrix
+        size: 4
+        length: ~{instanceCount * 16 * BYTES_PER_FLOAT}
+        rows: 4
+        divisor: 1
+        stride: ~{4 * 4 * BYTES_PER_FLOAT}
+    - executeScript: matrixIdentity
+      parameters:
+        attributeName: matrix
+    - executeScript: refresh
+      refresh:
+        frameRate: 60
+    tags: [main]
+programs:
+  - id: sample-motion
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

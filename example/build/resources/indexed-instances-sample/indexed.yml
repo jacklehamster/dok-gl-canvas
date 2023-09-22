@@ -1,0 +1,153 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/buffer-data.yaml
+  - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/matrix-identity.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true, depth: true }
+      drawElements:
+        count: ~{vertexCount}
+        glType: UNSIGNED_SHORT
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - bindBuffer:
+        location: matrix
+    - parameters:
+        size: 2
+        time: ~{time}
+        rotateSpeed: ~{1/10}
+        instanceCount: ~{instanceCount}
+      loop: ~{instanceCount}
+      spriteMatrixTransform:
+        translate: [0, "~{loopIndex - 5}", "~{-15}"]
+        scale: ["~{size - loopIndex * 0.1}", "~{size}", "~{size - loopIndex * 0.1}"]
+        rotation: [0, "~{mod(time * rotateSpeed * (loopIndex + 1) / 2, 360)}", 0]
+      bufferSubDataMatrix:
+        index: ~{loopIndex}
+    - executeScript: redraw
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - actions:
+    - sets:
+        walls: 4
+        vertexPerWall: 6
+        instanceCount: 20
+    - sets:
+        vertexCount: ~{vertexPerWall * walls}
+        BYTES_PER_FLOAT: 4
+    - executeScript: initBuffer
+      parameters:
+        target: ARRAY_BUFFER
+        location: position
+        size: 3
+        buffer: [
+          -1, 1, -1,
+          -1, -1, -1,
+          1, -1, -1,
+          1, 1, -1,
+
+          -1, 1, 1,
+          -1, -1, 1,
+          1, -1, 1,
+          1, 1, 1,
+        ]
+    - executeScript: bufferData
+      parameters:
+        target: ELEMENT_ARRAY_BUFFER
+        glType: UNSIGNED_SHORT
+        location: index
+        buffer: [
+          0, 1, 2,  # Face
+          3, 0, 2,  # Face
+
+          4, 5, 6,  # Back
+          7, 4, 6,  # Back
+
+          0, 1, 4,  # Left
+          5, 1, 4,  # Left
+
+          2, 3, 6,  # Right
+          7, 3, 6,  # Right
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+          1.0, 0.0, 0.0,
+
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+          1.0, 0.0, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: matrix
+        size: 4
+        length: ~{vertexCount * instanceCount * BYTES_PER_FLOAT}
+        rows: 4
+        divisor: 1
+        stride: ~{4 * 4 * BYTES_PER_FLOAT}
+    - initMatrix: true
+    - orthogonalProjectionMatrixTransform:
+        left: -10
+        right: 10
+        top: -10
+        bottom: 10
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: orthogonal
+        matrix: ~{matrix}
+    - perspectiveProjectionMatrixTransform:
+        viewAngle: 45
+        aspect: 1
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: perspective
+        matrix: ~{matrix}
+    - uniform:
+        location: isPerspective
+        float: 1
+    - initMatrix: true
+    - hooks:
+      - gl
+      actions:
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [BLEND]}
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [DEPTH_TEST]}
+      - callExternal:
+          subject: ~{gl}
+          method: depthFunc
+          arguments: {subject: "~{gl}", access: [LEQUAL]}
+      - callExternal:
+          subject: ~{gl}
+          method: blendFunc
+          arguments:
+          - {subject: "~{gl}", access: [SRC_ALPHA]}
+          - {subject: "~{gl}", access: [ONE_MINUS_SRC_ALPHA]}
+    - executeScript: refresh
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+      refresh:
+        frameRate: 60
+    tags: [main]
+programs:
+  - id: sample-motion
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

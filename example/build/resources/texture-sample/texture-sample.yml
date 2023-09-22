@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/load-texture-sprites.yaml
+  - name: refresh
+    actions:
+    - uniform:
+        location: frame
+        float: ~{frame}
+    - clear:
+        color: true
+      drawArrays:
+        vertexCount: 6
+  - actions:
+    - sets:
+        slotSize: 256
+        textureSize: 4096
+    - sets:
+        frameStart: 0
+        frameCount: 8
+        slotStart: 0
+    - uniform:
+        location: slotSideCount
+        float: ~{textureSize / slotSize}
+    - executeScript: initBuffer
+      parameters:
+        location: position
+        size: 3
+        buffer: [
+          -0.5, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0,
+          -0.5, 0.5, 0.0,
+          0.5, -0.5, 0.0,
+          0.5, 0.5, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: tex
+        size: 2
+        buffer: [
+          0, 0,
+          0, 1,
+          1, 1,
+          0, 0,
+          1, 1,
+          1, 0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: animation
+        size: 2
+        buffer: [
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+          "~{slotStart}", "~{frameCount}",
+        ]
+    - uniform:
+        location: uTextures
+        ints: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    - executeScript: loadTextureSprites
+      parameters:
+        textureSprites:
+        - src: turtle.png
+          imageId: turtle
+          sourceSpriteWidth: 238
+          sourceSpriteHeight: 256
+          frameCount: 8
+    - hooks: [hasImageId]
+      pause: ~{not hasImageId("turtle")}
+    - executeScript: refresh
+      refresh:
+        frameRate: 30
+    tags: [main]
+programs:
+  - id: sample-texture
+    vertex: ~reference=vertex.glsl
+    fragment: ~reference=fragment.glsl

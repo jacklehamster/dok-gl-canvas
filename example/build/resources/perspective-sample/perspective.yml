@@ -1,0 +1,124 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json
+
+scripts:
+  - reference: ../lib/init-buffer.yaml
+  - reference: ../lib/matrix-identity.yaml
+  - name: redraw
+    actions:
+    - clear: { color: true, depth: true }
+      drawArrays:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - name: refresh
+    actions:
+    - bindBuffer:
+        location: matrix
+    - parameters:
+        size: 1
+        time: ~{time}
+        rotateSpeed: ~{1/10}
+        instanceCount: ~{instanceCount}
+      loop: ~{instanceCount}
+      spriteMatrixTransform:
+        translate: ["~{-0.5 + loopIndex * 0.01}", 0, "~{-loopIndex * .5}"]
+        scale: ["~{size}", "~{size}", "~{size}"]
+        rotation: [0, "~{mod(time * loopIndex / 100, 360)}", 0]
+      bufferSubDataMatrix:
+        index: ~{loopIndex}
+    - executeScript: redraw
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+  - actions:
+    - sets:
+        instanceCount: 100
+        vertexCount: 6
+        BYTES_PER_FLOAT: 4
+    - executeScript: initBuffer
+      parameters:
+        target: ARRAY_BUFFER
+        location: position
+        size: 3
+        buffer: [
+          -0.2, 0.5, 0.0,
+          -0.2, -0.5, 0.0,
+          0.2, -0.5, 0.0,
+          -0.2, 0.5, 0.0,
+          0.2, -0.5, 0.0,
+          0.2, 0.5, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: color
+        size: 3
+        buffer: [
+          1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+          1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0,
+          0.0, 1.0, 0.0,
+        ]
+    - executeScript: initBuffer
+      parameters:
+        location: matrix
+        size: 4
+        length: ~{instanceCount * 16 * BYTES_PER_FLOAT}
+        rows: 4
+        divisor: 1
+        stride: ~{4 * 4 * BYTES_PER_FLOAT}
+    - initMatrix: true
+    - orthogonalProjectionMatrixTransform:
+        left: -10
+        right: 10
+        top: -10
+        bottom: 10
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: orthogonal
+        matrix: ~{matrix}
+    - perspectiveProjectionMatrixTransform:
+        viewAngle: 45
+        aspect: 1
+        zNear: 0.1
+        zFar: 1000
+    - uniform:
+        location: perspective
+        matrix: ~{matrix}
+    - uniform:
+        location: isPerspective
+        float: 1
+    - initMatrix: true
+    - hooks:
+      - gl
+      actions:
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [BLEND]}
+      - callExternal:
+          subject: ~{gl}
+          method: enable
+          arguments: {subject: "~{gl}", access: [DEPTH_TEST]}
+      - callExternal:
+          subject: ~{gl}
+          method: depthFunc
+          arguments: {subject: "~{gl}", access: [LEQUAL]}
+      - callExternal:
+          subject: ~{gl}
+          method: blendFunc
+          arguments:
+          - {subject: "~{gl}", access: [SRC_ALPHA]}
+          - {subject: "~{gl}", access: [ONE_MINUS_SRC_ALPHA]}
+    - executeScript: refresh
+      parameters:
+        vertexCount: ~{vertexCount}
+        instanceCount: ~{instanceCount}
+      refresh:
+        frameRate: 60
+    tags: [main]
+programs:
+  - id: sample-motion
+    vertex: ~reference=vertex.glsl      
+    fragment: ~reference=fragment.glsl

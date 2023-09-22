@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json#/definitions/GlScript
+
+name: initMatrix
+actions:
+- defaultValues:
+    BYTES_PER_FLOAT: 4
+    size: 4
+    rows: 4
+- defaultValues:
+    byteSize: ~{size * rows * BYTES_PER_FLOAT}
+- executeScript: initBuffer
+  parameters:
+    location: ~{location}
+    size: ~{size}
+    length: ~{instanceCount * byteSize}
+    rows: ~{rows}
+    divisor: 1
+    stride: ~{byteSize}

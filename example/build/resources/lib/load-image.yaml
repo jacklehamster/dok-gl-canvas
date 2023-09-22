@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://jacklehamster.github.io/dok-gl-actions/schema.json#/definitions/GlScript
+
+name: loadImage
+actions:
+- image:
+    src: ~{src}
+    imageId: ~{imageId}
+  callback:
+    onLoad:
+    - log: ~Image loaded.
+- hooks: [hasImageId]
+  pause: ~{not hasImageId(imageId)}
+- defaultValues:
+    imageWidth: null
+    imageHeight: null
+    textureSize: 4096
+    slotSize: 256
+- defaultValues:
+    sourceSpriteWidth: ~{imageWidth}
+    sourceSpriteHeight: ~{imageHeight}
+    sourceStart: 0
+    frameCount: 1
+    texInitialized: [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+- log:
+    - LOG
+    - ~{imageId}
+    - ~{imageWidth}
+    - ~{imageHeight}
+    - ~{sourceSpriteWidth}
+    - ~{sourceSpriteHeight}
+    - ~{texInitialized}
+- sets:
+    slotSideCount: ~{textureSize / slotSize}
+    sourceCols: ~{ceil(imageWidth / sourceSpriteWidth)}
+- loop: ~{frameCount}
+  actions:
+  - sets:
+        frame: ~{loopIndex + slotStart}
+        sourceIndex: ~{loopIndex + sourceStart}
+  - log: ~Frame {frame}
+  - sets:
+        textureId: ~{floor(frame / (slotSideCount * slotSideCount))}
+  # - condition: {subject: "~{texInitialized}", access: ["~{textureId}"], formula: "~{not value}"}
+  #   initTexture:
+  #       textureId: ~{textureId}
+  #       width: ~{textureSize}
+  #       height: ~{textureSize}
+  - set:
+        variable: texInitialized
+        access: ["~{textureId}"]
+        value: true
+  - loadTexture:
+        textureId: ~{textureId}
+        imageId: ~{imageId}
+        sourceRect: ["~{mod(sourceIndex, sourceCols) * sourceSpriteWidth}", "~{floor(sourceIndex / sourceCols) * sourceSpriteHeight}", "~{sourceSpriteWidth}", "~{sourceSpriteHeight}"]
+        destRect: ["~{mod(frame, slotSideCount) * slotSize}", "~{mod(floor(frame / slotSideCount), slotSideCount) * slotSize}", "~{slotSize}", "~{slotSize}"]
+  - log: ~Image {imageId} loaded to texture
+  - set:
+        variable: spriteSheetInitialized
+        access: [0]
+        value: true
+  - log: ~P2 - SPRITESHEET INITIALIZED {spriteSheetInitialized}
