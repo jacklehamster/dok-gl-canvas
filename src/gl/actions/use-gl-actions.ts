@@ -1,10 +1,10 @@
-import { BooleanResolution, Convertor, DEFAULT_EXTERNALS, getDefaultConvertors, ExecutionParameters, Formula, Script, ScriptProcessor, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute, ConvertBehavior } from "dok-actions";
+import { BooleanResolution, Convertor, DEFAULT_EXTERNALS, getDefaultConvertors, ExecutionParameters, ExecutionStep, Formula, Script, ScriptProcessor, calculateBoolean, calculateNumber, calculateString, calculateTypedArray, convertAction, execute, ConvertBehavior } from "dok-actions";
 import { useCallback, useEffect, useRef } from "react";
 import useBufferAttributes, { BufferInfo } from "../../pipeline/actions/use-buffer-attributes";
 import { clearRecord } from "../../utils/object-utils";
 import { useTypes } from "./types";
 import useImageAction, { ImageId, Url } from "../../pipeline/actions/use-image-action";
-import { GlAction, LocationName, LocationResolution, getGlType, getByteSize, TextureIndex, StepScript } from "dok-gl-actions";
+import { GlAction, LocationName, LocationResolution, getGlType, getByteSize, TextureIndex } from "dok-gl-actions";
 import { GlBufferTarget, GlUsage, ValueOf } from "dok-gl-actions/dist/types";
 import { calculateTypeArrayConstructor } from "dok-gl-actions";
 import { ProgramId } from "dok-gl-actions/dist/program/program";
@@ -70,7 +70,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         const length = calculateNumber(buffer.length);
         const glUsage = buffer.usage ? getGlUsage(calculateString<GlUsage>(buffer.usage)) : undefined;
 
-        results.add((parameters) => {
+        results.push((parameters) => {
           const locationValue = location.valueOf(parameters);
           const bufferInfo = getBufferInfo(locationValue);
           const targetValue = target?.valueOf(parameters) ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
@@ -98,7 +98,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const length = calculateNumber(bufferSubData.length);
       const location = buffer.location !== undefined ? calculateString(buffer.location) : undefined;
 
-      results.add((parameters) => {
+      results.push((parameters) => {
         const bufferInfo = location ? getBufferInfo(location.valueOf(parameters)) : undefined;         
         const targetValue = target?.valueOf(parameters) ?? bufferInfo?.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
         if (bufferInfo !== undefined) {
@@ -115,7 +115,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       if (!bind) {
         return;
       }
-      results.add((_, context) => {
+      results.push((_, context) => {
         const cleanup = bindVertexArray();
         context.addCleanup(cleanup);
       });
@@ -128,7 +128,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const target = bind.target ? getBufferTarget(calculateString<GlBufferTarget>(bind.target)) : undefined;
       const location = calculateString(bind.location);
 
-      results.add(parameters => {
+      results.push(parameters => {
         const locationValue = location.valueOf(parameters);
         const targetValue = target?.valueOf(parameters) ?? getBufferInfo(locationValue)?.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
         bindBuffer(targetValue, getBufferInfo(locationValue));
@@ -143,7 +143,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const first = calculateNumber(vertexFirst, 0);
       const count = calculateNumber(vertexCount, 0);
       const instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
-      results.add((parameters) => {
+      results.push((parameters) => {
         drawArrays(WebGL2RenderingContext.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters), instances?.valueOf(parameters));
       });
     }, [drawArrays]);
@@ -157,7 +157,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const countValueOf = calculateNumber(count, 0);
       const glTypeValueOf = getGlType(glType);
       const offsetValueOf = calculateNumber(offset);
-      results.add((parameters) => {
+      results.push((parameters) => {
         drawElements(WebGL2RenderingContext.TRIANGLES,
           countValueOf.valueOf(parameters),
           glTypeValueOf.valueOf(parameters),
@@ -188,7 +188,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const enable = attributes.enable !== undefined ? calculateBoolean(attributes.enable) : undefined;
       const divisor = attributes.divisor !== undefined ? calculateNumber(attributes.divisor) : undefined;
 
-      results.add((parameters, context) => {
+      results.push((parameters, context) => {
           const locationValue = loc.valueOf(parameters);
           const bufferInfo = getBufferInfo(locationValue);
           if (bufferInfo.location < 0) {
@@ -223,23 +223,23 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const location = calculateString(uniform.location);
       if (uniform?.int !== undefined) {
         const value = calculateNumber(uniform.int);
-        results.add((parameters) => gl?.uniform1i(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));    
+        results.push((parameters) => gl?.uniform1i(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));    
       }
       if (uniform?.float !== undefined) {
         const value = calculateNumber(uniform.float);
-        results.add((parameters) => gl?.uniform1f(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
+        results.push((parameters) => gl?.uniform1f(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
       }
       if (uniform?.matrix !== undefined) {
         const value = calculateTypedArray(uniform.matrix) as ValueOf<Float32List>;
-        results.add((parameters) => gl?.uniformMatrix4fv(getUniformLocation(location.valueOf(parameters)) ?? null, false, value.valueOf(parameters)));
+        results.push((parameters) => gl?.uniformMatrix4fv(getUniformLocation(location.valueOf(parameters)) ?? null, false, value.valueOf(parameters)));
       }
       if (uniform?.ints !== undefined) {
         const value = calculateTypedArray(uniform.ints) as ValueOf<Int32List>;
-        results.add((parameters) => gl?.uniform1iv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
+        results.push((parameters) => gl?.uniform1iv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
       }
       if (uniform?.floats !== undefined) {
         const value = calculateTypedArray(uniform.floats) as ValueOf<Float32List>;
-        results.add((parameters) => gl?.uniform1fv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
+        results.push((parameters) => gl?.uniform1fv(getUniformLocation(location.valueOf(parameters)) ?? null, value.valueOf(parameters)));
       }
     }, [getUniformLocation, gl]);
 
@@ -250,7 +250,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       if (typeof clear !== "object" || clear.hasOwnProperty("formula")) {
         const clearField = clear as Formula;
         const clearResolution = calculateNumber(clearField);
-        results.add((parameters) => {
+        results.push((parameters) => {
           const bitValue = clearResolution.valueOf(parameters);
           if (bitValue) {
             gl?.clear(bitValue);
@@ -266,7 +266,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const color = calculateBoolean(clearField.color);
       const depth = calculateBoolean(clearField.depth);
       const stencil = calculateBoolean(clearField.stencil);
-      results.add((parameters) => {
+      results.push((parameters) => {
         let bitValue = 0;
         if (color.valueOf(parameters)) {
           bitValue |= WebGL2RenderingContext.COLOR_BUFFER_BIT;
@@ -288,7 +288,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
         return;
       }
       const id = calculateString(activateProgramProp);
-      results.add((parameters) => activateProgram(id.valueOf(parameters)));
+      results.push((parameters) => activateProgram(id.valueOf(parameters)));
     }, [activateProgram]);
 
     const convertInitTexture = useCallback<Convertor<GlAction>>(async (action, results) => {
@@ -300,7 +300,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const widthValue = action.initTexture.width ? calculateNumber<GLsizei>(width) : undefined;
       const heightValue = action.initTexture.height ?  calculateNumber<GLsizei>(height) : undefined;
 
-      results.add((parameters) => {
+      results.push((parameters) => {
         initTexture(convertTextureId(textureIndex.valueOf(parameters)), widthValue?.valueOf(parameters), heightValue?.valueOf(parameters));
       });
     }, [initTexture, convertTextureId]);
@@ -316,7 +316,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const sourceRect: [number, number, number, number] = [0,0,0,0];
       const destRect: [number, number, number, number] = [0,0,0,0];
 
-      results.add((parameters) => {
+      results.push((parameters) => {
         if (sourceRectValueOf || destRectValueOf) {
           for (let i = 0; i < 4; i++) {
             sourceRect[i] = sourceRectValueOf?.[i].valueOf(parameters) ?? 0;
@@ -336,7 +336,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const imageId = calculateString<ImageId>(video.imageId);
       const volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
       const onLoad = utils.executeCallback?.onLoad;
-      results.add((parameters, context) => {
+      results.push((parameters, context) => {
         loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume?.valueOf(parameters), context, (video) => {
           onLoad?.(context, { videoWidth: video.width, videoHeight: video.height });
         });
@@ -351,7 +351,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const imageId = calculateString<ImageId>(image.imageId);
 
       const onLoad = utils.executeCallback?.onLoad;
-      results.add((parameters, context) => {
+      results.push((parameters, context) => {
         loadImage(src.valueOf(parameters), imageId.valueOf(parameters), (image) => {
           console.log("onLoad parameters", parameters);
           onLoad?.(context, { imageWidth: image.naturalWidth, imageHeight: image.naturalHeight });
@@ -369,7 +369,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       if (!action.initMatrix) {
         return;
       }
-      results.add(initializeMatrix);
+      results.push(initializeMatrix);
     }, [initializeMatrix]);
 
     const convertSpriteMatrixTransform = useCallback<Convertor<GlAction>>(async (action, results) => {
@@ -385,7 +385,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const translationVec3 = vec3.create();
       const scaleVec3 = vec3.create();
       
-      results.add((parameters) => {
+      results.push((parameters) => {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }
@@ -413,7 +413,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       }
       const { index } = action.bufferSubDataMatrix;
       const indexResolution = calculateNumber(index);
-      results.add((parameters) => {
+      results.push((parameters) => {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }
@@ -432,10 +432,10 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const target = updateAttributeBuffer.target ? getBufferTarget(calculateString<GlBufferTarget>(updateAttributeBuffer.target)) : undefined;
       const location = calculateString(updateAttributeBuffer.location);
             
-      const subStepResults = new StepScript([]);
+      const subStepResults: ExecutionStep[] = [];
       await convertAction(subAction, subStepResults, utils, external, actionConversionMap);
 
-      results.add((parameters, context) => {
+      results.push((parameters, context) => {
         const locationValue = location.valueOf(parameters);
         const bufferInfo = getBufferInfo(locationValue);
         const targetValue = target?.valueOf(parameters) ?? bufferInfo.target ?? WebGL2RenderingContext.ARRAY_BUFFER;
@@ -463,7 +463,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const bottomValue = calculateNumber(bottom);
       const zFarValue = calculateNumber(zFar, 5000);
       const zNearValue = calculateNumber(zNear, -100);
-      results.add((parameters) => {
+      results.push((parameters) => {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }
@@ -490,7 +490,7 @@ export function useGlAction({ gl, getAttributeLocation, getUniformLocation, acti
       const zNearValue = calculateNumber(zNear, -100);
       const aspectValue = calculateNumber(aspect, 1);
       const DEG_TO_RADIANT = Math.PI / 90;
-      results.add((parameters) => {
+      results.push((parameters) => {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }

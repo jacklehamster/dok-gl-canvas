@@ -93429,7 +93429,6 @@ var Context = /*#__PURE__*/function () {
   };
   _proto.addPostAction = function addPostAction(postAction) {
     if (!this.postActionListener.has(postAction)) {
-      postAction.parameters.postAction = postAction;
       this.postActionListener.add(postAction);
     }
   };
@@ -93492,23 +93491,6 @@ var ConvertBehavior;
   ConvertBehavior[ConvertBehavior["SKIP_REMAINING_CONVERTORS"] = 1] = "SKIP_REMAINING_CONVERTORS";
   ConvertBehavior[ConvertBehavior["SKIP_REMAINING_ACTIONS"] = 2] = "SKIP_REMAINING_ACTIONS";
 })(ConvertBehavior || (ConvertBehavior = {}));
-var StepScript = /*#__PURE__*/function () {
-  function StepScript(steps) {
-    var _this = this;
-    this.steps = [];
-    steps === null || steps === void 0 ? void 0 : steps.forEach(function (step) {
-      return _this.add(step);
-    });
-  }
-  var _proto = StepScript.prototype;
-  _proto.add = function add(step) {
-    this.steps.push(step);
-  };
-  _proto.getSteps = function getSteps() {
-    return this.steps;
-  };
-  return StepScript;
-}();
 
 // A type of promise-like that resolves synchronously and supports only one observer
 const _Pact = /*#__PURE__*/(function() {
@@ -93688,7 +93670,7 @@ function execute(steps, parameters, context) {
   if (context === void 0) {
     context = createContext();
   }
-  if (!steps.getSteps().length) {
+  if (!(steps !== null && steps !== void 0 && steps.length)) {
     return;
   }
   if (!context.parameters) {
@@ -93699,7 +93681,7 @@ function execute(steps, parameters, context) {
   if (changedParameters) {
     params.push(parameters);
   }
-  for (var _iterator = _createForOfIteratorHelperLoose(steps.getSteps()), _step; !(_step = _iterator()).done;) {
+  for (var _iterator = _createForOfIteratorHelperLoose(steps), _step; !(_step = _iterator()).done;) {
     var step = _step.value;
     step(parameters, context);
   }
@@ -93745,23 +93727,20 @@ var convertScriptsHelper = function convertScriptsHelper(scripts, external, conv
   try {
     var scriptMap = new Map();
     scripts.forEach(function (script) {
-      return scriptMap.set(script, new StepScript());
+      return scriptMap.set(script, []);
     });
     var getSteps = function getSteps(filter) {
       var filteredScripts = filterScripts(scripts, filter);
-      var steps = new StepScript();
+      var steps = [];
       filteredScripts.forEach(function (script) {
-        var stepScript = scriptMap.get(script);
-        stepScript === null || stepScript === void 0 ? void 0 : stepScript.getSteps().forEach(function (step) {
-          return steps.add(step);
-        });
+        return steps.push.apply(steps, scriptMap.get(script));
       });
       return steps;
     };
     var _temp2 = _forOf(scripts, function (script) {
       var _scriptMap$get;
       var _interrupt = false;
-      var scriptSteps = (_scriptMap$get = scriptMap.get(script)) != null ? _scriptMap$get : new StepScript();
+      var scriptSteps = (_scriptMap$get = scriptMap.get(script)) != null ? _scriptMap$get : [];
       var _script$actions = script.actions,
         actions = _script$actions === void 0 ? [] : _script$actions;
       var _temp = _forTo(actions, function (i) {
@@ -93911,8 +93890,7 @@ function calculateEvaluator(evaluator, parameters, formula, defaultValue) {
     var _evaluator$evaluate;
     return (_evaluator$evaluate = evaluator.evaluate(scope != null ? scope : {})) != null ? _evaluator$evaluate : defaultValue;
   } catch (e) {
-    console.error("Error: " + e + " on formula: " + formula + ", scope: ", scope);
-    debugger;
+    console.error("Error: " + e + " on formula: " + formula + ", scope: ", JSON.parse(JSON.stringify(scope)));
   }
   return defaultValue;
 }
@@ -94288,13 +94266,13 @@ var convertRefreshProperty = function convertRefreshProperty(action, stepResults
     }
     var refresh = action.refresh,
       subAction = _objectWithoutPropertiesLoose$1(action, _excluded);
-    var subStepResults = new StepScript();
+    var subStepResults = [];
     var processIdValue = calculateString(refresh.processId, "");
     var stop = calculateBoolean(refresh.stop);
     var cleanupAfterRefresh = calculateBoolean(refresh.cleanupAfterRefresh);
     var frameRate = calculateNumber(refresh.frameRate, DEFAULT_REFRESH_FRAME_RATE);
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      stepResults.add(function (parameters, context) {
+      stepResults.push(function (parameters, context) {
         if (stop.valueOf(parameters)) {
           utils.stopRefresh(processIdValue.valueOf(parameters));
         } else {
@@ -94353,7 +94331,7 @@ var convertExecuteCallbackProperty = function convertExecuteCallbackProperty(act
     }
     var executeCallback = action.executeCallback;
     var callbackToExecute = calculateString(executeCallback);
-    results.add(function (parameters, context) {
+    results.push(function (parameters, context) {
       var _utils$executeCallbac, _utils$executeCallbac2;
       var callbackName = callbackToExecute.valueOf(parameters);
       (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : (_utils$executeCallbac2 = _utils$executeCallbac[callbackName]) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.call(_utils$executeCallbac, context, parameters);
@@ -94366,11 +94344,11 @@ var convertExecuteCallbackProperty = function convertExecuteCallbackProperty(act
 var convertCallbackProperty = function convertCallbackProperty(action, results, utils, external, convertorSet) {
   try {
     var _temp2 = function _temp2() {
-      var subStepResults = new StepScript();
+      var subStepResults = [];
       return Promise.resolve(convertAction(subAction, subStepResults, _extends$3({}, utils, {
         executeCallback: executeCallback
       }), external, convertorSet)).then(function () {
-        results.add(function (parameters, context) {
+        results.push(function (parameters, context) {
           for (var key in callback) {
             callbackParameters[key] = newParams(parameters, context);
           }
@@ -94387,11 +94365,11 @@ var convertCallbackProperty = function convertCallbackProperty(action, results, 
     var callbackParameters = {};
     var executeCallback = _extends$3({}, utils.executeCallback);
     var _temp = _forIn(callback, function (key) {
-      var callbackSteps = new StepScript();
+      var callbackSteps = [];
       return Promise.resolve(convertActions(callback[key], callbackSteps, _extends$3({}, utils, {
         executeCallback: executeCallback
       }), external, convertorSet)).then(function () {
-        var onCallback = callbackSteps.getSteps().length ? function (context, additionalParameters) {
+        var onCallback = callbackSteps.length ? function (context, additionalParameters) {
           var p = callbackParameters[key];
           if (additionalParameters) {
             if (p) {
@@ -94430,9 +94408,9 @@ var convertConditionProperty = function convertConditionProperty(action, results
     var condition = action.condition,
       subAction = _objectWithoutPropertiesLoose$1(action, _excluded$2);
     var conditionResolution = calculateBoolean(condition);
-    var subStepResults = new StepScript();
+    var subStepResults = [];
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      results.add(function (parameters, context) {
+      results.push(function (parameters, context) {
         if (conditionResolution.valueOf(parameters)) {
           execute(subStepResults, parameters, context);
         }
@@ -94456,7 +94434,7 @@ var convertExternalCallProperty = function convertExternalCallProperty(action, r
     var argsValues = args.map(function (m) {
       return calculateResolution(m);
     });
-    results.add(function (parameters) {
+    results.push(function (parameters) {
       var _subjectResolution$va;
       var subject = (_subjectResolution$va = subjectResolution === null || subjectResolution === void 0 ? void 0 : subjectResolution.valueOf(parameters)) != null ? _subjectResolution$va : external;
       if (subject && typeof subject === "object" && !Array.isArray(subject)) {
@@ -94489,18 +94467,18 @@ var convertLockProperty = function convertLockProperty(action, results, utils, e
       subAction = _objectWithoutPropertiesLoose$1(action, _excluded3);
     if (unlock) {
       var unlockResolution = calculateString(unlock);
-      results.add(function (parameters, context) {
+      results.push(function (parameters, context) {
         context.locked["delete"](unlockResolution.valueOf(parameters));
       });
     }
     return Promise.resolve(function () {
       if (lock) {
         var lockResolution = calculateString(lock);
-        var postStepResults = new StepScript();
+        var postStepResults = [];
         var remainingActions = utils.getRemainingActions();
         return Promise.resolve(convertAction(subAction, postStepResults, utils, external, convertorSet)).then(function () {
           function _temp6() {
-            results.add(function (parameters, context) {
+            results.push(function (parameters, context) {
               var lockId = lockResolution.valueOf(parameters);
               context.locked.add(lockId);
               var step = function step(parameters, context) {
@@ -94539,16 +94517,11 @@ var convertPauseProperty = function convertPauseProperty(action, results, utils,
     var pause = action.pause,
       subAction = _objectWithoutPropertiesLoose$1(action, _excluded2);
     var pauseResolution = calculateBoolean(pause);
-    var postStepResults = new StepScript();
+    var postStepResults = [];
     var remainingActions = utils.getRemainingActions();
     return Promise.resolve(convertAction(subAction, postStepResults, utils, external, convertorSet)).then(function () {
       function _temp4() {
         var step = function step(parameters, context) {
-          var _parameters$postActio;
-          var postExecution = (_parameters$postActio = parameters.postAction) != null ? _parameters$postActio : {
-            steps: [step],
-            parameters: {}
-          };
           for (var i in parameters) {
             postExecution.parameters[i] = parameters[i];
           }
@@ -94559,7 +94532,11 @@ var convertPauseProperty = function convertPauseProperty(action, results, utils,
             context.addPostAction(postExecution);
           }
         };
-        results.add(step);
+        var postExecution = {
+          steps: [step],
+          parameters: {}
+        };
+        results.push(step);
         return ConvertBehavior.SKIP_REMAINING_ACTIONS;
       }
       var _temp3 = _forOf(remainingActions, function (action) {
@@ -94579,14 +94556,14 @@ var convertDelayProperty = function convertDelayProperty(action, results, utils,
     var delay = action.delay,
       subAction = _objectWithoutPropertiesLoose$1(action, _excluded$3);
     var delayAmount = calculateNumber(delay);
-    var postStepResults = new StepScript();
+    var postStepResults = [];
     var remainingActions = utils.getRemainingActions();
     return Promise.resolve(convertAction(subAction, postStepResults, utils, external, convertorSet)).then(function () {
       function _temp2() {
         var performPostSteps = function performPostSteps(context, parameters) {
           execute(postStepResults, parameters, context);
         };
-        results.add(function (parameters, context) {
+        results.push(function (parameters, context) {
           var timeout = external.setTimeout(performPostSteps, delayAmount.valueOf(parameters), context, parameters);
           context.addCleanup(function () {
             return clearTimeout(timeout);
@@ -94615,7 +94592,7 @@ var convertDefaultValuesProperty = function convertDefaultValuesProperty(action,
         value = _ref2[1];
       return [key, calculateResolution(value)];
     });
-    results.add(function (parameters, context) {
+    results.push(function (parameters, context) {
       var paramsTemp = newParams(undefined, context);
       for (var _iterator3 = _createForOfIteratorHelperLoose(defaultValuesEntries), _step3; !(_step3 = _iterator3()).done;) {
         var _step3$value = _step3.value,
@@ -94650,7 +94627,7 @@ var convertSetsProperty = function convertSetsProperty(action, results) {
         value = _ref[1];
       return [key, calculateResolution(value)];
     });
-    results.add(function (parameters, context) {
+    results.push(function (parameters, context) {
       var paramsTemp = newParams(undefined, context);
       for (var _iterator = _createForOfIteratorHelperLoose(setsEntries), _step; !(_step = _iterator()).done;) {
         var _step$value = _step.value,
@@ -94684,7 +94661,7 @@ var convertSetProperty = function convertSetProperty(action, results) {
       return calculateResolution(a);
     })) != null ? _set$access$map : []);
     var value = calculateResolution(set.value);
-    results.add(function (parameters) {
+    results.push(function (parameters) {
       var root = parameters;
       for (var i = 0; i < access.length; i++) {
         var _access$i;
@@ -94730,7 +94707,7 @@ var convertHooksProperty = function convertHooksProperty(action, results, _, ext
     var hooksValueOf = hooksResolution.map(function (hook) {
       return calculateString(hook);
     });
-    results.add(function (parameters) {
+    results.push(function (parameters) {
       for (var _iterator = _createForOfIteratorHelperLoose(hooksValueOf), _step; !(_step = _iterator()).done;) {
         var hook = _step.value;
         var h = hook.valueOf(parameters);
@@ -94757,7 +94734,7 @@ var convertLogProperty = function convertLogProperty(action, results, _, externa
     var resolutions = messages.map(function (m) {
       return calculateResolution(m);
     });
-    results.add(function (parameters) {
+    results.push(function (parameters) {
       return external.log.apply(external, resolutions.map(function (r) {
         return r === null || r === void 0 ? void 0 : r.valueOf(parameters);
       }));
@@ -94778,9 +94755,9 @@ var convertLoopEachProperty = function convertLoopEachProperty(action, stepResul
     var loopEach = action.loopEach,
       subAction = _objectWithoutPropertiesLoose$1(action, _excluded3$1);
     var loopEachResolution = calculateArray(loopEach);
-    var subStepResults = new StepScript();
+    var subStepResults = [];
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      stepResults.add(function (parameters, context) {
+      stepResults.push(function (parameters, context) {
         var array = loopEachResolution === null || loopEachResolution === void 0 ? void 0 : loopEachResolution.valueOf(parameters);
         if (array) {
           for (var i = 0; i < array.length; i++) {
@@ -94813,9 +94790,9 @@ var convertLoopProperty = function convertLoopProperty(action, stepResults, util
     var loopResolution = loops.map(function (loop) {
       return calculateNumber(loop, 0);
     });
-    var subStepResults = new StepScript();
+    var subStepResults = [];
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      stepResults.add(function (parameters, context) {
+      stepResults.push(function (parameters, context) {
         return keepLooping(parameters, context, loopResolution, subStepResults);
       });
       return ConvertBehavior.SKIP_REMAINING_CONVERTORS;
@@ -94860,9 +94837,9 @@ var convertParametersProperty = function convertParametersProperty(action, resul
         resolution = _ref[1];
       return [key, calculateResolution(resolution)];
     });
-    var subStepResults = new StepScript();
+    var subStepResults = [];
     return Promise.resolve(convertAction(subAction, subStepResults, utils, external, convertorSet)).then(function () {
-      results.add(function (parameters, context) {
+      results.push(function (parameters, context) {
         var paramValues = newParams(undefined, context);
         for (var _iterator = _createForOfIteratorHelperLoose(paramEntries), _step; !(_step = _iterator()).done;) {
           var _entry$;
@@ -94891,7 +94868,7 @@ var convertScriptProperty = function convertScriptProperty(action, results, _ref
     var steps = getSteps({
       name: name
     });
-    results.add(function (parameters, context) {
+    results.push(function (parameters, context) {
       return execute(steps, parameters, context);
     });
     return Promise.resolve();
@@ -94965,11 +94942,11 @@ var ScriptProcessor = /*#__PURE__*/function () {
       var _this3 = this;
       return Promise.resolve(_this3.fetchScripts()).then(function (scriptMap) {
         var scripts = filterScripts(_this3.scripts, filter);
-        var steps = new StepScript();
+        var steps = [];
         scripts.forEach(function (script) {
           var _scriptMap$get;
-          return (_scriptMap$get = scriptMap.get(script)) === null || _scriptMap$get === void 0 ? void 0 : _scriptMap$get.getSteps().forEach(function (step) {
-            return steps.add(step);
+          return (_scriptMap$get = scriptMap.get(script)) === null || _scriptMap$get === void 0 ? void 0 : _scriptMap$get.forEach(function (step) {
+            return steps.push(step);
           });
         });
         return steps;
@@ -95497,7 +95474,7 @@ function useGlAction(_ref) {
       var data = buffer.buffer ? calculateTypedArray(buffer.buffer, dokGlActions.calculateTypeArrayConstructor(buffer.glType)) : undefined;
       var length = calculateNumber(buffer.length);
       var glUsage = buffer.usage ? getGlUsage(calculateString(buffer.usage)) : undefined;
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         var _ref3, _target$valueOf, _ref4, _glUsage$valueOf;
         var locationValue = location.valueOf(parameters);
         var bufferInfo = getBufferInfo(locationValue);
@@ -95527,7 +95504,7 @@ function useGlAction(_ref) {
       var srcOffset = calculateNumber(buffer.srcOffset);
       var length = calculateNumber(bufferSubData.length);
       var location = buffer.location !== undefined ? calculateString(buffer.location) : undefined;
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         var _ref6, _target$valueOf2;
         var bufferInfo = location ? getBufferInfo(location.valueOf(parameters)) : undefined;
         var targetValue = (_ref6 = (_target$valueOf2 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf2 : bufferInfo === null || bufferInfo === void 0 ? void 0 : bufferInfo.target) != null ? _ref6 : WebGL2RenderingContext.ARRAY_BUFFER;
@@ -95550,7 +95527,7 @@ function useGlAction(_ref) {
       if (!bind) {
         return Promise.resolve();
       }
-      results.add(function (_, context) {
+      results.push(function (_, context) {
         var cleanup = bindVertexArray();
         context.addCleanup(cleanup);
       });
@@ -95567,7 +95544,7 @@ function useGlAction(_ref) {
       }
       var target = bind.target ? getBufferTarget(calculateString(bind.target)) : undefined;
       var location = calculateString(bind.location);
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         var _ref9, _target$valueOf3, _getBufferInfo;
         var locationValue = location.valueOf(parameters);
         var targetValue = (_ref9 = (_target$valueOf3 = target === null || target === void 0 ? void 0 : target.valueOf(parameters)) != null ? _target$valueOf3 : (_getBufferInfo = getBufferInfo(locationValue)) === null || _getBufferInfo === void 0 ? void 0 : _getBufferInfo.target) != null ? _ref9 : WebGL2RenderingContext.ARRAY_BUFFER;
@@ -95590,7 +95567,7 @@ function useGlAction(_ref) {
       var first = calculateNumber(vertexFirst, 0);
       var count = calculateNumber(vertexCount, 0);
       var instances = instanceCount !== undefined ? calculateNumber(instanceCount) : undefined;
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         drawArrays(WebGL2RenderingContext.TRIANGLES, first.valueOf(parameters), count.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
       });
       return Promise.resolve();
@@ -95612,7 +95589,7 @@ function useGlAction(_ref) {
       var countValueOf = calculateNumber(count, 0);
       var glTypeValueOf = dokGlActions.getGlType(glType);
       var offsetValueOf = calculateNumber(offset);
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         drawElements(WebGL2RenderingContext.TRIANGLES, countValueOf.valueOf(parameters), glTypeValueOf.valueOf(parameters), offsetValueOf.valueOf(parameters), instances === null || instances === void 0 ? void 0 : instances.valueOf(parameters));
       });
       return Promise.resolve();
@@ -95643,7 +95620,7 @@ function useGlAction(_ref) {
       var offset = calculateNumber(attributes.offset);
       var enable = attributes.enable !== undefined ? calculateBoolean(attributes.enable) : undefined;
       var divisor = attributes.divisor !== undefined ? calculateNumber(attributes.divisor) : undefined;
-      results.add(function (parameters, context) {
+      results.push(function (parameters, context) {
         var locationValue = loc.valueOf(parameters);
         var bufferInfo = getBufferInfo(locationValue);
         if (bufferInfo.location < 0) {
@@ -95684,35 +95661,35 @@ function useGlAction(_ref) {
       var location = calculateString(uniform.location);
       if ((uniform === null || uniform === void 0 ? void 0 : uniform["int"]) !== undefined) {
         var value = calculateNumber(uniform["int"]);
-        results.add(function (parameters) {
+        results.push(function (parameters) {
           var _getUniformLocation;
           return gl === null || gl === void 0 ? void 0 : gl.uniform1i((_getUniformLocation = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation : null, value.valueOf(parameters));
         });
       }
       if ((uniform === null || uniform === void 0 ? void 0 : uniform["float"]) !== undefined) {
         var _value = calculateNumber(uniform["float"]);
-        results.add(function (parameters) {
+        results.push(function (parameters) {
           var _getUniformLocation2;
           return gl === null || gl === void 0 ? void 0 : gl.uniform1f((_getUniformLocation2 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation2 : null, _value.valueOf(parameters));
         });
       }
       if ((uniform === null || uniform === void 0 ? void 0 : uniform.matrix) !== undefined) {
         var _value2 = calculateTypedArray(uniform.matrix);
-        results.add(function (parameters) {
+        results.push(function (parameters) {
           var _getUniformLocation3;
           return gl === null || gl === void 0 ? void 0 : gl.uniformMatrix4fv((_getUniformLocation3 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation3 : null, false, _value2.valueOf(parameters));
         });
       }
       if ((uniform === null || uniform === void 0 ? void 0 : uniform.ints) !== undefined) {
         var _value3 = calculateTypedArray(uniform.ints);
-        results.add(function (parameters) {
+        results.push(function (parameters) {
           var _getUniformLocation4;
           return gl === null || gl === void 0 ? void 0 : gl.uniform1iv((_getUniformLocation4 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation4 : null, _value3.valueOf(parameters));
         });
       }
       if ((uniform === null || uniform === void 0 ? void 0 : uniform.floats) !== undefined) {
         var _value4 = calculateTypedArray(uniform.floats);
-        results.add(function (parameters) {
+        results.push(function (parameters) {
           var _getUniformLocation5;
           return gl === null || gl === void 0 ? void 0 : gl.uniform1fv((_getUniformLocation5 = getUniformLocation(location.valueOf(parameters))) != null ? _getUniformLocation5 : null, _value4.valueOf(parameters));
         });
@@ -95731,7 +95708,7 @@ function useGlAction(_ref) {
       if (typeof clear !== "object" || clear.hasOwnProperty("formula")) {
         var _clearField = clear;
         var clearResolution = calculateNumber(_clearField);
-        results.add(function (parameters) {
+        results.push(function (parameters) {
           var bitValue = clearResolution.valueOf(parameters);
           if (bitValue) {
             gl === null || gl === void 0 ? void 0 : gl.clear(bitValue);
@@ -95743,7 +95720,7 @@ function useGlAction(_ref) {
       var color = calculateBoolean(clearField.color);
       var depth = calculateBoolean(clearField.depth);
       var stencil = calculateBoolean(clearField.stencil);
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         var bitValue = 0;
         if (color.valueOf(parameters)) {
           bitValue |= WebGL2RenderingContext.COLOR_BUFFER_BIT;
@@ -95770,7 +95747,7 @@ function useGlAction(_ref) {
         return Promise.resolve();
       }
       var id = calculateString(activateProgramProp);
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         return activateProgram(id.valueOf(parameters));
       });
       return Promise.resolve();
@@ -95790,7 +95767,7 @@ function useGlAction(_ref) {
       var textureIndex = calculateNumber(textureId);
       var widthValue = action.initTexture.width ? calculateNumber(width) : undefined;
       var heightValue = action.initTexture.height ? calculateNumber(height) : undefined;
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         initTexture(convertTextureId(textureIndex.valueOf(parameters)), widthValue === null || widthValue === void 0 ? void 0 : widthValue.valueOf(parameters), heightValue === null || heightValue === void 0 ? void 0 : heightValue.valueOf(parameters));
       });
       return Promise.resolve();
@@ -95815,7 +95792,7 @@ function useGlAction(_ref) {
       });
       var sourceRect = [0, 0, 0, 0];
       var destRect = [0, 0, 0, 0];
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         if (sourceRectValueOf || destRectValueOf) {
           for (var i = 0; i < 4; i++) {
             var _sourceRectValueOf$i$, _destRectValueOf$i$va;
@@ -95841,7 +95818,7 @@ function useGlAction(_ref) {
       var imageId = calculateString(video.imageId);
       var volume = video.volume === undefined ? undefined : calculateNumber(video.volume);
       var onLoad = (_utils$executeCallbac = utils.executeCallback) === null || _utils$executeCallbac === void 0 ? void 0 : _utils$executeCallbac.onLoad;
-      results.add(function (parameters, context) {
+      results.push(function (parameters, context) {
         loadVideo(src.valueOf(parameters), imageId.valueOf(parameters), volume === null || volume === void 0 ? void 0 : volume.valueOf(parameters), context, function (video) {
           onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
             videoWidth: video.width,
@@ -95864,7 +95841,7 @@ function useGlAction(_ref) {
       var src = calculateString(image.src);
       var imageId = calculateString(image.imageId);
       var onLoad = (_utils$executeCallbac2 = utils.executeCallback) === null || _utils$executeCallbac2 === void 0 ? void 0 : _utils$executeCallbac2.onLoad;
-      results.add(function (parameters, context) {
+      results.push(function (parameters, context) {
         loadImage(src.valueOf(parameters), imageId.valueOf(parameters), function (image) {
           console.log("onLoad parameters", parameters);
           onLoad === null || onLoad === void 0 ? void 0 : onLoad(context, {
@@ -95888,7 +95865,7 @@ function useGlAction(_ref) {
       if (!action.initMatrix) {
         return Promise.resolve();
       }
-      results.add(initializeMatrix);
+      results.push(initializeMatrix);
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
@@ -95916,7 +95893,7 @@ function useGlAction(_ref) {
       var quaternion = glMatrix.quat.create();
       var translationVec3 = glMatrix.vec3.create();
       var scaleVec3 = glMatrix.vec3.create();
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }
@@ -95935,7 +95912,7 @@ function useGlAction(_ref) {
       }
       var index = action.bufferSubDataMatrix.index;
       var indexResolution = calculateNumber(index);
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }
@@ -95958,9 +95935,9 @@ function useGlAction(_ref) {
         subAction = _objectWithoutPropertiesLoose(action, _excluded$6);
       var target = updateAttributeBuffer.target ? getBufferTarget(calculateString(updateAttributeBuffer.target)) : undefined;
       var location = calculateString(updateAttributeBuffer.location);
-      var subStepResults = new dokGlActions.StepScript([]);
+      var subStepResults = [];
       return Promise.resolve(convertAction(subAction, subStepResults, utils, external, actionConversionMap)).then(function () {
-        results.add(function (parameters, context) {
+        results.push(function (parameters, context) {
           var _ref17, _target$valueOf4, _bufferInfo$usage;
           var locationValue = location.valueOf(parameters);
           var bufferInfo = getBufferInfo(locationValue);
@@ -95997,7 +95974,7 @@ function useGlAction(_ref) {
       var bottomValue = calculateNumber(bottom);
       var zFarValue = calculateNumber(zFar, 5000);
       var zNearValue = calculateNumber(zNear, -100);
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }
@@ -96024,7 +96001,7 @@ function useGlAction(_ref) {
       var zNearValue = calculateNumber(zNear, -100);
       var aspectValue = calculateNumber(aspect, 1);
       var DEG_TO_RADIANT = Math.PI / 90;
-      results.add(function (parameters) {
+      results.push(function (parameters) {
         if (!parameters.matrix) {
           initializeMatrix(parameters);
         }
