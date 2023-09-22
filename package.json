@@ -1,7 +1,7 @@
 {
    "$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/package.json",
    "name": "dok-gl-canvas",
-   "version": "1.0.57",
+   "version": "1.0.58",
    "description": "Use WebGL with React and Dok-actions",
    "author": "jacklehamster",
    "license": "MIT",
