@@ -1,7 +1,7 @@
 import { Context } from "dok-gl-actions";
-export declare type TextureId = "TEXTURE0" | "TEXTURE1" | "TEXTURE2" | "TEXTURE3" | "TEXTURE4" | "TEXTURE5" | "TEXTURE6" | "TEXTURE7" | "TEXTURE8" | "TEXTURE9" | "TEXTURE10" | "TEXTURE11" | "TEXTURE12" | "TEXTURE13" | "TEXTURE14" | "TEXTURE15" | "TEXTURE16" | "TEXTURE17" | "TEXTURE18" | "TEXTURE19" | "TEXTURE20" | "TEXTURE21" | "TEXTURE22" | "TEXTURE23" | "TEXTURE24" | "TEXTURE25" | "TEXTURE26" | "TEXTURE27" | "TEXTURE28" | "TEXTURE29" | "TEXTURE30" | "TEXTURE31";
-export declare type Url = string;
-export declare type ImageId = string;
+export type TextureId = "TEXTURE0" | "TEXTURE1" | "TEXTURE2" | "TEXTURE3" | "TEXTURE4" | "TEXTURE5" | "TEXTURE6" | "TEXTURE7" | "TEXTURE8" | "TEXTURE9" | "TEXTURE10" | "TEXTURE11" | "TEXTURE12" | "TEXTURE13" | "TEXTURE14" | "TEXTURE15" | "TEXTURE16" | "TEXTURE17" | "TEXTURE18" | "TEXTURE19" | "TEXTURE20" | "TEXTURE21" | "TEXTURE22" | "TEXTURE23" | "TEXTURE24" | "TEXTURE25" | "TEXTURE26" | "TEXTURE27" | "TEXTURE28" | "TEXTURE29" | "TEXTURE30" | "TEXTURE31";
+export type Url = string;
+export type ImageId = string;
 interface Props {
     gl?: WebGL2RenderingContext;
 }
@@ -9,7 +9,7 @@ export default function useImageAction({ gl }: Props): {
     loadImage: (src: Url, imageId: ImageId, onLoad?: ((image: HTMLImageElement) => void) | undefined) => () => void;
     loadVideo: (src: Url | "webcam", imageId: ImageId, volume: number | undefined, context: Context, onLoad?: ((video: HTMLVideoElement) => void) | undefined) => void;
     executeLoadTextureAction: (imageId: ImageId, textureId: TextureId | undefined, sourceRect: [number, number, number, number], destRect: [number, number, number, number]) => void;
-    initTexture: (texture?: "TEXTURE0" | "TEXTURE1" | "TEXTURE2" | "TEXTURE3" | "TEXTURE4" | "TEXTURE5" | "TEXTURE6" | "TEXTURE7" | "TEXTURE8" | "TEXTURE9" | "TEXTURE10" | "TEXTURE11" | "TEXTURE12" | "TEXTURE13" | "TEXTURE14" | "TEXTURE15" | "TEXTURE16" | "TEXTURE17" | "TEXTURE18" | "TEXTURE19" | "TEXTURE20" | "TEXTURE21" | "TEXTURE22" | "TEXTURE23" | "TEXTURE24" | "TEXTURE25" | "TEXTURE26" | "TEXTURE27" | "TEXTURE28" | "TEXTURE29" | "TEXTURE30" | "TEXTURE31" | undefined, width?: number | undefined, height?: number | undefined) => void;
+    initTexture: (texture?: TextureId, width?: GLsizei, height?: GLsizei) => void;
     hasImageId: (imageId: ImageId) => boolean;
 };
 export {};
