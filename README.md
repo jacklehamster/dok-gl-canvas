@@ -28,4 +28,3 @@ class Example extends Component {
 ## License
 
 MIT © [jacklehamster](https://github.com/jacklehamster)
-
