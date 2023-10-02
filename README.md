@@ -7,7 +7,7 @@ The idea of this new language is to make code easy to configure, as it's just a 
 
 ## Demo
 
-https://jacklehamster.github.io/dok-gl-canvas/example/build
+[https://jacklehamster.github.io/dok-gl-canvas/example/build](https://jacklehamster.github.io/dok-gl-canvas/example/build)
 
 [Sep. 23, 2023]
 ## Project scrapped
